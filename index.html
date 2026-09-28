@@ -2515,6 +2515,10 @@ html[data-era="y1994"] #upd-bar{box-shadow:none}
           <div class="fgroup" style="margin:0"><label>身边层每几幕跑一次（1=每幕）</label><input id="disp-l2" type="number" min="1" max="20" value="3"></div>
         </div>
         <div class="fgroup">
+          <label>世界热闹程度（场景里多久冒出一件身边小事：邻桌吵架、当局弹窗、馆战警报……）</label>
+          <select id="disp-stir"><option value="0">安静：不掷插曲</option><option value="1">适中：约三四幕一件（默认）</option><option value="2">热闹：隔一幕就可能有事</option></select>
+        </div>
+        <div class="fgroup">
           <label>来信疏密（收到一封后隔几幕再来下一封；授勋人事集市这类公函与跳岁月的积信不受限）</label>
           <select id="disp-mailcad"><option value="2">常：隔两幕（默认）</option><option value="4">疏：隔四幕</option><option value="0">密：不限，只管写信人知道什么与口吻</option></select>
         </div>
@@ -6047,6 +6051,86 @@ function stirBlock(run, castSet) {                       /* 主提示词【众�
     busy.map(n => { const p = npcs[n]; return "◆ " + n + "（" + (p.rel || "泛交") + "）" + (p.note ? "近况：" + p.note : "") + (p.plan ? (p.note ? "；" : "") + "打算：" + p.plan : ""); }).join("\n") +
     (seekers.length ? (busy.length ? "\n" : "") + "【找上门】下列人物有自己的事要找主角。本幕或近几幕挑合适时机让她主动出现——登门、半路截住、来电、托人捎话都行，一幕至多来一位；来了就把事说出口，主角接不接由玩家定：\n" +
       seekers.map(n => "◆ " + n + "（" + (npcs[n].rel || "泛交") + "）：" + npcs[n].seek.t).join("\n") : "") + "\n";
+}
+/* P233 场景插曲：引擎按纪元掷一件身边的小事，主模型织进本幕；S.disp.stir 0 安静／1 适中（默认）／2 热闹 */
+const STIR_EV = {
+  y2077: [
+    "梅网突然弹出当局的视频弹窗：三个黑裙白衬衫的工作人员，只有一个在说话，另两个像是来看热闹的，通知附近居民一项登记或核查",
+    "附近博物馆拉响馆战警报：隔壁馆趁周日闪击了异界的藏品储藏点，加班的魔女被紧急召回，头顶扫帚乱飞",
+    "巨企食品部在街口地推新款便当，免费试吃，排队的人为插队吵起来",
+    "有人违法动了时间，一群时间猎犬在街区里嗅来嗅去；时间科的人背着高尔夫球杆慢悠悠赶来加班",
+    "纪律小组的钦差到附近单位巡查，基层慌忙迎检，大家都在猜她们是「严格按照规章办事」还是「严格按照办事规章」",
+    "死灵产线的幽灵猫把一筐沾了死灵之气的石头送错了地址，正蹲在门口不肯走",
+    "巨型俱乐部空岛从头顶掠过，光幕上滚着某选手股价暴跌的消息，两拨粉丝在街边对骂",
+    "有个网红在附近直播冲五十万粉「网红炼气期」，拉着路人入镜",
+    "生态监察员女妖气鼓鼓地来查活体藏品的劳动标准——美人鱼的四班轮换排错了",
+    "传送门站通勤高峰，空间热度超标限流，排队的魔女怨声载道，有人要赶回家吃晚饭",
+    "转化学院晚上开学，一队异界新生被领着过街，男女分院，东张西望地问东问西",
+    "某博物馆刚挖出一只沉睡的远古女妖，围观的人把路堵了，展柜只肯露五分之一",
+    "几个来访的奥法斯兰魔女憋着劲找茬，发现压根没人提防她们，越发气不过",
+    "光幕滚动经济快讯：法瓦尼亚金镑跌了一周半，今日强势回升；茶馆里有人在算自己那十分之一的股票",
+    "身边有人的终端收到一个未在册异界的求救信号——按《魔女异界打捞法》，发现者能拿五成股份，旁人眼都直了",
+    "一只龙女妖在路边晒太阳，被人摸下巴摸得眯起眼；旁边一位魔女被碰了下手臂，当场哈气",
+    "公分兑换处排起长队，有人换了三十多公分没去财宝库登记，被当场叫住",
+    "监管会的魔女挨家做月检：收容异种的给宠物做疯犬病检测，一户人家的「宠物」死活不肯出来",
+    "梅网考编报名开放，一万三千人抢报，身边有人抱着申论刷题刷到魂不守舍",
+    "有家小公司在街口招临时仆从军去异界「做开发」，日结，还管超级压缩粮",
+    "隔壁单位出了事故，几名魔女「进入轮回」，特殊渠道十五天内回阳间；同事们在争该随白包还是贺礼",
+    "快讯：某秘银囤积世界发生大爆炸，通道修复要93天，秘银行情一片恐慌",
+    "一位北海巨妖魔女坐在餐馆门口，章鱼发一直在蠕动——她饿了，店家不敢催",
+    "有人在梅网上口嗨了个敏感词，当局弹窗秒到，周围人憋笑",
+    "谁家的空岛在换泊位，挡了航道，扫帚交警在半空里开罚单",
+    "巨企学校放学，一群学生吐槽三十人的班怎么都挤不进前五，这就是四大的诅咒",
+    "劳动派遣公司门口，一个临时工拿着转正考第四名的成绩单，不知道该哭还是该笑"
+  ],
+  y1994: [
+    "两个魔女在半空撞了扫帚，悬在那儿互相骂街，底下一群人仰着脖子看热闹",
+    "凌晨三点的信使送错了信，一封写着别人名字的信塞在了门口",
+    "魔女决斗联赛海选的传单满天飞，街边有人一言不合当场约斗，警务魔女正往这边赶",
+    "小卖部里挤满人看艾琳杯转播，老板开了盘口，赌谁赢",
+    "一艘刚从星海回港的船带出来一只小魔物，溜进了集市，摊子翻了一地",
+    "开拓者协会在码头招下星海的人手，开价不低，条件写得含糊",
+    "某样名物一夜涨价，摊主理直气壮，买主骂骂咧咧",
+    "邻居家冰箱里存了八个月的蛋就要孵了，一家子紧张得睡不着，到处借东西",
+    "电视台的记者在街头拦人采访，问今年魔潮会不会来",
+    "卖「速成魔药」的小贩被人当场拆穿，围观的起哄要退钱",
+    "电话亭排着长队，前头的人打长途打到哭",
+    "放学的小魔女们骑扫帚比赛超速，差点撞上晾衣绳",
+    "魔力灯忽然罢工，整条街黑了，有人骂供能站",
+    "巷子里有人兜售来路不明的异界货，说是星海打捞的",
+    "天边泛起一层不寻常的紫光，老人们说这是魔潮的前兆，菜价跟着涨",
+    "新款扫帚限量发售，店门口排了一夜的队，有人倒卖号牌"
+  ],
+  mochao: [
+    "魔潮预警的警报在城里拉响，居民排队领防护符，有人囤货",
+    "星海航线因魔潮临时封航，码头上滞留的旅客吵着要退票",
+    "机关在街口张贴新的魔力登记令，围观的人议论纷纷",
+    "一支刚从异界回来的开拓队在酒馆里请客，吹嘘这趟的收获",
+    "某家老字号铺子在魔潮里亏了本，门口挂出转让牌",
+    "有人在广场上演讲，主张魔女该往星海外扩，底下嘘声一片"
+  ],
+  any: [
+    "隔壁桌两个人为一笔旧账吵了起来，越吵越大声",
+    "一个迷路的小魔女拽住路人问路，说自己的母亲找不见了",
+    "有人当街丢了钱袋，失主和捡到的人各执一词",
+    "天气骤变，一场急雨把街上的人都赶进了屋檐下",
+    "一只使魔叼着主人的东西跑了，主人在后面追",
+    "店家打烊前甩卖，门口挤成一团"
+  ]
+};
+const STIR_P = [0, .3, .55];
+function stirRoll(run) {                                 /* 本幕要不要来一件插曲；要就返回一句，不要返回空 */
+  const lv = S.disp.stir != null ? S.disp.stir : 1;
+  if (!lv) return "";
+  const acts = stirActs(run);
+  if (acts < 1 || acts - (run.stirAt || 0) < (lv === 2 ? 1 : 2) || Math.random() >= STIR_P[lv]) return "";
+  const pool = (STIR_EV[eraByYear(run.year || 1994).id] || []).concat(STIR_EV.any);
+  const used = run.stirUsed || [];
+  const fresh = pool.filter(t => !used.includes(t.slice(0, 12)));
+  const t = (fresh.length ? fresh : pool)[Math.floor(Math.random() * (fresh.length || pool.length))];
+  run.stirAt = acts;
+  run.stirUsed = used.concat(t.slice(0, 12)).slice(-Math.floor(pool.length * .7));
+  return t;
 }
 function memoRosterPick(run, names, cap) {               /* 名单进提示词：近见者、走动多的优先，顺序仍按入档先后 */
   cap = cap || 24;
@@ -16883,7 +16967,8 @@ const PromptM = (() => {
 "【主角】玩家扮演的原创角色「" + run.pname + "」，魔女名「" + run.alias + "」，出身：" + ((run.origin && run.origin.label) || "魔女") + ((run.origin && run.origin.trait) ? "——" + run.origin.trait : "") + " 她不是原著任何角色，也不是 AI 的角色：她的心思、抉择与台词一律由玩家给出，你不得代写。她的处境以本提示词里的数字为准，不要另行断言她的家境、心气或家人的态度。" + (run.identity ? " 社会身份：" + run.identity + "。" : "")
   + (run.profile && run.profile.look ? " 外貌：" + run.profile.look + "。" : "") + (function () { const ts = talentList(run); return ts.length ? " 天赋：" + ts.map(t => t.nm + (t.lv > 1 ? t.lv + "级" : "") + "（" + t.d + "）").join("；") + "。天赋的加成已由引擎计入判定与账房，正文只须体现她确实擅长这些。" : ""; })() + (run.profile && run.profile.temper ? " 性格：" + run.profile.temper + "——她的言行须合这脾气，但主意仍只由玩家拿。" : "") + (run.profile && run.profile.status ? " 身份近况：" + run.profile.status + "。" : ""),
 "【当前】" + U.yearText(run.year) + (run.clock ? " " + run.clock.m + "月" + run.clock.d + "日·" + (run.clock.part || "午") : "") + "，" + (era ? era.name : "—") + "，身在" + (RNAME[run.place] || "—") + (curR ? "（枢纽" + curR.c + "，名物：" + curR.p + "）" : "") + "。存款" + U.fmtYuan(run.wealth || 0) + "，年入合计" + incomeOf(run).total + "元/年（产业＋空岛设施＋股权年息）。" + (run.lastDeny ? "【账房驳回】上幕交易未成：" + run.lastDeny + "——请在剧情中自然处理这次未遂的交易，不要当作已完成。" : "") + (run.lastLint ? "【文风纠察】上幕：" + run.lastLint + "。本幕改正，不要在正文里提这件事。" : "") + (run._nudge ? "【引擎对不上账】" + run._nudge : "") + (function () { const st = altStat(run); if (!st) return ""; const a = run.alt; return "【异界·" + a.nm + "】占 " + st.own + "/" + st.all + " 片，踏查 " + st.seen + " 片，治下 " + st.pop + " 万口，贡赋约" + U.fmtYuan(st.inc) + "/年。信仰 " + st.faith + "（他们觉得她多神圣），轻视 " + st.slight + "（他们觉得她多好欺负），破绽 " + Math.round(a.heat) + "。片区名单（都是本界的地皮，不是卷宗）：" + a.rs.slice(0, 12).map(r9 => r9.nm + (r9.own ? "·已归化" + (r9.att ? "·" + r9.att : "") : (r9.seen ? "·已踏查" : "·未踏查")) + ((r9.gar || 0) ? "·驻军" + r9.gar + "员" : "")).join("、") + (a.rs.length > 12 ? " 等" + a.rs.length + "片" : "") + "。玩家写「异界：某片区名」或「归化某片」＝要归化本界这一片（状态栏落 异界：归化片区名），照本界剧情写，绝不是买新界、更不是拉去柜台。传送门在" + (a.portal ? "她手上" : "别人手上") + "。" + ((a.log || []).length ? "界内近事：" + a.log.slice(-3).map(l9 => l9.t).join("；") + "。" : "") + "——官面上这叫开垦。她扮的是圣女，扮的是弱；轻视攒够了才好摊牌，所以吃亏是本钱，不是失手。" + (((run.alts || []).length > 1) ? "名下共 " + run.alts.length + " 个界（" + run.alts.map(x9 => x9.nm).join("、") + "），状态栏里的异界动词只作用于眼下这一个。" : ""); })() + (function () { const ls = (run.lots || []); if (!ls.length) return ""; return "【标的】账房挂出来的开发权，这一季就这几宗（引擎发的牌：名、规格、界相、矿藏、特质、起价、估值一个字都不许改，也不许自造别的标的。你只管把行市讲活——谁在抬价、谁在观望、经手人什么脸色）：" + ls.map(l => l.nm + "（" + l.scale + "·" + l.bio + "·" + l.res + "·" + l.trait + "·凶险" + l.risk + "级，起价" + U.fmtYuan(l.bid0) + "，估值" + U.fmtYuan(l.val) + "，自去踏勘的盘缠" + U.fmtYuan(xwLotFee(l)) + (l.tried ? "·已扑空" + l.tried + "趟" : "") + "）").join("；") + "。要落槌写 竞拍：标的名｜出价N元（须 A2）；要自己去踏勘写 勘定：标的名。成没成一律引擎裁，不得先行宣布。"; })() + (function () { if (eraByYear(run.year).id !== "y2077" || typeof PLANES77 === "undefined") return ""; const ps9 = PLANES77.map(p9 => p9.name + "（" + p9.own + (p9.kind === "pole" ? "" : "·控股" + p9.stake + "%") + "·" + p9.p + "）").join("；"); return "【多面宇宙·体制】风暴点（混沌风暴）是魔女现居与全力开发之地，国策维稳，对外只求争取开发时间。位面控股是魔女们共有的家国账（按控制与探索度分配，引擎的数一个字不许改）：" + ps9 + "。个人或公司要另持份额，写股权行（股权：+位面名联合开发｜N%｜价M元）由账房核价——按《魔女异界打捞法》，发现无主异界纳入星图者得50%股份，多面宇宙联合会等主要组织抽走一份作保护费。代理人战争只在无绝对控股的世界打，正文不得越线开战。当局与四大巨企共治：公职有编制、有油水、有纪委；巨企职位，公司即小国。" + ((run.fame || 0) ? "政治声望（名气）" + run.fame + "——评优、上报、授勋、办成大事都涨，代言与教练的门票也是它。" : ""); })() + (function () { const md9 = run.medals || [], mr9 = run.merit || 0, gc9 = run.gclass || 0, gf9 = run.gongfen || 0; if (!md9.length && !mr9 && !gc9 && !gf9) return ""; return "【勋赏·科层】军功 " + mr9 + "，勋章 " + (md9.length ? md9.map(m9 => "「" + m9.nm + "」（" + m9.y + "年）").join("、") : "暂无") + "，科层职级「" + (GCLASS[gc9] || "白身") + "」" + (gf9 ? "，公分 " + gf9 + "（公门硬通货，单笔超三十的奖励要到财宝库登记）" : "") + "。这四样全归引擎：军功只在出阵里挣（得胜+1大捷+3），勋章按含金量自动授（大众级＜机构级＜姓氏级＜姓氏+机构，顶级是伟大魔女候补骑士团勋章、可荫直系），科层按年资＋军功折算＋勋章年结核定——正文不得自行授勋、晋级或改这些数，授勋与调职以信箱公函为准。勋章是公开荣誉——授章见报，名气随含金量涨（引擎已按章加过，正文别再自行加码）；军功本身只是档案里的数，记档不见报，光有战功不授章照样没人认识。科层入口按学历：A2（大学）以上考公直入编制定「转正科员」，A1（戏称小学毕业证）与白身走非常态考试的快捷通道从「临时工」熬起——劳动派遣、同工同酬都是熬出来的年头，档案黑点一笔抵四分年资。高阶勋章的兑换（梅琳娜高阶装备、自选传奇法术）要在正文里找机关办，成没成引擎裁。"; })() + (function () { const m9 = run.mei; if (!m9 || !m9.on || !meiEra(run)) return ""; const e94 = typeof meiEra94 === "function" && meiEra94(run); const w9 = k9 => meiWord(run, k9);   /* P201c 提示词按线 */ const p9 = (m9.posts || [])[0]; const f9 = (m9.feed || []).filter(x => x.src !== "demo").slice(0, 2).map(x => x.from + "《" + String(x.txt).slice(0, 24) + "…》").join("；"); return "【" + meiWord(run, "brand") + "】她的" + meiWord(run, "acct") + "：" + meiWord(run, "fans") + " " + m9.fans + "（" + meiTierOf(m9.fans) + "）" + (p9 ? (p9.kind === "live" ? "；最近开播：「" + String(p9.txt).slice(0, 30) + "」（观众" + (p9.viewers || 0) + (p9.viral ? "·上过热榜" : "") + "）" : "；最近自己发的" + w9("post") + "：「" + String(p9.txt).slice(0, 40) + "」（赞" + p9.likes + "·转" + p9.rp + (p9.viral ? "·上过" + w9("hotPage") : "") + "）") : "；还没发过" + w9("post")) + (f9 ? "。" + w9("line") + "热帖：" + f9 : "") + ((m9.trend || []).length ? "。" + meiWord(run, "hot") + "：" + m9.trend.map(x => x.t).join("、") : "") + ((m9.bigfo || []).length ? "。关注了她" + meiWord(run, "acct") + "的大V：" + m9.bigfo.join("、") + "（很长脸）" : "") + "。这些是公开信息，NPC 可自然议论她的" + w9("post") + "与" + w9("hot") + "——认不认得出她按境界来：" + meiTierOf(m9.fans) + "在街上" + (m9.fans >= 100000 ? "偶尔会被认出来" : "没人认识") + "。" + w9("fans") + "、赞转与" + (e94 ? "频道" : "自媒体") + "收益全归引擎骰，正文不得报这些数的增减。旁人（旧识、官号、名人）在剧情里发了值得上时间线的动态，可在状态栏写 梅网：作者名｜动态内容（一幕至多两条，作者不得是她本人" + (typeof meiEra94 === "function" && meiEra94(run) ? "；1994 线的网叫社交网，行名仍写「梅网」" : "") + "）；她自己的动态与直播得她去" + meiWord(run, "brand") + "页发，正文里不得代发。" + (e94 ? "涨关注不止刷帖：授勋、科层晋升这类见报的大事，引擎自会往她账号推一条并结关注量；打了胜仗本身不推送，军功不见报。这几条推送正文照常写事情本身，不提数，也不代发那条推。" : "涨粉不止刷帖：授勋、归化片区、买下开垦权、科层晋升，引擎自会往播客推一条并结粉丝；打了胜仗本身不推送，军功不见报。这几条推送正文照常写事情本身，不提数，也不代发那条动态。") + "剧情里有人当场点了关注（旧识、家人、朋友、生意上的、她真打过交道的" + w9("brand") + "名人），写 圈粉：人名｜一句：动词只认「圈粉」，一幕至多两条，带来多少" + w9("fans") + "由引擎掷骰，正文只写这个人怎么点的关注、说了什么，不报数。仇敌、好感太浅、界内信众、档案里没有的人，一律不作数，同一个人只算一次。带货与周边两门生意在" + w9("brand") + "页「" + w9("biz") + "」里由她自己办，正文不代办、不报佣金与分成的数；金主找上门、私信里磨价钱、周边打样、" + (e94 ? "网友" : "粉丝") + "骂她恰烂钱，这些照常写。" + (e94 ? "1994 的网是拨号混沌网络：上网的是有薪魔女与球迷，大号说正经话、小号说人话，爱对线爱阴阳，加 www 显得宅；没有集市、位面、公分、机器猫这些东西，正文里不得出现。" : "梅网集市（中古店买岛、挂牌出让、猫球探险队投资）也在梅网页里办：约了看岛的，正文写上门看岛、卖家怎么说、岛什么样，成不成交由她在集市里点，正文不得代她付钱或宣布成交。") + meiSocialContext(run) + (typeof meiMarketContext === "function" ? meiMarketContext(run) : "") + (typeof meiHotContext === "function" ? meiHotContext(run) : ""); })() + (function () { const all9 = DB.get("xzh_forge", []) || []; if (!all9.length) return ""; const st9 = fgStandRegion(run.year); const em9 = eraMult(run.year || 1994); const ow9 = all9.filter(f9 => f9.own).map(f9 => "「" + f9.nm + "」（" + ((FG_SPEC[f9.spec] || {}).nm || "?") + "规格·已持有）").join("、"); const un9 = all9.filter(f9 => !f9.own).map(f9 => "「" + f9.nm + "」").join("、"); return "【掮客·定制异界】" + (run.alt ? "她眼下正经营「" + run.alt.nm + "」——柜台戏只有玩家明说要买新卷宗界才登场，本界片区的事别往柜台扯。" : "") + "铸好的卷宗：" + (ow9 || "") + (ow9 && un9 ? "；" : "") + (un9 ? "待购：" + un9 : "") + "。行价是账房定死的：小规格 " + U.fmtYuan(FG_SPEC.xiao.price * em9) + "（猫球摊——摊主是只会拨算盘的猫球，今年摊子支在" + st9.name + "）；中 " + U.fmtYuan(FG_SPEC.zhong.price * em9) + "、大 " + U.fmtYuan(FG_SPEC.da.price * em9) + "（南城·折叠空间管理局柜台，公文腔，先验资后成契，二手坐标诊断书随卷宗公示概不退换）。柜台戏尽管演——管事、验资、盖章都写活；成契写 购界：卷宗名｜小/中/大，人不在柜台地界或钱不够账房都会驳，驳了要在正文圆场。买定后写 异界：+卷宗名 落地。硬闸只管这份卷宗名单：名单里没成契的踏不进去；名单之外的地名——尤其她眼下经营之界的片区——不归掮客管，别当成不存在，更别拉去柜台。"; })() + (function () { if (!turnOn()) return ""; const tn = turnInit(run); const l = TURN_SLOT.filter(x => x.id !== "ling" && !tn.used[x.id]); return "【本周】第" + (tn.w || 1) + "周，还剩" + (l.length ? l.map(x => x.nm).join("、") : "无") + "可用" + (tn.debt ? "；已赶工" + tn.debt + "次，人是疲的" : "") + "。魔女昼伏夜出：下午两点起身，四点上工，十点下班，后半夜才是她过日子的时辰——落笔的时辰要对得上。"; })() + (function () { const jl = jobLine(run); return jl ? "营生：" + jl.j.nm + (jl.rank ? "（" + jl.rank + "）" : "") + "，年入约" + U.fmtYuan(jl.pay) + (jl.gov ? "；这是编制内的位子，预算过手" + (jl.heat >= 40 ? "，眼下风头 " + jl.heat + "，查得紧" : "") : "") + "。" : "营生：无（没有固定进项）。"; })() + (function () { const ps = profList(run); return ps.length ? "职业：" + ps.map(p => p.nm + "·" + p.lv + "级").join("，") + "（综合挑战等级 " + profCR(run) + (run.profSplit ? "；已转职 " + run.profSplit + " 次，主体经验分流" : "") + "）。资格：" + ((run.certs || []).join("、") || "无") + (certHas(run, "A2") ? "（有开发权，中烈度的界进得去）" : "（没 A2：中烈度以上的界只能翻墙进，海关那关抽查一次就够她喝一壶）") + (run.black ? "，档案有 " + run.black + " 笔偷渡黑档" : "") + "。" : ""; })() + (function () { const m2 = manaOf(run); return "年岁 " + (run.age || 18) + "（" + (pubertyWindow(run.age || 18, run.third) ? "正在第" + ["", "一", "二", "三"][pubertyWindow(run.age || 18, run.third)] + "段发育期，魔力飞涨" : "不在发育期，魔力长得极慢") + "）。魔力量" + manaN(m2.cap) + "公仑（" + m2.tier + "；同侪常见" + m2.peer + "），可用" + manaN(m2.cur) + "/" + manaN(m2.val) + "魔力值" + (m2.pct <= 15 ? "，已近枯竭，施法须写吃力或失手" : m2.pct <= 40 ? "，剩得不多" : "") + "。"; })() + (run.mana ? "魔力近况：" + run.mana + "。" : ""),
-(function () { const al = almanacOf(run.clock && run.clock.m); const nx = almanacOf((al.m % 12) + 1); return "【节令】" + al.m + "月·" + al.name + "——" + al.txt + "。下月：" + nx.name + "。街景生意与众人话题须应季；日期推进跨月时自然带出节令更替。"; })(),
+(function () { const al = almanacOf(run.clock && run.clock.m); const nx = almanacOf((al.m % 12) + 1); return "【节令】" + al.m + "月·" + al.name + "——" + al.txt + "。下月：" + nx.name + "。街景生意与众人话题须应季；日期推进跨月时自然带出节令更替。" +
+  (run.stirNow ? "\n【此刻插曲·引擎掷出】" + run.stirNow + "。——把这件事织进本幕：可以是背景里的动静，也可以正好撞上主角、打断她手头的事；写出它的开头与在场者的反应，不替主角表态，也不必当场了结。" : ""); })(),   /* P233 并入节令段，段表下标不动 */
 ((run.lastMove ? "【行脚·引擎已定】主角已自「" + run.lastMove.from + "」动身，走了 " + run.lastMove.days + " 天，抵达「" + run.lastMove.to + "」" + (run.lastMove.mode ? "（" + run.lastMove.mode + (run.lastMove.fare ? "·票资 " + run.lastMove.fare + " 元已由账房划扣，正文不得再记一笔" : "·没花票钱") + "）" : "") + "。" + (run.lastMove.ev ? "途中一事：" + run.lastMove.ev + "。" + (run.lastMove.evGold ? "（此事银钱进出 " + (run.lastMove.evGold > 0 ? "+" : "") + run.lastMove.evGold + " 元已入账，不得再记）" : "") + (run.lastMove.evDay ? "（因此多耗的 " + run.lastMove.evDay + " 天已计入行程）" : "") + "正文须把这一节写进旅程。" : "") + "本幕从抵达后写起，须体现这程路与到达光景；地名、天数与途中事不得更改。\n" : "") + (run.lastFound ? "【勘探裁定·引擎已定】本幕勘探发现新折叠空间「" + run.lastFound.name + "」（界相：" + xwBiomeOf(run.lastFound.bio).name + "——" + xwBiomeOf(run.lastFound.bio).air + "；初勘表评凶险" + run.lastFound.seen + "级，真凶须踏进去才知；" + run.lastFound.scale + "·" + run.lastFound.res + "·位面特质：" + run.lastFound.trait.name + "——" + run.lastFound.trait.txt + "，估值" + U.fmtYuan(run.lastFound.val || 0) + "）。已由引擎入档：星图新增此地、发现者股权6%已入账（开发0期暂无年息，魔女公司约两年推进一期）。正文必须按此描写发现经过，细节自便，但名称、规格、特质与股比不得更改。" : "")),
 ((run.lastXwNote ? "【勘探裁定·引擎已定】" + run.lastXwNote + "\n" : "")
 + (run._hard ? (function () { const t = talentOf(run._hard.id) || {}; return "【狠活已发动·引擎已定】主角使了「" + t.nm + "」：" + t.d
@@ -18755,7 +18840,7 @@ const Sim = (() => {
       "。势力：" + (Object.entries(run.factions || {}).map(([n, f]) => n + "（政:" + (f.pol || "—") + "；财:" + (f.eco || "—") + "）").join("｜") || "无") +
       "。近期大事：" + ((run.annals || []).slice(-5).map(a => U.yearText(a.y) + a.t).join("；") || "无");
   }
-  const CMD_KEYS = ["新闻", "势报", "势力", "版图", "民数", "人口", "大事", "信", "机会", "众声", "身边", "行情", "热点", "地标", "找上门", "交集"];   /* P232 找上门／交集 */
+  const CMD_KEYS = ["新闻", "势报", "势力", "版图", "民数", "人口", "大事", "信", "机会", "众声", "身边", "行情", "热点", "地标", "找上门", "交集", "人生"];   /* P232 找上门／交集；P233 人生 */
   const KEYEN = { news: "新闻", headline: "新闻", opportunity: "机会", opportunities: "机会", mail: "信", letter: "信", letters: "信", forces: "势力", faction: "势力", factions: "势力", event: "大事", events: "大事", people: "身边" };
   function eatCmd(stat, k, v) {
     v = String(v || "").replace(/[丨∣│]/g, "｜");   // 易混竖线一律当作分隔符
@@ -18822,6 +18907,10 @@ const Sim = (() => {
     else if (k === "找上门") {                                   /* P232 找上门：名字｜为什么事 */
       const seg = v.split(/[｜|]/).map(s => s.trim());
       if (seg[0] && seg[1]) { stat.seeks = stat.seeks || []; stat.seeks.push({ name: seg[0], t: seg.slice(1).join("，").slice(0, 50) }); }
+    }
+    else if (k === "人生") {                                     /* P233 人生：名字｜这些年的大变化 */
+      const seg = v.split(/[｜|]/).map(s => s.trim());
+      if (seg[0] && seg[1]) { stat.lives = stat.lives || []; stat.lives.push({ name: seg[0], t: seg.slice(1).join("，").slice(0, 40) }); }
     }
     else if (k === "交集") {                                     /* P232 交集：甲｜乙｜两人之间的事 */
       const seg = v.split(/[｜|]/).map(s => s.trim());
@@ -18953,6 +19042,9 @@ const Sim = (() => {
       }).join("\n");
       const pub = mailPublic(run, 4);
       const e94m = eraByYear(run.year || 1994).id === "y1994";
+      if (run.lifeY == null) run.lifeY = run.year;                  /* P233 年份往前走了，熟人的人生也要往前走 */
+      const yrs9 = Math.max(0, (run.year || 0) - (run.lifeY || 0)), lifeN = jump || yrs9 >= 5 ? 4 : yrs9 >= 1 ? 2 : 0;
+      const news9 = (run.news || []).slice(0, 3).map(n => n.title + (n.txt ? "（" + n.txt + "）" : ""));
       const sys = "你是魔女世界的众生百态模拟器。为下列人物各推演一行她此刻在忙什么、心里打什么小算盘（主角不在场时的她们）。每行格式严格：\n" +
         "身边：名字｜近况一句｜好感±N（可选，变化才写）｜心思：她暗中的小算盘一句（可选）｜心愿：她长远想要的东西（没有心愿的人必须补上，已有的只在变了时写）｜打算：她接下来几天要去做的一件具体的事\n" +
         "近况要比上回往前走一步：打算办成了、办砸了、半路变了卦，都写出来，别原地踏步。\n" +
@@ -18960,11 +19052,13 @@ const Sim = (() => {
         "另可附至多一行 交集：甲｜乙｜两人之间刚发生的一件事（合伙、吵翻、结对、欠账、撞见……甲乙都得是名单里的人）。\n" +
         "另可附至多一行 机会：名字｜标题｜一句｜期限（她主动向主角提出的请求或邀约，玩家可接可无视）。\n" +
         "贴合各自身份与好感，不重复旧近况。人物各有自己的生活与利益，不围着主角转。" +
+        (news9.length ? "\n新闻会落到人头上：下面「近期新闻」若碰到某人的营生、住处、家人或钱袋，她的近况与打算要跟着变——涨价了就抱怨或囤货，出了事就避难、趁机发财或托人打听。" : "") +
+        (lifeN ? "\n距上回已过了" + (jump ? "一段岁月" : yrs9 + "年") + "：为名单里至多" + lifeN + "人各写一行 人生：名字｜这些年她身上的一件大变化（升职、调岗、考上编制、搬家、结对、孵了女儿、病了一场、生意赔了、发了笔财、出远门……按身份与年代挑，别全是好事），她的近况与打算按新现状写。" : "") +
         "\n各人只知道自己括号里「同场」「回信里说过」那几件，与下面「见报」的事；主角其余的行踪、账目、异界与私事她们一概不知，近况、心思与信里都不能提，不能写「听说你……」。" +
         (jump
           ? "\n主角刚跳过一段岁月：" + (pick.length ? "由" + pick.map(x => "「" + x + "」").join("、") + "各" : "请另挑其中1到2位（先挑家人与至交），各") + "补一行她们这些年寄来的信：信：名字｜标题｜正文（100字内）。写她们自己这些年的日子——搬家、生意、身子骨、屯里铺里机关里的事——主角的事只写见报的与同场见过的。" + (pick.length ? pick.map(x => mailLetterBrief(run, x)).join("") : "口吻按关系：家人家常，朋友贫嘴，同僚八卦，师父短硬。") + (e94m ? "1994 线：写信是魔女最主要的交流方式，不急的事都写信；信使凌晨三点把信送到门口，信封写「寄信人——某某收」；家里人寄邮局信，上了社交网的才发电邮。" : "")
           : (pick.length ? "\n这次由「" + pick[0] + "」寄一封信：信：" + pick[0] + "｜标题｜正文（80字内）。只写她自己那头的一件事——有事托、有饭催、有账要、有牢骚都行——不要问候套话，不写「亲爱的」不写「此致」。" + mailLetterBrief(run, pick[0]) : "\n这次不写信。")) + STYLE_S;
-      const out = await Prov.chat({ system: sys, messages: [{ role: "user", content: "人物：\n" + roster + "\n\n见报的事（谁都知道）：" + (pub.join("；") || "这阵子没什么见报的") }], maxtok: 1000, temp: .9, aux: true, role: "news", signal: sigT(120000) });
+      const out = await Prov.chat({ system: sys, messages: [{ role: "user", content: "人物：\n" + roster + "\n\n见报的事（谁都知道）：" + (pub.join("；") || "这阵子没什么见报的") + (news9.length ? "\n\n近期新闻：" + news9.join("；") : "") }], maxtok: 1000, temp: .9, aux: true, role: "news", signal: sigT(120000) });
       const st = parseCmdLines(out);
       if (st.mails && !jump) st.mails = pick.length ? st.mails.slice(0, 1) : [];   /* P206 引擎说不写就不收，说写一封就只收一封 */
       if (st.mails && jump) st.mails = st.mails.slice(0, 2);
@@ -18981,6 +19075,13 @@ const Sim = (() => {
         const k9 = stirFind(run, sk.name);
         if (!k9 || Object.keys(run.npcs).filter(n => run.npcs[n].seek).length >= 2) continue;
         run.npcs[k9].seek = { t: sk.t, a: acts9 };
+      }
+      if (lifeN) run.lifeY = run.year;
+      if (st.lives) for (const lf of st.lives.slice(0, lifeN || 0)) {   /* P233 人生大事记进事迹 */
+        const k9 = stirFind(run, lf.name); if (!k9) continue;
+        const p = run.npcs[k9]; p.deeds = p.deeds || [];
+        const line = (U.yearText(run.year) + "前后：" + lf.t).slice(0, 40);
+        if (!p.deeds.includes(line)) { p.deeds.push(line); if (p.deeds.length > 5) p.deeds.shift(); }
       }
       if (st.ties) for (const tt of st.ties.slice(0, 1)) {
         const ka = stirFind(run, tt.a), kb = stirFind(run, tt.b);
@@ -19781,6 +19882,7 @@ const Game = (() => {
             else run.lastXwNote = "此番勘探一无所获（判定不足）——正文不得出现新的折叠空间，写扑空经过与残留线索即可。";
           }
         }
+        run.stirNow = stirRoll(run);                                  // P233 场景插曲：本幕掷一次
         const system = PromptM.buildSystem(run, run.log.filter(m => m.role === "player").slice(-1).map(m => m.text)[0] || "");
         const messages = PromptM.buildMessages(run, null);
         full = await Prov.chat({
@@ -19873,7 +19975,7 @@ const Game = (() => {
       if (jumped) montage(oldY, run.year, run.era);
       compress().catch(() => {}).then(() => { if (S.disp.ctxAuto !== 0) return ctxFold().catch(() => {}); });
       MVU.selfHeal(run, "本幕收尾");
-      run.lastMove = null;                                           // P120 行脚注入用过即弃                                   // P115 落地即体检，对不上当场按 Model 重绘
+      run.lastMove = null; run.stirNow = "";                         // P233 插曲用过即弃；P120 行脚注入用过即弃                                   // P115 落地即体检，对不上当场按 Model 重绘
       Sim.tick(run, { force: jumped, letters: jumped });
     } catch (err) {
       live.remove();
@@ -22780,7 +22882,7 @@ const Game = (() => {
     renderUsage();
     U.$("#disp-ctx").value = S.disp.ctx; U.$("#disp-quote").value = S.disp.quote ? "1" : "0";
     if (U.$("#disp-mem")) U.$("#disp-mem").value = S.disp.mem || "m";
-    U.$("#disp-l1").value = S.disp.l1cad; U.$("#disp-l2").value = S.disp.l2cad;
+    U.$("#disp-l1").value = S.disp.l1cad; U.$("#disp-l2").value = S.disp.l2cad; U.$("#disp-stir").value = String(S.disp.stir != null ? S.disp.stir : 1);
     if (U.$("#disp-mailcad")) U.$("#disp-mailcad").value = String([0, 2, 4].includes(Number(S.disp.mailCad)) ? Number(S.disp.mailCad) : 2);   /* P206 */
     U.$("#disp-theme").value = S.disp.theme || "dark";
     if (U.$("#disp-eraskin")) U.$("#disp-eraskin").value = S.disp.eraSkin === 0 || S.disp.eraSkin === "0" ? "0" : ["win", "corp"].includes(S.disp.eraSkin) ? S.disp.eraSkin : "1";   /* P182/P188 */
@@ -22932,6 +23034,7 @@ const Game = (() => {
     S.disp.quote = U.$("#disp-quote").value === "1";
     S.disp.l1cad = U.clamp(Number(U.$("#disp-l1").value) || 4, 1, 20);
     S.disp.l2cad = U.clamp(Number(U.$("#disp-l2").value) || 3, 1, 20);
+    S.disp.stir = U.clamp(Number(U.$("#disp-stir").value), 0, 2);   /* P233 */
     if (U.$("#disp-mailcad")) S.disp.mailCad = U.clamp(Number(U.$("#disp-mailcad").value) || 0, 0, 8);   /* P206 */
     S.disp.theme = U.$("#disp-theme").value === "light" ? "light" : "dark";
     { const v9 = (U.$("#disp-eraskin") || {}).value; S.disp.eraSkin = v9 === "0" ? 0 : ["win", "corp"].includes(v9) ? v9 : 1; }   /* P182/P188 */
