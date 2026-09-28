@@ -6007,6 +6007,47 @@ function memoBlock(run, extraText) {                     /* 注入段：只捞�
   if (!lines.length) return "";
   return "【相关既往】（引擎从窗口外的旧幕检索，与眼下人事地点相关；视为确凿既往，可自然呼应，不必复述）\n" + lines.join("\n") + "\n";
 }
+/* ================= P232 世界活起来 =================
+   人物各有 goal（心愿，长远）、plan（打算，眼下）、seek（有事要找主角：{t, a}，a＝登记时的幕数）。
+   身边层（runL2）按关系与近见挑人推进各自的事，产出「找上门」「交集」；主提示词带【众人动向】，让不在场的人也在过日子、会主动上门。
+   找上门的人在状态栏「在场」里出现即算见过、销账；等 STIR_WAIT 幕没见着就作罢。 */
+const STIR_WAIT = 8;
+const STIR_REL_W = { "家人": 3, "恋人": 3, "挚友": 2.6, "师徒": 2, "仇敌": 1.8, "同僚": 1.3 };
+function stirActs(run) { return (run.log || []).filter(m => m.role === "ai").length; }
+function stirPick(run, cap) {                            /* 身边层挑谁：在场、至亲、有事找主角、近见、好恶分明的优先，再掺一点运气 */
+  const cast = new Set((run.lastCast || []).map(c => c.name));
+  const names = Object.keys(run.npcs || {}).filter(n => { const p = run.npcs[n]; return p && !p.dead && p.rel !== "使魔·宠物"; });
+  const score = n => {
+    const p = run.npcs[n], fav = p.fav != null ? p.fav : 50;
+    return (cast.has(n) ? 3 : 0) + (STIR_REL_W[p.rel] || 0) + (p.seek ? 1.5 : 0) + (p.goal ? 0 : .8) +
+      Math.max(0, 2 - ((run.year || 0) - (p.y1 || 0))) * .6 + Math.abs(fav - 50) / 25 + Math.random() * 2;
+  };
+  return names.map(n => [n, score(n)]).sort((a, b) => b[1] - a[1]).slice(0, cap || 8).map(x => x[0]);
+}
+function stirFind(run, name) {                           /* 报上来的名字对到档里的钥匙；对不上返回空 */
+  const k = typeof npcCanon === "function" ? npcCanon(run, name) : name;
+  return run.npcs && run.npcs[k] ? k : "";
+}
+function stirMet(run, cast) {                            /* 本幕在场的人，有事找主角的就算找着了 */
+  for (const c of (cast || [])) {
+    const k = stirFind(run, c && c.name); if (!k) continue;
+    const p = run.npcs[k];
+    if (p.seek) { p.seekLast = p.seek.t; delete p.seek; }
+  }
+}
+function stirBlock(run, castSet) {                       /* 主提示词【众人动向】：不在场者此刻在忙什么、谁有事要找主角 */
+  const acts = stirActs(run), npcs = run.npcs || {};
+  for (const n of Object.keys(npcs)) { const p = npcs[n]; if (p && p.seek && acts - (p.seek.a || 0) > STIR_WAIT) delete p.seek; }
+  const live = Object.keys(npcs).filter(n => { const p = npcs[n]; return p && !p.dead && !castSet.has(n); });
+  const seekers = live.filter(n => npcs[n].seek).sort((a, b) => (npcs[a].seek.a || 0) - (npcs[b].seek.a || 0)).slice(0, 2);
+  const busy = live.filter(n => !seekers.includes(n) && (npcs[n].plan || npcs[n].note))
+    .sort((a, b) => ((STIR_REL_W[npcs[b].rel] || 0) - (STIR_REL_W[npcs[a].rel] || 0)) || ((npcs[b].y1 || 0) - (npcs[a].y1 || 0))).slice(0, 5);
+  if (!seekers.length && !busy.length) return "";
+  return "【众人动向】（不在场的人也在过自己的日子；玩家未必知情，只在剧情自然碰上时才写出来）\n" +
+    busy.map(n => { const p = npcs[n]; return "◆ " + n + "（" + (p.rel || "泛交") + "）" + (p.note ? "近况：" + p.note : "") + (p.plan ? (p.note ? "；" : "") + "打算：" + p.plan : ""); }).join("\n") +
+    (seekers.length ? (busy.length ? "\n" : "") + "【找上门】下列人物有自己的事要找主角。本幕或近几幕挑合适时机让她主动出现——登门、半路截住、来电、托人捎话都行，一幕至多来一位；来了就把事说出口，主角接不接由玩家定：\n" +
+      seekers.map(n => "◆ " + n + "（" + (npcs[n].rel || "泛交") + "）：" + npcs[n].seek.t).join("\n") : "") + "\n";
+}
 function memoRosterPick(run, names, cap) {               /* 名单进提示词：近见者、走动多的优先，顺序仍按入档先后 */
   cap = cap || 24;
   if (names.length <= cap) return names;
@@ -16425,6 +16466,9 @@ const Graph = (() => {
       (pp.look ? '<div class="hint">外貌 · ' + U.esc(pp.look) + "</div>" : "") +
       (pp.note ? '<div class="hint">近况 · ' + U.esc(pp.note) + "</div>" : "") +
       (pp.secret ? '<div class="hint" style="color:#c9a2ff">心思 · ' + U.esc(pp.secret) + "</div>" : "") +
+      (pp.goal ? '<div class="hint">心愿 · ' + U.esc(pp.goal) + "</div>" : "") +   /* P232 */
+      (pp.plan ? '<div class="hint">打算 · ' + U.esc(pp.plan) + "</div>" : "") +
+      (pp.seek ? '<div class="hint" style="color:#ffcf7a">有事要找你 · ' + U.esc(pp.seek.t) + "</div>" : "") +
       ((pp.deeds || []).length ? '<div class="hint">事迹 · ' + U.esc(pp.deeds.slice(-3).join("；")) + "</div>" : "") +
       (n.y0 != null ? '<div class="hint">初见 ' + U.esc(U.yearText(n.y0)) + " · 近见 " + U.esc(U.yearText(n.y1)) + "</div>" : "");
     t.style.display = "block";
@@ -16807,6 +16851,9 @@ const PromptM = (() => {
       const bits = [];
       if (p.note) bits.push("近况：" + p.note);
       if (p.secret) bits.push("心思：" + p.secret);
+      if (p.goal) bits.push("心愿：" + p.goal);   /* P232 */
+      if (p.plan) bits.push("打算：" + p.plan);
+      if (p.seek) bits.push("正要找主角：" + p.seek.t);
       if (p.look) bits.push("外貌：" + p.look);
       if (p.deeds && p.deeds.length) bits.push("事迹：" + p.deeds.join("；"));
       if (p.hist && p.hist.length) bits.push("与她的过往：" + p.hist.slice(-3).map(h9 => U.yearText(h9.y) + (h9.m ? h9.m + "月" : "") + "·" + h9.t).join("；"));   /* P192 */
@@ -16854,14 +16901,14 @@ const PromptM = (() => {
 "",
 "【铁律】",
 "一、绝不替主角说话、行动、拿主意、写心理。主角的一切言行只来自玩家输入。",
-"二、你扮演其余所有人与万物。人物要有各自口音、私心与记忆；原著人物言行须贴合其性格与所处年代，不可崩坏。",
+"二、你扮演其余所有人与万物。人物要有各自口音、私心与记忆；原著人物言行须贴合其性格与所处年代，不可崩坏。人物不是等主角问话的布景：她们照自己的心愿与打算行事——会主动开口、插话、拒绝、讨价还价、提要求、临时变卦、自己跑去办事，主角不在时日子照过；场面里要有第三方的动静（路人、邻座、店家、来电、突发的小事）。",
 "三、以原作设定为骨、演绎为肉。世界局势依设定推进，细节与小人物命运可因主角而变。1994-1997有原作大事可依（江涵夺艾琳杯等）；其后年代为合理推演。",
 "四、主角不属于任何势力，无宿命立场；投效俱乐部、进机关、下星海，全由玩家决定。所在星域与势力归属是两回事。",
 "五、世界有经济：各星域有名物行市，各势力有政局财计，天灾魔潮牵动物价与生计。钱以元计：主角存款由引擎维护，你只写增减；跳岁月时引擎自动结算产业年入，你只写剧情性的花销与际遇。置产、营建、升级一律走指令，价与年入由账房按型录、地段、纪元核定——你不必也不能自己定数，报了会被校正。",
 "六、每幕正文" + (function () { const L = { s: "120～260字，紧凑利落，只写要紧的", m: "180～420字", l: "350～700字，场面与对白都铺得开", xl: "600～1100字，长镜头写法：环境、动作、对白、余韵都要有", xxl: "1200～2000字，一幕当一章写：起承转合齐全，配角有各自的动作与话，场面调度要看得见人来人往", max: "2000～3200字，写足一整章：多线并行、场景转换两三处、群戏与独处兼有，细节密度拉满，但不许注水凑字——宁可多给一段真事，也不要把一件事翻来覆去说" }; const lv = (S.disp && S.disp.len) || "m"; if (lv === "custom") { const mn = (S.disp && S.disp.lenMin) || 400, mx = Math.max(mn, (S.disp && S.disp.lenMax) || 800); return mn + "～" + mx + "字——玩家手定的篇幅，照此写：不够不收幕，超了要收束"; } return L[lv] || L.m; })() + "，现代白话、轻快有烟火气，魔女日常与超凡奇观并重，忌空洞抒情。人物台词一律用「」。",
 "七、玩家输入带【说】为主角说话、【做】为主角举动、【描写】为自由描写、【跳过岁月】为跳过若干年——跳岁月时用一段蒙太奇交代年月流转、故人变化、大事与产业兴衰，然后落到新场景。",
 "八、正文结束后，必须原样附上状态栏（格式见下），不得省略。",
-"九、不替玩家造主线。NPC 的请求只是机会，玩家可接可拒可拖可无视；不得把闲聊升级成任务，不得催促玩家回到任何剧情。魔女之间不存在天生敌对阵营——敌意只能来自具体人物的利益与已发生之事，且立场（支持/合作/观望/竞争/对立/疏远）可随事而变。",
+"九、不替玩家造主线。NPC 的请求只是机会，玩家可接可拒可拖可无视；不得把闲聊升级成任务，不得催促玩家回到任何剧情。但人物可以为了她自己的事主动找上主角、开口求助、上门讨债或搅局——那是她的事不是主线，玩家照样可接可拒。魔女之间不存在天生敌对阵营——敌意只能来自具体人物的利益与已发生之事，且立场（支持/合作/观望/竞争/对立/疏远）可随事而变。",
 "十、行动要花时间。每幕按剧情推进合理的时段与日期（状态栏日期行）；约定与工期要真实占用日子。若玩家输入附带【判定结果】，正文必须严格按该档叙述——不得改判、不得无视代价、不得私自加骰。",
 "",
 (wb.filter(e => !e.pos || e.pos === "").length ? "【世界书】\n" + wb.filter(e => !e.pos || e.pos === "").map(e => "◆ " + e.name + "：" + e.text).join("\n") + "\n" : ""),
@@ -16870,7 +16917,7 @@ const PromptM = (() => {
       + (typeof memoBlock === "function" ? memoBlock(run, extraText) : "")),   /* P192 相关既往：窗口外旧幕按人事地点检索 */
 ((typeof mtabBlock === "function" ? mtabBlock(run) : "") + (chron ? "【笔记】（主角亲笔，逐幕一条）\n" + chron + "\n" : "")),
 (roster ? "【人物名单】（名（关系·好感·态度）；好感与关系除非剧情推动不得乱动）\n" + roster + "\n" : ""),
-(dossier ? "【人物档案】（在场与被提及者的全档，扮演须贴合，玩家未必知其心思）\n" + dossier + "\n" : ""),
+(dossier ? "【人物档案】（在场与被提及者的全档，扮演须贴合，玩家未必知其心思）\n" + dossier + "\n" : "") + (inj.chars === 0 ? "" : stirBlock(run, castSet)),   /* P232 并入同段，段表下标不动 */
 (pactsTxt ? "【约定与伏笔】（未完成，适时兑现或回收）\n" + pactsTxt + "\n" : ""),
 (((run.threads || []).filter(t => t.status === "open").length) ? "【关注事项】（玩家自己在意的事，只推进不强加）\n" + run.threads.filter(t => t.status === "open").slice(-memP().th).map(t => "◆ " + t.title + (t.stakes ? "（" + t.stakes + "）" : "") + (t.due ? "限" + t.due : "") + (t.progress.length ? "：" + t.progress[t.progress.length - 1].t : "")).join("\n") + "\n" : ""),
 (sightsTxt ? "【地点见闻】（主角对这些地方的记忆）\n" + sightsTxt + "\n" : ""),
@@ -16929,6 +16976,7 @@ const PromptM = (() => {
 "关系：（可选，与某人关系质变时写：关系：名字→类型。类型限 恋人/家人/挚友/师徒/同僚/使魔·宠物/仇敌/泛交，可多段用｜分隔）",
 "事迹：（可选，某人做了值得长记的事：事迹：名字｜一句。每人至多留5条）",
 "外貌：（可选，人物首次亮相或形象大变时写：外貌：名字｜一句。主角写 外貌：我｜一句）",
+"心事：（可选，某人的心愿或眼下打算因剧情有变时写：心事：名字｜心愿：一句｜打算：一句，两项可只写一项；打算写她接下来要去做的事，不必和主角有关）",
 "身份：（可选，主角身份近况变化时写：身份：一句，如 身份：牧海者见习队员）",
 "天赋：（可选，剧情里实打实练出或得到传授时写：天赋：+名。只认天赋表内的名目——魔力渊薮/稳手/眼力/皮实/口齿/快手/算盘精/工头出身/兽语/符阵手/讲价/勘探癖/家学/师承/门路/血脉/扎针/燃血/赌命/以身饲界；同名再给即精进一级，最高三级。表外的名目会被驳回）",
 "性格：（可选，主角性格被剧情磨出明显变化时才写：性格：一句。不要每幕都写）",
@@ -17281,6 +17329,14 @@ MVU.proto(),
         stat.looks = stat.looks || [];
         if (i2 > 0) stat.looks.push({ name: v.slice(0, i2).trim(), t: v.slice(i2 + 1).trim() });
         else if (v) stat.looks.push({ name: "我", t: v });
+      }
+      else if (k === "心事") {                                  /* P232 */
+        const seg = v.split(/[｜|]/).map(s => s.trim()), mind = { name: seg[0] || "" };
+        for (const s2 of seg.slice(1)) {
+          const mg = s2.match(/^(?:心愿|目标)[：:]?(.+)/), mp = s2.match(/^(?:打算|计划)[：:]?(.+)/);
+          if (mg) mind.goal = mg[1].trim(); else if (mp) mind.plan = mp[1].trim(); else if (!mind.plan && s2) mind.plan = s2;
+        }
+        if (mind.name && (mind.goal || mind.plan)) { stat.minds = stat.minds || []; stat.minds.push(mind); }
       }
       else if (k === "身份") { if (v) stat.status = v; }
       else if (k === "性格") { stat.temper = v; }
@@ -17758,6 +17814,11 @@ MVU.proto(),
       if (!lk.t) continue;
       if (lk.name === "我" || lk.name === run.pname || lk.name === run.alias) run.profile.look = lk.t.slice(0, 40);
       else npcOf(lk.name).look = lk.t.slice(0, 40);
+    }
+    if (stat.minds) for (const md of stat.minds) {              /* P232 只改在册的人，不凭一行心事造人 */
+      const k9 = stirFind(run, md.name); if (!k9) continue;
+      if (md.goal) run.npcs[k9].goal = String(md.goal).slice(0, 30);
+      if (md.plan) run.npcs[k9].plan = String(md.plan).slice(0, 40);
     }
     if (stat.status) run.profile.status = stat.status.slice(0, 40);
     if (stat.temper) run.profile.temper = stat.temper.slice(0, 40);
@@ -18240,7 +18301,7 @@ MVU.proto(),
       }
     }
     if (stat.mails && typeof Game !== "undefined") Game.recvMail(run, stat.mails);
-    if (stat.cast) run.lastCast = stat.cast;
+    if (stat.cast) { run.lastCast = stat.cast; stirMet(run, stat.cast); }   /* P232 找上门的人露了面就销账 */
     if (stat.annal) addAnnal(stat.annal);
     try { checkAchv(run, addAnnal); } catch (eA) {}
     if (stat.myterr) {
@@ -18694,7 +18755,7 @@ const Sim = (() => {
       "。势力：" + (Object.entries(run.factions || {}).map(([n, f]) => n + "（政:" + (f.pol || "—") + "；财:" + (f.eco || "—") + "）").join("｜") || "无") +
       "。近期大事：" + ((run.annals || []).slice(-5).map(a => U.yearText(a.y) + a.t).join("；") || "无");
   }
-  const CMD_KEYS = ["新闻", "势报", "势力", "版图", "民数", "人口", "大事", "信", "机会", "众声", "身边", "行情", "热点", "地标"];
+  const CMD_KEYS = ["新闻", "势报", "势力", "版图", "民数", "人口", "大事", "信", "机会", "众声", "身边", "行情", "热点", "地标", "找上门", "交集"];   /* P232 找上门／交集 */
   const KEYEN = { news: "新闻", headline: "新闻", opportunity: "机会", opportunities: "机会", mail: "信", letter: "信", letters: "信", forces: "势力", faction: "势力", factions: "势力", event: "大事", events: "大事", people: "身边" };
   function eatCmd(stat, k, v) {
     v = String(v || "").replace(/[丨∣│]/g, "｜");   // 易混竖线一律当作分隔符
@@ -18750,9 +18811,21 @@ const Sim = (() => {
         if (mf) { vo.favD = (mf[1] === "+" ? 1 : -1) * parseInt(mf[2], 10); continue; }
         const ms = s2.match(/^(?:密[谋语]?|心思)[：:]?(.+)/);
         if (ms) { vo.secret = ms[1].trim().slice(0, 40); continue; }
+        const mg = s2.match(/^(?:心愿|目标)[：:]?(.+)/);   /* P232 */
+        if (mg) { vo.goal = mg[1].trim().slice(0, 30); continue; }
+        const mp = s2.match(/^(?:打算|计划)[：:]?(.+)/);
+        if (mp) { vo.plan = mp[1].trim().slice(0, 40); continue; }
         if (!vo.note) vo.note = s2.slice(0, 40);
       }
       if (vo.name) stat.voices.push(vo);
+    }
+    else if (k === "找上门") {                                   /* P232 找上门：名字｜为什么事 */
+      const seg = v.split(/[｜|]/).map(s => s.trim());
+      if (seg[0] && seg[1]) { stat.seeks = stat.seeks || []; stat.seeks.push({ name: seg[0], t: seg.slice(1).join("，").slice(0, 50) }); }
+    }
+    else if (k === "交集") {                                     /* P232 交集：甲｜乙｜两人之间的事 */
+      const seg = v.split(/[｜|]/).map(s => s.trim());
+      if (seg[0] && seg[1] && seg[2]) { stat.ties = stat.ties || []; stat.ties.push({ a: seg[0], b: seg[1], t: seg.slice(2).join("，").slice(0, 40) }); }
     }
   }
   function parseCmdLines(text) {   // 多形态通吃：键行式 / 分段列表式 / 【方括键】 / 汉字序号 / JSON
@@ -18866,7 +18939,7 @@ const Sim = (() => {
   }
   async function runL2(run, manual, opts) {
     if (busyOn(busy2) || !Prov.ready() || !run) return false;
-    const names = Object.keys(run.npcs || {}).slice(-8);
+    const names = stirPick(run, 8);                      /* P232 不再只挑最后入档的八人 */
     if (!names.length) return false;
     busy2 = Date.now();
     try {
@@ -18876,12 +18949,15 @@ const Sim = (() => {
       const names9 = names.concat(pick.filter(x => !names.includes(x)));
       const roster = names9.map(n => {                    /* P206 来信改口：各人只带自己的关系、近况与「同场」，不再整段喂主角行迹 */
         const p = run.npcs[n];
-        return n + "（" + (p.rel || "泛交") + "·好感" + (p.fav != null ? p.fav : 50) + (p.att ? "·" + p.att : "") + (p.note ? "·近况：" + p.note : "") + "·" + mailKnowLine(run, n) + "）";
+        return n + "（" + (p.rel || "泛交") + "·好感" + (p.fav != null ? p.fav : 50) + (p.att ? "·" + p.att : "") + (p.note ? "·近况：" + p.note : "") + (p.goal ? "·心愿：" + p.goal : "") + (p.plan ? "·打算：" + p.plan : "") + (p.seek ? "·正要找主角：" + p.seek.t : "") + "·" + mailKnowLine(run, n) + "）";
       }).join("\n");
       const pub = mailPublic(run, 4);
       const e94m = eraByYear(run.year || 1994).id === "y1994";
       const sys = "你是魔女世界的众生百态模拟器。为下列人物各推演一行她此刻在忙什么、心里打什么小算盘（主角不在场时的她们）。每行格式严格：\n" +
-        "身边：名字｜近况一句｜好感±N（可选，变化才写）｜心思：她暗中的小算盘一句（可选）\n" +
+        "身边：名字｜近况一句｜好感±N（可选，变化才写）｜心思：她暗中的小算盘一句（可选）｜心愿：她长远想要的东西（没有心愿的人必须补上，已有的只在变了时写）｜打算：她接下来几天要去做的一件具体的事\n" +
+        "近况要比上回往前走一步：打算办成了、办砸了、半路变了卦，都写出来，别原地踏步。\n" +
+        "另可附至多一行 找上门：名字｜她为自己的什么事要亲自来找主角（求助、讨债、邀约、告状、报喜、借钱、找茬都行，须出于她自己的打算，好感低的也会来）。\n" +
+        "另可附至多一行 交集：甲｜乙｜两人之间刚发生的一件事（合伙、吵翻、结对、欠账、撞见……甲乙都得是名单里的人）。\n" +
         "另可附至多一行 机会：名字｜标题｜一句｜期限（她主动向主角提出的请求或邀约，玩家可接可无视）。\n" +
         "贴合各自身份与好感，不重复旧近况。人物各有自己的生活与利益，不围着主角转。" +
         "\n各人只知道自己括号里「同场」「回信里说过」那几件，与下面「见报」的事；主角其余的行踪、账目、异界与私事她们一概不知，近况、心思与信里都不能提，不能写「听说你……」。" +
@@ -18897,6 +18973,23 @@ const Sim = (() => {
         if (vo.note) p.note = vo.note;
         if (vo.secret) p.secret = vo.secret;
         if (vo.favD) p.fav = U.clamp((p.fav != null ? p.fav : 50) + vo.favD, 0, 100);
+        if (vo.goal) p.goal = vo.goal;   /* P232 */
+        if (vo.plan) p.plan = vo.plan;
+      }
+      const acts9 = stirActs(run);
+      if (st.seeks) for (const sk of st.seeks.slice(0, 1)) {       /* P232 至多一人找上门；已有人排队就不再加 */
+        const k9 = stirFind(run, sk.name);
+        if (!k9 || Object.keys(run.npcs).filter(n => run.npcs[n].seek).length >= 2) continue;
+        run.npcs[k9].seek = { t: sk.t, a: acts9 };
+      }
+      if (st.ties) for (const tt of st.ties.slice(0, 1)) {
+        const ka = stirFind(run, tt.a), kb = stirFind(run, tt.b);
+        if (!ka || !kb || ka === kb) continue;
+        for (const [x, y] of [[ka, kb], [kb, ka]]) {
+          const p = run.npcs[x]; p.deeds = p.deeds || [];
+          const line = ("与" + npcBare(y) + "：" + tt.t).slice(0, 40);
+          if (!p.deeds.includes(line)) { p.deeds.push(line); if (p.deeds.length > 5) p.deeds.shift(); }
+        }
       }
       if (st.mails && st.mails.length) Game.recvMail(run, st.mails, { force: jump, via: e94m ? "post" : "net" });   /* P206 跳岁月的积信不受疏密闸；P207 1994 邮局信／2077 电邮 */
       if (st.opps) Game.recvOpps(run, st.opps);
