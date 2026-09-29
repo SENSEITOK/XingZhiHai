@@ -250,6 +250,22 @@ html[data-era="y1994"] .bubble.rich .ln{border-radius:0;background:#f4f1fa}
 .ep-fold{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px} .ep-fold summary{cursor:pointer;color:var(--mut);font-size:12px}
 .ep-act{margin-top:10px;display:flex;justify-content:flex-end}
 svg.eg{width:100%;height:auto;display:block}
+svg.eg2 text{font-size:10.5px} svg.eg2 .eg-sub{font-size:9px;opacity:.9} svg.eg2 .eg-cat{font-size:9.5px;letter-spacing:.2em;text-anchor:middle;opacity:.8}
+svg.eg2 .eg-node circle{stroke-width:1.8} svg.eg2 .eg-node.far circle:first-of-type{stroke-dasharray:2 2}
+svg.eg2 .eg-ctr{fill:#fff;font-size:13px;font-weight:700;text-anchor:middle}
+svg.eg2 path{transition:stroke-opacity .2s} svg.eg2 path:hover{stroke-opacity:.95}
+.ent-pop{width:440px}
+.nl{margin-top:4px}
+.nl-cat{display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.3em;color:var(--mut);margin:10px 0 3px}
+.nl-cat i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.nl-row{padding:5px 0 6px 21px;border-top:1px dashed var(--line)}
+.nl-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.nl-nm{font-weight:600;color:var(--ink)} .nl-nm.ent{border-bottom:1px dotted var(--mut)}
+.nl-lab{font-size:12px}
+.nl-warm{display:inline-flex;gap:2px} .nl-warm b{width:6px;height:6px;border-radius:50%;background:var(--inset2);display:inline-block} .nl-warm b.on{background:#ef9fc0} .nl-warm b.neg{background:#e07862}
+.nl-src{font-size:10px;color:var(--ent-canon);border:1px solid currentColor;border-radius:999px;padding:0 6px;opacity:.8}
+.nl-note{color:var(--ink2);font-size:12.5px;line-height:1.6;margin-top:2px}
+.nl-sub{color:var(--mut);font-size:11.5px;line-height:1.55}
 svg.eg line{stroke-width:1.4;opacity:.55}
 svg.eg text{font-size:11px;fill:var(--ink);text-anchor:middle;font-family:var(--font)}
 svg.eg .eg-lab{font-size:9.5px;fill:var(--mut)}
@@ -666,6 +682,12 @@ html[data-theme="light"] #graph-wrap{background:radial-gradient(80% 70% at 50% 4
 #graph-tip b{color:var(--zhu2);font-weight:600;font-size:14.5px;letter-spacing:.06em}
 #graph-tip .bar{height:6px;border-radius:3px;background:var(--inset2);margin:8px 0 4px;overflow:hidden}
 #graph-tip .bar i{display:block;height:100%;border-radius:3px;background:var(--grad2)}
+#graph-legend{position:absolute;left:12px;top:10px;right:12px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;pointer-events:none}
+#graph-legend button{pointer-events:auto;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink2);background:var(--panel2);border:1px solid var(--line2);border-radius:999px;padding:3px 10px;backdrop-filter:blur(8px)}
+#graph-legend button i{width:14px;height:3px;border-radius:2px;display:inline-block}
+#graph-legend button em{font-style:normal;color:var(--mut);font-size:11px}
+#graph-legend button.off{opacity:.38;text-decoration:line-through}
+#graph-legend .gl-hint{font-size:11px;color:var(--mut);margin-left:4px;letter-spacing:.05em}
 #graph-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--mut);letter-spacing:.2em;font-size:13.5px;pointer-events:none}
 
 /* ============ 蒙太奇 ============ */
@@ -6415,6 +6437,180 @@ function richProse(run, text, esc9) {                    /* esc9＝UI.prose 的�
       '<div class="ln-body">' + entMark(body, D, seen) + "\n</div></div>";
   }).join("\n");
 }
+/* ================= P236 人际网：人物之间的关系 =================
+   run.links["甲|乙"]＝{a, b, kind, ab（a 是 b 的什么）, ba, call（称呼）, warm（-3..3）, note, hist:[{y,t}], y1}；甲乙按字典序。
+   来源：主模型状态栏「人际：」、身边层「交集：」、二卷原著关系表 CANON_LINKS（仅 2077 线，档上有同一对时以档为准）。
+   用处：人物档案带「人际」进提示词；资料卡画两圈关系网；关系图画人与人的线。 */
+const LINK_CAT = { "家族": "#e8cd8f", "情感": "#ef9fc0", "职场": "#9fb8e8", "恩怨": "#e08f8f", "往来": "#9cc9a8" };
+const LINK_CAT_ORDER = ["家族", "情感", "职场", "恩怨", "往来"];
+const LINK_KIND = {
+  "母女": { c: "家族" }, "姐妹": { c: "家族" }, "家人": { c: "家族" }, "监护": { c: "家族", s: "dash" },
+  "伴侣": { c: "情感", s: "double" }, "前任": { c: "情感", s: "dash" }, "暗恋": { c: "情感", s: "dot" }, "挚友": { c: "情感" }, "发小": { c: "情感" },
+  "师徒": { c: "职场", s: "dash" }, "上司": { c: "职场", s: "arrow" }, "同僚": { c: "职场" }, "雇佣": { c: "职场", s: "dash" }, "盟友": { c: "职场", s: "double" },
+  "对手": { c: "恩怨", s: "dash" }, "宿敌": { c: "恩怨", s: "zig" }, "死对头CP": { c: "恩怨", s: "zig" }, "债务": { c: "恩怨", s: "dot" },
+  "恩人": { c: "往来" }, "其他": { c: "往来" }, "同场": { c: "往来", s: "faint" }
+};
+const LINK_FUZZ = [[/母|女儿/, "母女"], [/姐|妹/, "姐妹"], [/家|亲戚|姨|姑/, "家人"], [/监护|养/, "监护"], [/前任|前妻|旧爱/, "前任"], [/暗恋|单恋/, "暗恋"], [/妻|伴侣|恋|情侣|爱人/, "伴侣"],
+  [/发小|青梅/, "发小"], [/友|闺蜜|死党/, "挚友"], [/师|徒/, "师徒"], [/上司|领导|上级|主任|馆长|老板|下属|手下/, "上司"], [/同事|同僚|同期|同学|队友/, "同僚"], [/雇|派遣|客户/, "雇佣"],
+  [/盟|合伙|搭档/, "盟友"], [/宿敌|仇|死敌/, "宿敌"], [/对手|竞争|较劲/, "对手"], [/债|欠|赊/, "债务"], [/恩|救/, "恩人"]];
+function linkKind(k) { k = String(k || "").trim(); if (LINK_KIND[k]) return k; const f = LINK_FUZZ.find(x => x[0].test(k)); return f ? f[1] : "其他"; }
+function linkCat(kind) { return (LINK_KIND[kind] || LINK_KIND["其他"]).c; }
+function linkPid(run, nm) { nm = String(nm || "").trim(); return entNpcKey(run, nm) || nm; }
+function linkSet(run, a0, b0, o) {                       /* o: {kind, ab, ba, call, warm, warmD, note, t} ；ab 指 a0 是 b0 的什么 */
+  const a = linkPid(run, a0), b = linkPid(run, b0), me = [run.pname, run.alias];
+  if (!a || !b || a === b || me.includes(a) || me.includes(b)) return null;
+  run.links = run.links || {};
+  const [x, y] = [a, b].sort(), k = x + "|" + y, flip = x !== a;
+  const L = run.links[k] || { a: x, b: y, kind: "其他", ab: "", ba: "", call: "", warm: 0, note: "", hist: [] };
+  if (o.kind) L.kind = linkKind(o.kind);
+  if (o.ab) L[flip ? "ba" : "ab"] = String(o.ab).slice(0, 6);
+  if (o.ba) L[flip ? "ab" : "ba"] = String(o.ba).slice(0, 6);
+  if (o.call) L.call = String(o.call).slice(0, 24);
+  if (o.warm != null && !isNaN(o.warm)) L.warm = U.clamp(Math.round(o.warm), -3, 3);
+  if (o.warmD) L.warm = U.clamp((L.warm || 0) + o.warmD, -3, 3);
+  if (o.note) L.note = String(o.note).slice(0, 40);
+  if (o.t) { L.hist = (L.hist || []).concat({ y: run.year, t: String(o.t).slice(0, 36) }).slice(-6); }
+  if (o.kind && L.kind === "上司") L.boss = a;                          // 约定：写在前面的是上司
+  L.y1 = run.year;
+  run.links[k] = L;
+  return L;
+}
+/* P236 二卷《是，伟大魔女2077》原著人际（通读笔记整理，自己的话；a 是 b 的 ab）。仅 2077 线生效 */
+const CANON_LINKS = [
+  {"a": "雾花", "b": "莉音", "kind": "发小", "ab": "发小兄弟", "ba": "发小兄弟", "call": "雾花↔莉音「兄弟」", "warm": 3, "note": "少年时一同转化成魔女，嘴上称兄道弟，彼此都欠着人情", "arc": "从婚礼后不告而别到住进客房同居"},
+  {"a": "莉音", "b": "雾花", "kind": "暗恋", "ab": "暗恋者", "ba": "心上人", "warm": 3, "note": "莉音暗恋五十年，一见就脸红傻笑，雾花只肯以兄弟相待", "arc": "表白被拒后死缠烂打，关系渐趋暧昧"},
+  {"a": "雾花", "b": "晴玫", "kind": "母女", "ab": "母亲", "ba": "长女", "call": "晴玫→雾花「雾花女士」；雾花→晴玫「好大儿」", "warm": 3, "note": "晴玫嘴毒爱调侃，护母心切，谁跟母亲亲近都要吃醋", "arc": "继承亡母光剑「高祖」，成了联赛主攻"},
+  {"a": "雾花", "b": "山芙", "kind": "母女", "ab": "母亲", "ba": "次女", "call": "雾花→山芙「小女儿」", "warm": 3, "note": "山芙是家中谋士，母亲一焦虑就被她强行哄睡", "arc": "为母亲献上夺馆长的三步策略"},
+  {"a": "晴玫", "b": "山芙", "kind": "姐妹", "ab": "姐姐", "ba": "妹妹", "warm": 3, "note": "同日孵化的双胞胎，打闹互掐，合体能放8环法术", "arc": "并肩拿下霍罗杯"},
+  {"a": "雾花", "b": "雾花亡妻", "kind": "伴侣", "ab": "遗孀", "ba": "亡妻", "warm": 3, "note": "暗金戒指从不摘，夜里想起仍会落泪，承认忘不掉她"},
+  {"a": "莉音", "b": "晴玫", "kind": "家人", "ab": "如姐姐", "ba": "雾花长女", "warm": 2, "note": "孩子们拿莉音当姐姐，晴玫却早看出她对母亲的心思", "arc": "在狂宴俱乐部成了对练搭档"},
+  {"a": "莉音", "b": "山芙", "kind": "家人", "ab": "如姐姐", "ba": "雾花次女", "warm": 1, "note": "山芙对莉音客气有礼，言语间却常藏着机锋"},
+  {"a": "雾花", "b": "文学猫灯", "kind": "挚友", "ab": "主人", "ba": "知心猫", "warm": 3, "note": "雾花夜里落泪时它摁头安慰，逼她承认忘不掉亡妻"},
+  {"a": "莉音", "b": "文学猫灯", "kind": "其他", "ab": "借号人", "ba": "被借号猫", "warm": 1, "note": "莉音曾偷借它的账号开小号，窥看雾花动态"},
+  {"a": "雾花", "b": "歌莉娅", "kind": "监护", "ab": "收留者", "ba": "投靠者", "warm": 2, "note": "雾花收留缺爱的歌莉娅，她就此决定「择母」", "arc": "从抓住偷窥到借宿再到入住"},
+  {"a": "晴玫", "b": "歌莉娅", "kind": "对手", "ab": "宿敌", "ba": "宿敌", "warm": 1, "note": "晴玫嫉妒她抢走母亲关注，歌莉娅也羡慕晴玫的家", "arc": "从赌约宿敌成了同伴"},
+  {"a": "山芙", "b": "歌莉娅", "kind": "其他", "ab": "立规矩者", "ba": "借住者", "warm": 2, "note": "山芙要她每天汇报，一句关心却让歌莉娅想当这家孩子"},
+  {"a": "枯华", "b": "雾花", "kind": "上司", "ab": "馆长", "ba": "秘书", "call": "雾花→枯华「枯华姐」", "warm": 2, "note": "同乡，枯华又宠又用，雾花依赖她也暗中提防", "arc": "从临时工到最倚重的秘书，外界炒CP"},
+  {"a": "枯华", "b": "苦雨", "kind": "伴侣", "ab": "妻子", "ba": "妻子", "warm": 3, "note": "枯华闹脾气时苦雨一通电话就能哄好，彼此约定坦诚"},
+  {"a": "苦雨", "b": "雾花", "kind": "其他", "ab": "上司之妻", "ba": "枯华秘书", "warm": 2, "note": "握手摸头送浴盐，不介意二人来往，只要事无巨细汇报"},
+  {"a": "苦雨", "b": "晴玫", "kind": "雇佣", "ab": "经纪人", "ba": "签约选手", "warm": 2, "note": "替双胞胎当狂宴签约经纪人，是联赛的活百科"},
+  {"a": "枯华", "b": "秽心", "kind": "上司", "ab": "馆长", "ba": "秘书", "warm": 2, "note": "秽心走佞臣路线捧枯华，枯华信她却嫌她心思阴沉", "arc": "宠信一度下滑，仍是最信任者之一"},
+  {"a": "雾花", "b": "秽心", "kind": "对手", "ab": "同僚劲敌", "ba": "同僚劲敌", "call": "雾花→秽心「秽心姐」", "warm": 1, "note": "两人都是接班热门，人前假吵架，私下合谋算计", "arc": "从互相提防到秘密小联盟"},
+  {"a": "枯华", "b": "红依依", "kind": "上司", "ab": "老战友", "ba": "嫡系", "warm": 2, "note": "破碎之战的老战友，枯华对她偏心也肯替她出主意"},
+  {"a": "枯华", "b": "黄心音", "kind": "上司", "ab": "馆长", "ba": "死忠笔杆", "warm": 2, "note": "黄心音最会读枯华的公文，对她忠心不二"},
+  {"a": "枯华", "b": "孙敏赫", "kind": "上司", "ab": "馆长", "ba": "属下馆长", "warm": 0, "note": "敏赫常惹祸背锅还乱传谣言，枯华公开批评她罚过薪"},
+  {"a": "枯华", "b": "李若微", "kind": "上司", "ab": "馆长", "ba": "属下馆长", "warm": 0, "note": "枯华把她算作潜在接班人，却也曾威胁将她外调"},
+  {"a": "枯华", "b": "徐嘉欣", "kind": "上司", "ab": "馆长", "ba": "属下馆长", "warm": 1, "note": "据说十四岁时和枯华打过一架结缘，化石馆受其信任"},
+  {"a": "海蚀", "b": "枯华", "kind": "上司", "ab": "上级", "ba": "下属馆长", "warm": 1, "note": "海蚀职位高枯华数级，枯华却自认实力强她一线"},
+  {"a": "枯华", "b": "乔伊", "kind": "宿敌", "ab": "宿敌", "ba": "宿敌", "warm": -2, "note": "决斗中枯华将乔伊打成骷髅再烧死，乔伊的指控反扭转舆论", "arc": "后来签了和解，馆战中再度交锋"},
+  {"a": "枯华", "b": "彼得", "kind": "对手", "ab": "闪灵馆长", "ba": "反闪灵盟主", "warm": -1, "note": "彼得私下认定打不过闪灵主张绥靖，战败后只割地不赔款"},
+  {"a": "恶名", "b": "枯华", "kind": "其他", "ab": "狂热粉丝", "ba": "偶像", "warm": 1, "note": "当局把她当压制枯华的底牌，她却崇拜枯华，比剑落败"},
+  {"a": "枯华", "b": "老艾", "kind": "上司", "ab": "馆长", "ba": "崇拜者", "warm": 2, "note": "老艾崇拜枯华，常替雾花向她讨强化针和待遇"},
+  {"a": "茕缺", "b": "枯华", "kind": "其他", "ab": "崇拜者", "ba": "偶像", "warm": 2, "note": "茕缺崇拜枯华，枯华看完录像评她为璞玉"},
+  {"a": "枯华", "b": "晴玫", "kind": "其他", "ab": "队友前辈", "ba": "小粉丝", "warm": 2, "note": "晴玫是枯华小粉丝，训练时却被枯华以经验反杀", "arc": "同在狂宴夺得霍罗杯"},
+  {"a": "枯华", "b": "莉音", "kind": "上司", "ab": "馆长", "ba": "茶水办主任", "warm": 1, "note": "莉音嫉妒枯华却信任她，枯华设茶水办接收莉音", "arc": "先攻对决打成平手"},
+  {"a": "秦苇", "b": "枯华", "kind": "其他", "ab": "战友", "ba": "战友", "warm": 2, "note": "武装外交官秦苇是枯华的老战友，家住哥特岛"},
+  {"a": "地厌", "b": "枯华", "kind": "盟友", "ab": "黑森馆长", "ba": "老战友", "warm": 2, "note": "星舰部队出身的老战友，见面就拌嘴，黑森馆迁入35区"},
+  {"a": "鸷厌", "b": "枯华", "kind": "其他", "ab": "旧战友", "ba": "旧战友", "warm": 1, "note": "鸷厌旁敲侧击打探枯华近况，枯华在她工坊面子极大"},
+  {"a": "杜灵璇", "b": "枯华", "kind": "对手", "ab": "老对手", "ba": "老对手", "warm": 1, "note": "联赛老友兼对手，互相调侃，赛场上被枯华骗招落败"},
+  {"a": "楚虞君", "b": "枯华", "kind": "其他", "ab": "旧识", "ba": "旧识", "warm": 1, "note": "两人因赛事赔率相识，枯华新兵时就有交情"},
+  {"a": "雾花", "b": "孙敏赫", "kind": "同僚", "ab": "同僚", "ba": "同僚", "call": "雾花→孙敏赫「敏赫姐」", "warm": 2, "note": "敏赫起初敌对，雾花帮她卖出事的藏品后私交渐好", "arc": "联手夺加油站、逛街、打馆战"},
+  {"a": "孙敏赫", "b": "李若微", "kind": "对手", "ab": "死对头", "ba": "死对头", "warm": -1, "note": "古地球馆与恐龙馆互喷多年，还被造谣有私情"},
+  {"a": "孙敏赫", "b": "秽心", "kind": "对手", "ab": "同僚", "ba": "同僚", "warm": 0, "note": "敏赫看不起秽心的奉承，两人却时战时和，曾喝酒结盟"},
+  {"a": "李若微", "b": "秽心", "kind": "对手", "ab": "同僚", "ba": "同僚", "warm": -1, "note": "巨猫落点之争中若微惨败，被秽心发「小丑」羞辱", "arc": "险些同归于尽，经雾花调停和解"},
+  {"a": "雾花", "b": "李若微", "kind": "同僚", "ab": "同僚", "ba": "同僚", "call": "雾花→李若微「若微姐」", "warm": 1, "note": "若微为雾花凑因子榨干自己，雾花却在恐龙馆偷装后门"},
+  {"a": "雾花", "b": "徐嘉欣", "kind": "同僚", "ab": "同僚", "ba": "同僚", "call": "雾花→徐嘉欣「嘉欣姐」", "warm": 2, "note": "嘉欣屡次放鸽子，被雾花带猫球堵门，此后信她胜过敏赫", "arc": "低落时由雾花安抚"},
+  {"a": "徐嘉欣", "b": "莉音", "kind": "暗恋", "ab": "单恋者", "ba": "心上人", "warm": 1, "note": "嘉欣装韩系JK向莉音套近乎，单相思而一度低落"},
+  {"a": "徐嘉欣", "b": "孙敏赫", "kind": "同僚", "ab": "同派", "ba": "同派", "warm": 1, "note": "同属一派常一起玩，嘉欣却能把敏赫打服"},
+  {"a": "雾花", "b": "红依依", "kind": "同僚", "ab": "同僚", "ba": "同僚", "call": "雾花→红依依「依依姐」", "warm": 1, "note": "争海洋馆馆长时依依落败生怨，靠引渡权限捞了补偿", "arc": "雾花让出勋章名额后和解"},
+  {"a": "秦常青", "b": "红依依", "kind": "对手", "ab": "同僚", "ba": "同僚", "warm": -2, "note": "两人互相敌视，秦常青曾放出红依依有私生女的谣言"},
+  {"a": "秦常青", "b": "雾花", "kind": "上司", "ab": "前上司", "ba": "前下属", "call": "雾花→秦常青「常青姐」", "warm": 1, "note": "雾花进馆的第一任上司，自觉被背刺后生闷气", "arc": "合做引渡宣传包分得200万，和解"},
+  {"a": "秦常青", "b": "姜灵灵", "kind": "上司", "ab": "主任", "ba": "副手", "warm": 2, "note": "主任与副手常被看作一对，秦常青本人否认"},
+  {"a": "姜灵灵", "b": "雾花", "kind": "同僚", "ab": "前对手", "ba": "前对手", "call": "雾花→姜灵灵「灵灵姐」", "warm": 2, "note": "一眼看出雾花威胁，抢接待、搞不记名投票", "arc": "休战联手，成了雾花身边的人"},
+  {"a": "姜灵灵", "b": "黄心音", "kind": "同僚", "ab": "同事", "ba": "同事", "warm": 1, "note": "文创办同事，姜灵灵为黄心音和雾花走近而吃醋"},
+  {"a": "黄心音", "b": "雾花", "kind": "同僚", "ab": "前辈", "ba": "后辈", "call": "雾花→黄心音「心音姐」", "warm": 2, "note": "早期被雾花暗骂二五仔，后手把手帮她逐句改稿", "arc": "雾花文章登上675版头版"},
+  {"a": "姜灵灵", "b": "爱知", "kind": "同僚", "ab": "同事", "ba": "同事", "warm": -1, "note": "两人互相嫌弃，嘴笨的姜灵灵被爱知怼到红温"},
+  {"a": "雾花", "b": "爱知", "kind": "上司", "ab": "馆长", "ba": "秘书跟班", "call": "雾花→爱知「小狗」「小蛋糕」", "warm": 3, "note": "最早跟随雾花，说话毒却忠诚，只想为她工作"},
+  {"a": "雾花", "b": "冬显", "kind": "上司", "ab": "馆长", "ba": "科员", "call": "冬显→雾花「姐妹」", "warm": 1, "note": "冬显曾拿雾花编制下套，被反制罚发传单后交投名状", "arc": "从使绊子到心腹"},
+  {"a": "爱知", "b": "冬显", "kind": "同僚", "ab": "同事", "ba": "同事", "warm": 0, "note": "同为雾花手下，互相拆台争宠"},
+  {"a": "爱知", "b": "秦苇", "kind": "母女", "ab": "女儿", "ba": "母亲", "warm": 1, "note": "母亲三岁就带她上战场又送回，嘴上嫌幼稚却偷偷来看"},
+  {"a": "雾花", "b": "茕缺", "kind": "上司", "ab": "馆长", "ba": "新员工", "warm": 2, "note": "雾花开周薪两万抢下她，茕缺开始在意谁能逗雾花笑"},
+  {"a": "爱知", "b": "茕缺", "kind": "对手", "ab": "前辈", "ba": "新人", "warm": 0, "note": "茕缺十秒击败爱知，两人暗暗较劲争宠"},
+  {"a": "雾花", "b": "卡米拉", "kind": "上司", "ab": "馆长", "ba": "总设计师", "call": "卡米拉→雾花「老大」", "warm": 3, "note": "雾花从死寂馆挖来的工作狂，用工作量转移她键政", "arc": "成了真正的知心朋友"},
+  {"a": "卡米拉", "b": "心壳", "kind": "伴侣", "ab": "伴侣", "ba": "伴侣", "warm": 3, "note": "大学室友兼伴侣，心壳到点就把卷狗卡米拉拎下班", "arc": "偶有建筑理念分歧，经雾花调解"},
+  {"a": "心壳", "b": "雾花", "kind": "其他", "ab": "投靠者", "ba": "恩人", "warm": 2, "note": "视雾花为带她走出死寂馆的恩人，因子分期无息卖她", "arc": "被雾花撩得晕乎，也不满人造卡米拉计划"},
+  {"a": "卡米拉", "b": "爱知", "kind": "同僚", "ab": "同事", "ba": "同事", "warm": -1, "note": "卡米拉嫌爱知不学无术，两人不合"},
+  {"a": "乔伊", "b": "卡米拉", "kind": "上司", "ab": "前上司", "ba": "前下属", "warm": -1, "note": "卡米拉被挖走令乔伊暴怒，起诉闪灵恶意竞争"},
+  {"a": "乔伊", "b": "心壳", "kind": "其他", "ab": "前东家", "ba": "前镇馆宝", "warm": -1, "note": "失去心壳和卡米拉令乔伊痛心，她却无法挽回"},
+  {"a": "雾花", "b": "乔伊", "kind": "对手", "ab": "对手", "ba": "对手", "warm": -1, "note": "乔伊研究雾花手法想出师，雾花当众骂她后宫馆", "arc": "馆战中被雾花用雷枪钉在地上"},
+  {"a": "爱知", "b": "克维坦", "kind": "恩人", "ab": "谈判接回者", "ba": "被救者", "warm": 2, "note": "爱知隔着1比30的时差打字谈判，把失踪的她接回"},
+  {"a": "雾花", "b": "克维坦", "kind": "上司", "ab": "馆长", "ba": "海底作业员", "warm": 1, "note": "雾花看中她的价值争取入职，她扛着魔女金回归"},
+  {"a": "拿破仑", "b": "威灵顿", "kind": "对手", "ab": "老招牌", "ba": "新招牌", "warm": 0, "note": "威灵顿抢走热度令拿破仑一度忧郁，如今斗嘴比捐款", "arc": "同签约成为雾花的援军"},
+  {"a": "雾花", "b": "拿破仑", "kind": "其他", "ab": "收藏家", "ba": "援军藏品", "warm": 1, "note": "好斗的鲨鱼娘伙食不满就绝食，最终自愿与雾花签约"},
+  {"a": "雾花", "b": "威灵顿", "kind": "其他", "ab": "收藏家", "ba": "援军藏品", "warm": 1, "note": "雾花十万收来她建滑铁卢展厅，契约时她第一个跳进"},
+  {"a": "老艾", "b": "雾花", "kind": "其他", "ab": "私人医生", "ba": "病人", "warm": 2, "note": "每周测魔力打针，发现裂痕与吞食，曾当众替她要待遇"},
+  {"a": "老艾", "b": "恶名", "kind": "其他", "ab": "投缘", "ba": "投缘", "warm": 2, "note": "脏话连篇的兔子医生与驴耳打手意外投缘"},
+  {"a": "恶名", "b": "雾花", "kind": "其他", "ab": "纪律顾问", "ba": "被查者", "warm": 1, "note": "起初来查雾花档案，后越聊越近，讲听话系数"},
+  {"a": "雾花", "b": "阿丽塔", "kind": "盟友", "ab": "生意伙伴", "ba": "生意伙伴", "call": "雾花→阿丽塔「阿丽塔小妹」", "warm": 2, "note": "阿丽塔自称宿敌主动加好友，成了最早的倒卖搭档"},
+  {"a": "晴玫", "b": "阿丽塔", "kind": "其他", "ab": "调侃者", "ba": "长辈", "call": "晴玫、山芙→阿丽塔「粉色奶龙」", "warm": 1, "note": "双胞胎叫她粉色奶龙，她照样厚脸皮套近乎"},
+  {"a": "海蚀", "b": "雾花", "kind": "师徒", "ab": "权术导师", "ba": "学生", "call": "雾花→海蚀「金丹老祖」", "warm": 2, "note": "海蚀教扑克脸和权术，给顾问合同，把她文章放头版", "arc": "同组毛球帮"},
+  {"a": "雾花", "b": "大卫", "kind": "挚友", "ab": "朋友", "ba": "朋友", "warm": 3, "note": "同为孀居，是大卫五十年来第一个正常朋友，撞衫互殴过", "arc": "雾花决心改变她的处境"},
+  {"a": "海蚀", "b": "大卫", "kind": "其他", "ab": "毛球帮", "ba": "毛球帮", "warm": 1, "note": "同属毛球帮一起打球露营，海蚀建议走政治渠道"},
+  {"a": "大卫", "b": "歌莉娅", "kind": "母女", "ab": "名下母亲", "ba": "名下女儿", "warm": -2, "note": "霍罗家能打才孝顺，歌莉娅厌恶其价值观，关系恶劣", "arc": "歌莉娅想把大卫改造成雾花那样"},
+  {"a": "大卫", "b": "凡妮莎", "kind": "母女", "ab": "母亲", "ba": "铜牌女儿", "warm": -1, "note": "凡妮莎被冷漠训话后隐忍，最后被「退役」离职"},
+  {"a": "亚伯·霍罗", "b": "大卫", "kind": "姐妹", "ab": "家族领袖", "ba": "妹妹", "warm": 0, "note": "亚伯坚持最强者当母亲，大卫生于这套家风之中"},
+  {"a": "雾花", "b": "亚伯·霍罗", "kind": "对手", "ab": "对手", "ba": "对手", "warm": -1, "note": "霍罗杯上两人言辞交锋，雾花就此记恨亚伯"},
+  {"a": "莉音", "b": "大卫", "kind": "其他", "ab": "新识", "ba": "新识", "warm": 1, "note": "雾花安排两人在咖啡厅初见结交"},
+  {"a": "海蚀", "b": "晴玫", "kind": "雇佣", "ab": "俱乐部主", "ba": "新秀", "warm": 1, "note": "海蚀收双胞胎进狂宴，雾花坚持两个都要才同意"},
+  {"a": "海蚀", "b": "尤瑟", "kind": "雇佣", "ab": "实控人", "ba": "主教练", "warm": 1, "note": "海蚀让卡尔下课，选中尤瑟接任", "arc": "带狂宴夺得霍罗杯"},
+  {"a": "尤瑟", "b": "晴玫", "kind": "师徒", "ab": "教练", "ba": "主攻手", "warm": 2, "note": "社恐教练细心照顾队员，复盘时特意放每人的高光"},
+  {"a": "尤瑟", "b": "莉音", "kind": "雇佣", "ab": "教练", "ba": "选手", "warm": 1, "note": "尤瑟说服莉音签约，又劝她不要为自己降薪"},
+  {"a": "狂恋", "b": "雾花", "kind": "前任", "ab": "前女友", "ba": "前女友", "call": "狂恋→雾花 骂「渣男」", "warm": 1, "note": "找了雾花五十年，重逢开口就骂，爱恨交织还咬伤她", "arc": "约定重新开始、每日分享"},
+  {"a": "狂恋", "b": "莉音", "kind": "对手", "ab": "情敌", "ba": "情敌", "warm": -1, "note": "互相敌视，用口型骂对方被抛弃者、懦夫", "arc": "后来狂恋求莉音帮忙考公"},
+  {"a": "彼得", "b": "雾花", "kind": "对手", "ab": "石村馆长", "ba": "闪灵馆长", "warm": 0, "note": "下班时亲自带雾花参观、卖她章鱼娘，还想挖她跳槽", "arc": "馆战后被安检门判为敌人"},
+  {"a": "彼得", "b": "乔伊", "kind": "盟友", "ab": "反闪灵盟主", "ba": "盟友", "warm": -2, "note": "彼得在战场背叛盟友，被俘的乔伊痛骂她"},
+  {"a": "楚虞君", "b": "雾花", "kind": "其他", "ab": "前辈", "ba": "后辈", "call": "雾花→楚虞君「楚子姐」", "warm": 2, "note": "教雾花立人设、提醒秘银局，投资她的掮客公司", "arc": "卖给她雷霆体系第一层"},
+  {"a": "楚虞君", "b": "路洁珊", "kind": "其他", "ab": "搭档", "ba": "搭档", "warm": 2, "note": "两人合开魔女之家酒馆，路洁珊管着楚虞君戒赌"},
+  {"a": "司牝", "b": "雾花", "kind": "其他", "ab": "胧月馆长", "ba": "同为孀居", "warm": 1, "note": "两位孀居者初识便互相安慰"}
+];
+function canonLinksOn(run) { return typeof CANON_LINKS !== "undefined" && eraByYear(run && run.year).id === "y2077" ? CANON_LINKS : []; }
+function linksAll(run) {                                 /* 档上的＋原著的，同一对以档为准；返回无向边 */
+  const out = new Map();
+  for (const c of canonLinksOn(run)) {
+    const a = linkPid(run, c.a), b = linkPid(run, c.b); if (!a || !b || a === b) continue;
+    const [x, y] = [a, b].sort(), flip = x !== a;
+    const prev = out.get(x + "|" + y);
+    if (prev) { prev.also = linkKind(c.kind); prev.note = (prev.note + "；" + (c.note || "")).slice(0, 80); prev.warm = Math.max(prev.warm, c.warm || 0); continue; }   // 同一对两层关系：并成一条
+    out.set(x + "|" + y, { a: x, b: y, kind: linkKind(c.kind), ab: flip ? c.ba : c.ab, ba: flip ? c.ab : c.ba, call: c.call || "", warm: c.warm || 0, note: c.note || "", arc: c.arc || "", hist: [], src: "canon", boss: linkKind(c.kind) === "上司" ? linkPid(run, c.a) : "" });
+  }
+  for (const [k, L] of Object.entries(run.links || {})) {
+    const old = out.get(k);
+    out.set(k, Object.assign({}, old || {}, L, { src: old ? "both" : "play", arc: (old && old.arc) || L.arc || "", note: L.note || (old && old.note) || "" }));
+  }
+  return [...out.values()];
+}
+function linksOf(run, pid, all) {                        /* 以 pid 为一端：{o（另一端）, kind, me（pid 是对方的什么）, them（对方是 pid 的什么）…} */
+  const res = [];
+  for (const L of (all || linksAll(run))) {
+    if (L.a !== pid && L.b !== pid) continue;
+    const isA = L.a === pid;
+    const o9 = isA ? L.b : L.a, SYM = ["姐妹", "家人", "伴侣", "挚友", "发小", "同僚", "盟友", "对手", "宿敌", "死对头CP", "前任"];
+    let me9 = isA ? L.ab : L.ba, them9 = isA ? L.ba : L.ab;       // 档上的关系没写称谓时按类型补
+    if (!them9 && L.kind === "上司" && L.boss) them9 = L.boss === o9 ? "上司" : "下属";
+    if (!me9 && L.kind === "上司" && L.boss) me9 = L.boss === pid ? "上司" : "下属";
+    if (!them9 && SYM.includes(L.kind)) them9 = L.kind === "伴侣" ? "伴侣" : L.kind;
+    if (!me9 && SYM.includes(L.kind)) me9 = them9;
+    res.push({ o: o9, kind: L.kind, also: L.also || "", me: me9, them: them9, call: L.call, warm: L.warm || 0, note: L.note, arc: L.arc, hist: L.hist || [], src: L.src, boss: L.boss || "" });
+  }
+  return res;
+}
+function linkWarmTxt(w) { return w >= 3 ? "情深" : w === 2 ? "亲近" : w === 1 ? "和睦" : w === 0 ? "平淡" : w === -1 ? "别扭" : w === -2 ? "不和" : "势同水火"; }
+function linkPromptLine(run, pid, focus) {               /* 人物档案里的一行「人际」 */
+  const ls = linksOf(run, pid);
+  if (!ls.length) return "";
+  ls.sort((x, y) => ((focus && focus.has(y.o)) ? 1 : 0) - ((focus && focus.has(x.o)) ? 1 : 0) || Math.abs(y.warm) - Math.abs(x.warm));
+  return ls.slice(0, 5).map(l => "与" + npcBare(l.o) + "（" + (l.them ? "对方是她的" + l.them : l.kind) + "·" + linkWarmTxt(l.warm) + (l.note ? "；" + l.note : "") + (l.hist.length && l.hist[l.hist.length - 1].t !== l.note ? "；近事：" + l.hist[l.hist.length - 1].t : "") + "）").join("、");
+}
 /* ── 点开：人物／物品／地点／名词 ── */
 function entCanonOf(run, name) {                         /* 档上的人对应的原著人物卡 */
   let wb = []; try { wb = PromptM.allWB().filter(e => e && !e.off && e.grp === "人物" && PromptM.wbEraOk(e, run)); } catch (e) {}
@@ -6426,50 +6622,106 @@ function entNpcKey(run, nm) {                            /* 名字 → 档上的
   if ((run.npcs || {})[nm]) return nm;
   return Object.keys(run.npcs || {}).find(k => npcBare(k) === nm || npcBare(k) === npcBare(nm)) || "";
 }
-function entTies(run, key, canon) {                      /* 关系网的边：[{nm, k, id, lab, col}] */
-  const out = new Map();
-  const add = (nm, k, id, lab, col) => { if (!nm) return; const o = out.get(nm) || { nm, k, id, labs: [], col }; if (lab && !o.labs.includes(lab)) o.labs.push(lab); if (col && !o.col) o.col = col; out.set(nm, o); };
-  const p = key ? run.npcs[key] : null;
-  if (p) add(run.alias || run.pname || "你", "me", "", (p.rel || "泛交") + " · 好感" + (p.fav != null ? p.fav : 50), relCol(p.rel));
-  if (key) {
-    const cnt = {};
-    for (const e of (run.memo || [])) {
-      const cast = e.cast || [];
-      if (!cast.some(c => c === key || npcBare(c) === npcBare(key))) continue;
-      for (const c of cast) { const k2 = entNpcKey(run, c) || c; if (k2 !== key && npcBare(k2) !== npcBare(key)) cnt[k2] = (cnt[k2] || 0) + 1; }
-    }
-    Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 6).forEach(([k2, n]) => { const q = run.npcs[k2]; add(npcBare(k2), q ? "npc" : "canon", q ? k2 : k2, "同场×" + n, q ? relCol(q.rel) : ""); });
-    for (const d of (p.deeds || [])) {
-      const m = String(d).match(/^与(.{1,10}?)：(.+)$/); if (!m) continue;
-      const k2 = entNpcKey(run, m[1]); add(npcBare(k2 || m[1]), k2 ? "npc" : "canon", k2 || m[1], m[2].slice(0, 10), k2 && run.npcs[k2] ? relCol(run.npcs[k2].rel) : "");
-    }
-  }
-  if (canon) {
-    let wb = []; try { wb = PromptM.allWB().filter(e => e && !e.off && e.grp === "人物" && PromptM.wbEraOk(e, run)); } catch (e) {}
-    const mine = canon.keys || [];
-    for (const e of wb) {
-      if (e === canon || (e.id && e.id === canon.id)) continue;
-      const hitA = (e.keys || []).some(k => k.length >= 2 && String(canon.text || "").includes(k));
-      const hitB = mine.some(k => k.length >= 2 && String(e.text || "").includes(k));
-      if (!hitA && !hitB) continue;
-      const nm = (e.keys || [])[0] || e.name, k2 = entNpcKey(run, nm);
-      add(k2 ? npcBare(k2) : nm, k2 ? "npc" : "canon", k2 || e.id || e.name, "原著", k2 && run.npcs[k2] ? relCol(run.npcs[k2].rel) : "");
-      if (out.size >= 10) break;
-    }
-  }
-  return [...out.values()].slice(0, 10);
+/* P236 两圈关系网：内圈是她的人，按家族／情感／职场／恩怨／往来分扇区；圈上的人彼此有关系也连上 */
+const REL2KIND = { "家人": "家人", "恋人": "伴侣", "挚友": "挚友", "师徒": "师徒", "同僚": "同僚", "仇敌": "宿敌", "使魔·宠物": "监护", "泛交": "其他" };
+function entCanonId(run, nm) {
+  let wb = []; try { wb = PromptM.allWB().filter(e => e && !e.off && e.grp === "人物" && PromptM.wbEraOk(e, run)); } catch (e) {}
+  const e = wb.find(x => (x.keys || []).includes(nm)); return e ? (e.id || e.name) : "";
 }
-function entEgoSVG(center, ties, col) {                  /* 以此人为中心的小关系网 */
-  const W = 340, H = 250, cx = W / 2, cy = H / 2, R = 96;
-  const n = ties.length;
-  const pts = ties.map((t, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / Math.max(1, n); return { t, x: cx + Math.cos(a) * R * 1.25, y: cy + Math.sin(a) * R * .92 }; });
-  const lines = pts.map(q => '<line x1="' + cx + '" y1="' + cy + '" x2="' + q.x.toFixed(1) + '" y2="' + q.y.toFixed(1) + '" style="stroke:' + (q.t.col || "var(--line2)") + '"/>' +
-    '<text class="eg-lab" x="' + (cx + (q.x - cx) * .66).toFixed(1) + '" y="' + (cy + (q.y - cy) * .66 - 4).toFixed(1) + '">' + U.esc(q.t.labs.slice(0, 2).join("·")) + "</text>").join("");
-  const nodes = pts.map(q => '<g class="eg-node' + (q.t.k === "me" ? " me" : "") + '"' + (q.t.k === "me" ? "" : ' data-ent="' + q.t.k + '" data-id="' + U.esc(q.t.id) + '"') + '>' +
-    '<circle cx="' + q.x.toFixed(1) + '" cy="' + q.y.toFixed(1) + '" r="' + (q.t.k === "me" ? 9 : 7) + '" style="fill:' + (q.t.col || "var(--ent-canon)") + '"/>' +
-    '<text x="' + q.x.toFixed(1) + '" y="' + (q.y + (q.y > cy ? 20 : -12)).toFixed(1) + '">' + U.esc(String(q.t.nm).slice(0, 6)) + "</text></g>").join("");
-  return '<svg class="eg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + U.esc(center) + '的关系网">' + lines +
-    '<g class="eg-node ctr"><circle cx="' + cx + '" cy="' + cy + '" r="13" style="fill:' + col + '"/><text x="' + cx + '" y="' + (cy + 29) + '">' + U.esc(String(center).slice(0, 6)) + "</text></g>" + nodes + "</svg>";
+function entNet(run, pid) {
+  const all = linksAll(run), ring = new Map();
+  const nodeOf = o => { const q = (run.npcs || {})[o]; return q ? { k: "npc", id: o, nm: npcBare(o), rel: q.rel } : { k: entCanonId(run, o) ? "canon" : "", id: entCanonId(run, o), nm: o }; };
+  for (const l of linksOf(run, pid, all)) ring.set(l.o, Object.assign(nodeOf(l.o), { kind: l.kind, cat: linkCat(l.kind), lab: (l.them || l.kind) + (l.also ? "·" + l.also : ""), warm: l.warm, note: l.note, call: l.call, arc: l.arc, hist: l.hist, src: l.src, boss: l.boss }));
+  const p = (run.npcs || {})[pid];
+  if (p) {
+    const kd = REL2KIND[p.rel] || "其他", fav = p.fav != null ? p.fav : 50;
+    ring.set("__me", { k: "me", id: "", nm: run.alias || run.pname || "你", kind: kd, cat: linkCat(kd), lab: "你", warm: U.clamp(Math.round((fav - 50) / 16), -3, 3), note: (p.rel || "泛交") + " · 好感 " + fav + (p.att ? " · " + p.att : ""), hist: [] });
+  }
+  const co = Object.entries(run.copairs || {}).map(([k, c]) => { const [a, b] = k.split("|"); return a === pid ? [b, c] : b === pid ? [a, c] : null; }).filter(Boolean).sort((x, y) => y[1] - x[1]);
+  for (const [o, c] of co) { if (ring.size >= 13) break; const k2 = entNpcKey(run, o) || o; if (!ring.has(k2)) ring.set(k2, Object.assign(nodeOf(k2), { kind: "同场", cat: "往来", lab: "同场×" + c, warm: 0, note: "一起出现过 " + c + " 幕", hist: [] })); }
+  const pri = x => (x.k === "me" ? 100 : 0) + (x.k === "npc" ? 50 : 0) + (x.src === "play" || x.src === "both" ? 20 : 0) + (x.kind === "同场" ? -30 : 0) + Math.abs(x.warm) * 3;
+  const list = [...ring.entries()].map(([o, v]) => Object.assign({ o }, v)).sort((x, y) => pri(y) - pri(x)).slice(0, 11)   // 先挑要紧的人，再按扇区排
+    .sort((x, y) => LINK_CAT_ORDER.indexOf(x.cat) - LINK_CAT_ORDER.indexOf(y.cat) || Math.abs(y.warm) - Math.abs(x.warm));
+  const inRing = new Set(list.map(x => x.o)), pair = [];
+  for (const L of all) if (inRing.has(L.a) && inRing.has(L.b)) pair.push(L);
+  return { list, pair };
+}
+function netPath(x1, y1, x2, y2, st, bend) {             /* 一条线的 path d；bend＝往圆心弯的控制点 */
+  if (st === "zig") {
+    const n = 10, dx = x2 - x1, dy = y2 - y1, d = Math.hypot(dx, dy) || 1, px = -dy / d, py = dx / d; let s9 = "M" + x1.toFixed(1) + " " + y1.toFixed(1);
+    for (let i = 1; i < n; i++) { const t = i / n, o = (i % 2 ? 2.6 : -2.6); s9 += " L" + (x1 + dx * t + px * o).toFixed(1) + " " + (y1 + dy * t + py * o).toFixed(1); }
+    return s9 + " L" + x2.toFixed(1) + " " + y2.toFixed(1);
+  }
+  if (bend) return "M" + x1.toFixed(1) + " " + y1.toFixed(1) + " Q" + bend[0].toFixed(1) + " " + bend[1].toFixed(1) + " " + x2.toFixed(1) + " " + y2.toFixed(1);
+  return "M" + x1.toFixed(1) + " " + y1.toFixed(1) + " L" + x2.toFixed(1) + " " + y2.toFixed(1);
+}
+function netStroke(kind, warm, main) {
+  const st = (LINK_KIND[kind] || {}).s || "", col = LINK_CAT[linkCat(kind)];
+  const w = (main ? 1.3 : .9) + Math.abs(warm || 0) * (main ? .45 : .25), op = st === "faint" ? .28 : main ? .5 + Math.abs(warm || 0) * .12 : .38;
+  const dash = st === "dash" ? ' stroke-dasharray="6 4"' : st === "dot" ? ' stroke-dasharray="1.2 4" stroke-linecap="round"' : st === "faint" ? ' stroke-dasharray="2 5"' : "";
+  return { st, col, attr: ' stroke="' + col + '" stroke-width="' + w.toFixed(2) + '" stroke-opacity="' + op.toFixed(2) + '" fill="none"' + dash };
+}
+function entNetSVG(run, center, net, col) {
+  const W = 440, H = 372, cx = W / 2, cy = H / 2 + 2, R = 128, list = net.list, n = list.length;
+  const pos = new Map();
+  list.forEach((x, i) => { const a = -Math.PI / 2 + (i + .5) * 2 * Math.PI / Math.max(1, n); const r = R + (n > 8 && i % 2 ? -20 : 0); pos.set(x.o, { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r * .86, a }); });
+  let out = '<svg class="eg eg2" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + U.esc(center) + '的关系网"><defs><marker id="eg-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L8 4 L0 8 z" fill="' + LINK_CAT["职场"] + '"/></marker></defs>';
+  // 扇区弧
+  let i0 = 0;
+  while (i0 < n) {
+    let i1 = i0; while (i1 + 1 < n && list[i1 + 1].cat === list[i0].cat) i1++;
+    const a0 = -Math.PI / 2 + i0 * 2 * Math.PI / n + .04, a1 = -Math.PI / 2 + (i1 + 1) * 2 * Math.PI / n - .04, RR = R + 34;
+    const P = a => [cx + Math.cos(a) * RR, cy + Math.sin(a) * RR * .86];
+    const [x0, y0] = P(a0), [x1, y1] = P(a1), big = a1 - a0 > Math.PI ? 1 : 0, am = (a0 + a1) / 2, [xm, ym] = [cx + Math.cos(am) * (RR + 13), cy + Math.sin(am) * (RR + 13) * .86];
+    const cc = LINK_CAT[list[i0].cat];
+    out += '<path d="M' + x0.toFixed(1) + " " + y0.toFixed(1) + " A" + RR + " " + (RR * .86).toFixed(1) + " 0 " + big + " 1 " + x1.toFixed(1) + " " + y1.toFixed(1) + '" stroke="' + cc + '" stroke-width="2.4" stroke-opacity=".35" fill="none" stroke-linecap="round"/>' +
+      '<text class="eg-cat" x="' + xm.toFixed(1) + '" y="' + (ym + 3).toFixed(1) + '" style="fill:' + cc + '">' + list[i0].cat + "</text>";
+    i0 = i1 + 1;
+  }
+  // 圈上人彼此的线（往圆心弯）
+  for (const L of net.pair) {
+    const A = pos.get(L.a), B = pos.get(L.b); if (!A || !B) continue;
+    const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2, S9 = netStroke(L.kind, L.warm, false);
+    S9.attr = S9.attr.replace(/stroke-opacity="[\d.]+"/, 'stroke-opacity=".3"');
+    out += '<path d="' + netPath(A.x, A.y, B.x, B.y, S9.st, [cx + (mx - cx) * .3, cy + (my - cy) * .3]) + '"' + S9.attr + "><title>" + U.esc(npcBare(L.a) + "—" + npcBare(L.b) + "：" + L.kind + (L.note ? "。" + L.note : "")) + "</title></path>";
+  }
+  // 中心到各人
+  for (const x of list) {
+    const P0 = pos.get(x.o), S9 = netStroke(x.kind, x.warm, true), dx = P0.x - cx, dy = P0.y - cy, d = Math.hypot(dx, dy) || 1;
+    const sx = cx + dx / d * 16, sy = cy + dy / d * 16, ex = P0.x - dx / d * 10, ey = P0.y - dy / d * 10;
+    const arr = x.kind === "上司" ? (x.boss === x.o ? ' marker-start="url(#eg-arr)"' : ' marker-end="url(#eg-arr)"') : "";
+    if (S9.st === "double") { const px = -dy / d * 1.7, py = dx / d * 1.7; out += '<path d="' + netPath(sx + px, sy + py, ex + px, ey + py) + '"' + S9.attr + "/>" + '<path d="' + netPath(sx - px, sy - py, ex - px, ey - py) + '"' + S9.attr + "/>"; }
+    else out += '<path d="' + netPath(sx, sy, ex, ey, S9.st) + '"' + S9.attr + arr + "/>";
+  }
+  // 节点
+  for (const x of list) {
+    const P0 = pos.get(x.o), cc = LINK_CAT[x.cat], ring = x.k === "npc" ? relCol(x.rel) : x.k === "me" ? "var(--zhu2)" : cc;
+    const right = P0.x > cx + 8, left = P0.x < cx - 8, anc = right ? "start" : left ? "end" : "middle";
+    const lx = P0.x + (right ? 13 : left ? -13 : 0), ly = P0.y + (anc === "middle" ? (P0.y > cy ? 22 : -17) : 1);
+    const clickable = x.k === "npc" || (x.k === "canon" && x.id);
+    out += '<g class="eg-node' + (x.k === "me" ? " me" : "") + (x.k === "canon" || !x.k ? " far" : "") + '"' + (clickable ? ' data-ent="' + x.k + '" data-id="' + U.esc(x.id) + '"' : "") + ">" +
+      "<title>" + U.esc(x.nm + "：" + (x.lab || "") + (x.note ? "。" + x.note : "")) + "</title>" +
+      '<circle cx="' + P0.x.toFixed(1) + '" cy="' + P0.y.toFixed(1) + '" r="' + (x.k === "me" ? 9 : 7.5) + '" style="fill:var(--panel2);stroke:' + ring + '"/>' +
+      '<circle cx="' + P0.x.toFixed(1) + '" cy="' + P0.y.toFixed(1) + '" r="3.2" style="fill:' + cc + ';stroke:none"/>' +
+      '<text x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1) + '" text-anchor="' + anc + '">' + U.esc(String(x.nm).slice(0, 6)) + (x.k === "me" ? "（你）" : "") + "</text>" +
+      '<text class="eg-sub" x="' + lx.toFixed(1) + '" y="' + (ly + 12).toFixed(1) + '" text-anchor="' + anc + '" style="fill:' + cc + '">' + U.esc(String(x.lab || "").slice(0, 7)) + "</text></g>";
+  }
+  out += '<g class="eg-node ctr"><circle cx="' + cx + '" cy="' + cy + '" r="15" style="fill:' + col + ';stroke:var(--panel2)"/><text x="' + cx + '" y="' + (cy + 4.5) + '" class="eg-ctr">' + U.esc(String(center)[0]) + '</text></g>';
+  return out + "</svg>";
+}
+function entNetList(run, net) {                          /* 分类清单：谁、是她的什么、冷暖、一句、近事 */
+  const by = {};
+  for (const x of net.list) (by[x.cat] = by[x.cat] || []).push(x);
+  return LINK_CAT_ORDER.filter(c => by[c]).map(c => '<div class="nl-cat"><i style="background:' + LINK_CAT[c] + '"></i>' + c + "</div>" + by[c].map(x => {
+    const clickable = x.k === "npc" || (x.k === "canon" && x.id);
+    const dots = x.kind === "同场" ? "" : '<span class="nl-warm" title="' + linkWarmTxt(x.warm) + '">' + [1, 2, 3].map(i => '<b class="' + (x.warm >= i ? "on" : x.warm <= -i ? "neg" : "") + '"></b>').join("") + "</span>";
+    return '<div class="nl-row"><div class="nl-top"><span class="nl-nm' + (clickable ? " ent" : "") + '"' + (clickable ? ' data-ent="' + x.k + '" data-id="' + U.esc(x.id) + '"' : "") + ">" + U.esc(x.nm) + (x.k === "me" ? "（你）" : "") + "</span>" +
+      '<span class="nl-lab" style="color:' + LINK_CAT[x.cat] + '">' + U.esc(x.lab || x.kind) + "</span>" + dots + (x.src === "canon" ? '<span class="nl-src">原著</span>' : "") + "</div>" +
+      (x.note ? '<div class="nl-note">' + U.esc(x.note) + "</div>" : "") +
+      (x.call ? '<div class="nl-sub">称呼：' + U.esc(x.call) + "</div>" : "") +
+      (x.arc ? '<div class="nl-sub">变化：' + U.esc(x.arc) + "</div>" : "") +
+      ((x.hist || []).length ? '<div class="nl-sub">近事：' + x.hist.slice(-2).map(h => U.esc(U.yearText(h.y) + " " + h.t)).join("；") + "</div>" : "") + "</div>";
+  }).join("")).join("");
 }
 function entRows(rows) { return rows.filter(r => r[1]).map(r => '<div class="ep-row"><b>' + r[0] + "</b><span>" + U.esc(String(r[1])) + "</span></div>").join(""); }
 function entWbText(e) { return e ? '<div class="ep-wb">' + U.esc(String(e.text || "")).replace(/\n/g, "<br>") + "</div>" : ""; }
@@ -6480,14 +6732,14 @@ function entHTML(run, k, id) {
     const canon = k === "canon" ? (PromptM.allWB().find(e => (e.id || e.name) === id) || entCanonOf(run, id)) : entCanonOf(run, key);
     const name = p ? npcBare(key) : ((canon && (canon.keys || [])[0]) || id);
     const col = p ? (relCol(p.rel)) : "var(--ent-canon)";
-    const ties = entTies(run, key, canon);
+    const pid9 = key || name, net9 = entNet(run, pid9);
     const fav = p && p.fav != null ? p.fav : 50;
     return '<div class="ep-head" style="--sp:' + col + '"><b>' + U.esc(name) + "</b>" +
       (p ? '<span class="ep-chip">' + U.esc(p.rel || "泛交") + "</span>" : "") + (canon ? '<span class="ep-chip canon">原著人物</span>' : "") +
       (p ? "" : '<span class="ep-chip dim">尚未结识</span>') + "</div>" +
       (p ? '<div class="ep-fav"><i style="width:' + U.clamp(fav, 2, 100) + '%;background:' + col + '"></i></div><div class="ep-sub">好感 ' + fav + (p.att ? " · " + U.esc(p.att) : "") + (p.n ? " · 同场 " + p.n + " 回" : "") + "</div>" : "") +
       (p ? entRows([["外貌", p.look], ["近况", p.note], ["心愿", p.goal], ["打算", p.plan], ["有事找你", p.seek && p.seek.t], ["事迹", (p.deeds || []).slice(-3).join("；")]]) : "") +
-      '<div class="ep-sec">关系网</div>' + (ties.length ? entEgoSVG(name, ties, col) : '<div class="ep-sub">还没有记下她和谁有来往。</div>') +
+      '<div class="ep-sec">关系网</div>' + (net9.list.length ? entNetSVG(run, name, net9, col) + '<div class="nl">' + entNetList(run, net9) + "</div>" : '<div class="ep-sub">还没有记下她和谁有来往。</div>') +
       (canon ? '<details class="ep-fold"' + (p ? "" : " open") + '><summary>原著设定 · ' + U.esc(canon.name || "") + "</summary>" + entWbText(canon) + "</details>" : "") +
       (p ? '<div class="ep-act"><button class="btn sm" data-epgraph="1">打开完整关系图</button></div>' : "");
   }
@@ -6552,7 +6804,7 @@ function entClose() { const p = U.$("#ent-pop"); if (p) p.classList.remove("on")
 document.addEventListener("click", ev => {
   const t = ev.target.closest && ev.target.closest("#story [data-ent]");
   if (t) { ev.preventDefault(); entOpen(t.dataset.ent, t.dataset.id, t); return; }
-  if (!ev.target.closest || !ev.target.closest("#ent-pop")) entClose();
+  if (!ev.target.closest || (!ev.target.closest("#ent-pop") && !ev.target.closest("#graph-cv"))) entClose();
 });
 document.addEventListener("keydown", ev => { if (ev.key === "Escape") entClose(); });
 function memoRosterPick(run, names, cap) {               /* 名单进提示词：近见者、走动多的优先，顺序仍按入档先后 */
@@ -16821,10 +17073,26 @@ const Graph = (() => {
       });
     });
     const idx = {}; nodes.forEach((nd, i) => idx[nd.id] = i);
+    const linked = new Set();
+    for (const L of linksAll(run)) {                               // P236 人与人的关系线
+      if (idx[L.a] == null || idx[L.b] == null) continue;
+      linked.add(L.a + "|" + L.b);
+      edges.push({ a: idx[L.a], b: idx[L.b], w: 1 + Math.abs(L.warm || 0) * .45, link: 1, kind: L.kind, cat: linkCat(L.kind), warm: L.warm || 0, boss: L.boss ? idx[L.boss] : null });
+    }
     Object.entries(run.copairs || {}).forEach(([k, c]) => {
       const [a, b] = k.split("|");
-      if (idx[a] != null && idx[b] != null) edges.push({ a: idx[a], b: idx[b], w: Math.min(3, .5 + c * .4) });
+      if (idx[a] != null && idx[b] != null && !linked.has(k)) edges.push({ a: idx[a], b: idx[b], w: Math.min(3, .5 + c * .4), cat: "往来" });
     });
+    legend();
+  }
+  const hideCat = new Set();
+  function legend() {                                              // P236 图例兼筛选
+    let lg = U.$("#graph-legend");
+    if (!lg) { lg = U.el("div", ""); lg.id = "graph-legend"; U.$("#graph-wrap").appendChild(lg);
+      lg.addEventListener("click", e => { const b = e.target.closest("[data-gcat]"); if (!b) return; const c = b.dataset.gcat; hideCat.has(c) ? hideCat.delete(c) : hideCat.add(c); legend(); }); }
+    const cnt = {}; edges.forEach(e => { if (e.main) return; cnt[e.cat] = (cnt[e.cat] || 0) + 1; });
+    lg.innerHTML = LINK_CAT_ORDER.map(c => '<button data-gcat="' + c + '" class="' + (hideCat.has(c) ? "off" : "") + '"><i style="background:' + LINK_CAT[c] + '"></i>' + c + (cnt[c] ? "<em>" + cnt[c] + "</em>" : "") + "</button>").join("") +
+      '<span class="gl-hint">实线亲 · 虚线疏 · 折线仇 · 点线债 · 双线侣/盟 · 箭头指下属</span>';
   }
 
   function step() {
@@ -16890,9 +17158,26 @@ const Graph = (() => {
     }
     for (const e of edges) {
       const A = nodes[e.a], B = nodes[e.b];
+      if (!e.main && hideCat.has(e.cat)) continue;
+      if (e.link) {                                                  // P236 人与人：按关系画，往两人中点外侧微弯
+        const st = (LINK_KIND[e.kind] || {}).s || "", col = LINK_CAT[e.cat];
+        const mx = (A.x + B.x) / 2, my = (A.y + B.y) / 2, cxm = meN ? meN.x : W / 2, cym = meN ? meN.y : H / 2;
+        const qx = mx + (mx - cxm) * .12, qy = my + (my - cym) * .12;
+        ctx.strokeStyle = col; ctx.lineWidth = e.w; ctx.globalAlpha = .38 + Math.abs(e.warm) * .12;
+        ctx.setLineDash(st === "dash" ? [7, 5] : st === "dot" ? [1.5, 5] : []);
+        if (st === "zig") zigzag(A, B, 2.4);
+        else if (st === "double") { offLine(A, B, 1.6); offLine(A, B, -1.6); }
+        else { ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.quadraticCurveTo(qx, qy, B.x, B.y); ctx.stroke(); }
+        ctx.setLineDash([]);
+        if (e.boss != null) {                                        // 上司 → 下属 的箭头
+          const S0 = nodes[e.boss], T0 = S0 === A ? B : A, ang = Math.atan2(T0.y - S0.y, T0.x - S0.x), tx = T0.x - Math.cos(ang) * (T0.r + 4), ty = T0.y - Math.sin(ang) * (T0.r + 4);
+          ctx.fillStyle = col; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(tx - Math.cos(ang - .4) * 8, ty - Math.sin(ang - .4) * 8); ctx.lineTo(tx - Math.cos(ang + .4) * 8, ty - Math.sin(ang + .4) * 8); ctx.fill();
+        }
+        ctx.globalAlpha = 1; continue;
+      }
       if (!e.main) {
-        ctx.globalAlpha = .22; ctx.strokeStyle = cssVar("--mut"); ctx.lineWidth = e.w;
-        ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+        ctx.globalAlpha = .16; ctx.strokeStyle = cssVar("--mut"); ctx.lineWidth = e.w; ctx.setLineDash([2, 6]);
+        ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke(); ctx.setLineDash([]);
         ctx.globalAlpha = 1; continue;
       }
       const rel = e.rel || "泛交", col = RELCLR[rel] || "#8a84a8";
@@ -16967,7 +17252,11 @@ const Graph = (() => {
     drag.node.x = x; drag.node.y = y; drag.node.vx = drag.node.vy = 0; drag.moved = true;
   });
   cv.addEventListener("pointerup", e => {
-    if (drag && !drag.moved) tip(drag.node);
+    if (drag && !drag.moved) {
+      const nd = drag.node;                                          // P236 点人＝打开人物卡（带两圈关系网）
+      if (!nd.me && typeof entOpen === "function") { const r = cv.getBoundingClientRect(), x9 = r.left + nd.x, y9 = r.top + nd.y; entOpen("npc", nd.id, { getBoundingClientRect: () => ({ left: x9 - 8, right: x9 + 8, top: y9 - 8, bottom: y9 + 8, width: 16, height: 16 }) }); }
+      else tip(nd);
+    }
     drag = null;
   });
   function tip(n) {
@@ -17370,6 +17659,7 @@ const PromptM = (() => {
       if (p.goal) bits.push("心愿：" + p.goal);   /* P232 */
       if (p.plan) bits.push("打算：" + p.plan);
       if (p.seek) bits.push("正要找主角：" + p.seek.t);
+      { const ln9 = linkPromptLine(run, n, new Set(fullNames)); if (ln9) bits.push("人际：" + ln9); }   /* P236 */
       if (p.look) bits.push("外貌：" + p.look);
       if (p.deeds && p.deeds.length) bits.push("事迹：" + p.deeds.join("；"));
       if (p.hist && p.hist.length) bits.push("与她的过往：" + p.hist.slice(-3).map(h9 => U.yearText(h9.y) + (h9.m ? h9.m + "月" : "") + "·" + h9.t).join("；"));   /* P192 */
@@ -17493,6 +17783,7 @@ const PromptM = (() => {
 "关系：（可选，与某人关系质变时写：关系：名字→类型。类型限 恋人/家人/挚友/师徒/同僚/使魔·宠物/仇敌/泛交，可多段用｜分隔）",
 "事迹：（可选，某人做了值得长记的事：事迹：名字｜一句。每人至多留5条）",
 "外貌：（可选，人物首次亮相或形象大变时写：外貌：名字｜一句。主角写 外貌：我｜一句）",
+"人际：（可选，两个非主角人物之间的关系初次交代或有变时写：人际：甲｜乙｜关系｜一句近况｜冷暖±N。关系限 母女/姐妹/家人/伴侣/前任/暗恋/挚友/发小/师徒/上司/同僚/雇佣/盟友/对手/宿敌/债务/恩人；上司关系把上司写在前；冷暖只在变了时写，可省）",
 "心事：（可选，某人的心愿或眼下打算因剧情有变时写：心事：名字｜心愿：一句｜打算：一句，两项可只写一项；打算写她接下来要去做的事，不必和主角有关）",
 "身份：（可选，主角身份近况变化时写：身份：一句，如 身份：牧海者见习队员）",
 "天赋：（可选，剧情里实打实练出或得到传授时写：天赋：+名。只认天赋表内的名目——魔力渊薮/稳手/眼力/皮实/口齿/快手/算盘精/工头出身/兽语/符阵手/讲价/勘探癖/家学/师承/门路/血脉/扎针/燃血/赌命/以身饲界；同名再给即精进一级，最高三级。表外的名目会被驳回）",
@@ -17846,6 +18137,15 @@ MVU.proto(),
         stat.looks = stat.looks || [];
         if (i2 > 0) stat.looks.push({ name: v.slice(0, i2).trim(), t: v.slice(i2 + 1).trim() });
         else if (v) stat.looks.push({ name: "我", t: v });
+      }
+      else if (k === "人际") {                                  /* P236 人际：甲｜乙｜关系｜近况｜冷暖±N */
+        const seg = v.split(/[｜|]/).map(s => s.trim()).filter(Boolean), lk = { a: seg[0], b: seg[1] };
+        for (const s2 of seg.slice(2)) {
+          const mw = s2.match(/^冷暖\s*([+\-－＋])\s*(\d)/);
+          if (mw) { lk.warmD = (/[-－]/.test(mw[1]) ? -1 : 1) * parseInt(mw[2], 10); continue; }
+          if (!lk.kind) lk.kind = s2; else if (!lk.t) lk.t = s2;
+        }
+        if (lk.a && lk.b && lk.kind) { stat.links = stat.links || []; stat.links.push(lk); }
       }
       else if (k === "心事") {                                  /* P232 */
         const seg = v.split(/[｜|]/).map(s => s.trim()), mind = { name: seg[0] || "" };
@@ -18331,6 +18631,11 @@ MVU.proto(),
       if (!lk.t) continue;
       if (lk.name === "我" || lk.name === run.pname || lk.name === run.alias) run.profile.look = lk.t.slice(0, 40);
       else npcOf(lk.name).look = lk.t.slice(0, 40);
+    }
+    if (stat.links) for (const lk of stat.links.slice(0, 4)) {      /* P236 只认在册的人，或原著人物卡里有的名字 */
+      const okA = stirFind(run, lk.a) || (typeof entDict === "function" && (entDict(run).map.get(lk.a) || {}).k === "canon");
+      const okB = stirFind(run, lk.b) || (typeof entDict === "function" && (entDict(run).map.get(lk.b) || {}).k === "canon");
+      if (okA && okB) linkSet(run, lk.a, lk.b, { kind: lk.kind, note: lk.t, t: lk.t, warmD: lk.warmD });
     }
     if (stat.minds) for (const md of stat.minds) {              /* P232 只改在册的人，不凭一行心事造人 */
       const k9 = stirFind(run, md.name); if (!k9) continue;
@@ -19346,7 +19651,7 @@ const Sim = (() => {
     }
     else if (k === "交集") {                                     /* P232 交集：甲｜乙｜两人之间的事 */
       const seg = v.split(/[｜|]/).map(s => s.trim());
-      if (seg[0] && seg[1] && seg[2]) { stat.ties = stat.ties || []; stat.ties.push({ a: seg[0], b: seg[1], t: seg.slice(2).join("，").slice(0, 40) }); }
+      if (seg[0] && seg[1] && seg[2]) { stat.ties = stat.ties || []; const rk = seg[3] && LINK_KIND[linkKind(seg[3])] && linkKind(seg[3]) !== "其他" ? seg[3] : ""; stat.ties.push({ a: seg[0], b: seg[1], t: (rk ? seg[2] : seg.slice(2).join("，")).slice(0, 40), kind: rk }); }   /* P236 第四段＝关系 */
     }
   }
   function parseCmdLines(text) {   // 多形态通吃：键行式 / 分段列表式 / 【方括键】 / 汉字序号 / JSON
@@ -19470,7 +19775,7 @@ const Sim = (() => {
       const names9 = names.concat(pick.filter(x => !names.includes(x)));
       const roster = names9.map(n => {                    /* P206 来信改口：各人只带自己的关系、近况与「同场」，不再整段喂主角行迹 */
         const p = run.npcs[n];
-        return n + "（" + (p.rel || "泛交") + "·好感" + (p.fav != null ? p.fav : 50) + (p.att ? "·" + p.att : "") + (p.note ? "·近况：" + p.note : "") + (p.goal ? "·心愿：" + p.goal : "") + (p.plan ? "·打算：" + p.plan : "") + (p.seek ? "·正要找主角：" + p.seek.t : "") + "·" + mailKnowLine(run, n) + "）";
+        return n + "（" + (p.rel || "泛交") + "·好感" + (p.fav != null ? p.fav : 50) + (p.att ? "·" + p.att : "") + (p.note ? "·近况：" + p.note : "") + (p.goal ? "·心愿：" + p.goal : "") + (p.plan ? "·打算：" + p.plan : "") + (p.seek ? "·正要找主角：" + p.seek.t : "") + (function () { const l9 = linkPromptLine(run, n, new Set(names9)); return l9 ? "·人际：" + l9.slice(0, 90) : ""; })() + "·" + mailKnowLine(run, n) + "）";
       }).join("\n");
       const pub = mailPublic(run, 4);
       const e94m = eraByYear(run.year || 1994).id === "y1994";
@@ -19481,7 +19786,7 @@ const Sim = (() => {
         "身边：名字｜近况一句｜好感±N（可选，变化才写）｜心思：她暗中的小算盘一句（可选）｜心愿：她长远想要的东西（没有心愿的人必须补上，已有的只在变了时写）｜打算：她接下来几天要去做的一件具体的事\n" +
         "近况要比上回往前走一步：打算办成了、办砸了、半路变了卦，都写出来，别原地踏步。\n" +
         "另可附至多一行 找上门：名字｜她为自己的什么事要亲自来找主角（求助、讨债、邀约、告状、报喜、借钱、找茬都行，须出于她自己的打算，好感低的也会来）。\n" +
-        "另可附至多一行 交集：甲｜乙｜两人之间刚发生的一件事（合伙、吵翻、结对、欠账、撞见……甲乙都得是名单里的人）。\n" +
+        "另可附至多两行 交集：甲｜乙｜两人之间刚发生的一件事｜关系（可省；有变或初次交代时写：母女/姐妹/家人/伴侣/前任/暗恋/挚友/发小/师徒/上司/同僚/雇佣/盟友/对手/宿敌/债务/恩人）。甲乙都得是名单里的人；照她们已有的人际往下写，别凭空翻脸或和好。\n" +
         "另可附至多一行 机会：名字｜标题｜一句｜期限（她主动向主角提出的请求或邀约，玩家可接可无视）。\n" +
         "贴合各自身份与好感，不重复旧近况。人物各有自己的生活与利益，不围着主角转。" +
         (news9.length ? "\n新闻会落到人头上：下面「近期新闻」若碰到某人的营生、住处、家人或钱袋，她的近况与打算要跟着变——涨价了就抱怨或囤货，出了事就避难、趁机发财或托人打听。" : "") +
@@ -19515,7 +19820,7 @@ const Sim = (() => {
         const line = (U.yearText(run.year) + "前后：" + lf.t).slice(0, 40);
         if (!p.deeds.includes(line)) { p.deeds.push(line); if (p.deeds.length > 5) p.deeds.shift(); }
       }
-      if (st.ties) for (const tt of st.ties.slice(0, 1)) {
+      if (st.ties) for (const tt of st.ties.slice(0, 2)) {
         const ka = stirFind(run, tt.a), kb = stirFind(run, tt.b);
         if (!ka || !kb || ka === kb) continue;
         for (const [x, y] of [[ka, kb], [kb, ka]]) {
@@ -19523,6 +19828,7 @@ const Sim = (() => {
           const line = ("与" + npcBare(y) + "：" + tt.t).slice(0, 40);
           if (!p.deeds.includes(line)) { p.deeds.push(line); if (p.deeds.length > 5) p.deeds.shift(); }
         }
+        linkSet(run, ka, kb, { kind: tt.kind || "", t: tt.t, warmD: /吵|翻脸|闹掰|绝交|打起来|告发|背叛|赖账/.test(tt.t) ? -1 : /和好|合伙|结对|帮|救|请客|送/.test(tt.t) ? 1 : 0 });   /* P236 */
       }
       if (st.mails && st.mails.length) Game.recvMail(run, st.mails, { force: jump, via: e94m ? "post" : "net" });   /* P206 跳岁月的积信不受疏密闸；P207 1994 邮局信／2077 电邮 */
       if (st.opps) Game.recvOpps(run, st.opps);
