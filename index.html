@@ -256,6 +256,17 @@ svg.eg2 .eg-ctr{fill:#fff;font-size:13px;font-weight:700;text-anchor:middle}
 svg.eg2 path{transition:stroke-opacity .2s} svg.eg2 path:hover{stroke-opacity:.95}
 .ent-pop{width:440px}
 .nl{margin-top:4px}
+.fx-cnt{font-style:normal;letter-spacing:.05em;margin-left:6px;color:var(--ent-npc)}
+.fx{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.fx-row{display:flex;align-items:baseline;gap:8px;padding:4px 0;border-top:1px dashed var(--line);min-width:0}
+.fx-row b{flex:none;width:4.8em;color:var(--mut);font-weight:500;font-size:12px}
+.fx-row span{flex:1;min-width:0;color:var(--ink);font-size:12.5px;line-height:1.5;word-break:break-word}
+.fx-row.on span{animation:msgIn .4s ease both}
+.fx-how{display:block;font-style:normal;font-size:10.5px;color:var(--mut)}
+.fx-q{color:var(--mut)!important;letter-spacing:.2em;opacity:.6}
+.fx-ask{flex:none;font-size:11px;color:var(--ent-npc);border:1px solid color-mix(in srgb,var(--ent-npc) 50%,transparent);border-radius:999px;padding:0 8px;line-height:1.6}
+.fx-ask:hover{background:color-mix(in srgb,var(--ent-npc) 18%,transparent)}
+@media (max-width:520px){.fx{grid-template-columns:1fr}}
 .nl-cat{display:flex;align-items:center;gap:7px;font-size:11px;letter-spacing:.3em;color:var(--mut);margin:10px 0 3px}
 .nl-cat i{width:14px;height:3px;border-radius:2px;display:inline-block}
 .nl-row{padding:5px 0 6px 21px;border-top:1px dashed var(--line)}
@@ -6611,6 +6622,37 @@ function linkPromptLine(run, pid, focus) {               /* 人物档案里的�
   ls.sort((x, y) => ((focus && focus.has(y.o)) ? 1 : 0) - ((focus && focus.has(x.o)) ? 1 : 0) || Math.abs(y.warm) - Math.abs(x.warm));
   return ls.slice(0, 5).map(l => "与" + npcBare(l.o) + "（" + (l.them ? "对方是她的" + l.them : l.kind) + "·" + linkWarmTxt(l.warm) + (l.note ? "；" + l.note : "") + (l.hist.length && l.hist[l.hist.length - 1].t !== l.note ? "；近事：" + l.hist[l.hist.length - 1].t : "") + "）").join("、");
 }
+/* ================= P237 人物档案：默认藏着，问出来、打听到、查到才亮 =================
+   p.facts[key]＝{v, k（1＝主角已知）, how（怎么知道的）, y}。身边层先把内容写好（藏着）；主模型写「得知：名字｜项目｜内容」才亮。
+   AI 看得到全档，但标「主角未知」的只能在主角问起、打听、调查或对方主动说起时透露；关系浅的会搪塞、说一半或撒谎。 */
+const FACT_KEYS = [
+  ["age", "年龄", "问"], ["race", "种族", "问"], ["job", "职务", "问"], ["org", "单位", "问"], ["home", "住处", "问"], ["tier", "魔力档位", "探"],
+  ["hobby", "爱好", "问"], ["dislike", "讨厌", "问"], ["taste", "口味", "问"], ["gift", "心仪礼物", "探"], ["phrase", "口头禅", "听"],
+  ["mei", "网络账号", "查"], ["family", "家里", "问"], ["past", "过往", "探"], ["weak", "软肋", "探"], ["secret", "秘密", "探"],
+  ["goal", "心愿", "探"], ["plan", "打算", "探"]                   // 这两项的内容跟着 p.goal / p.plan 走，只记「知不知道」
+];
+const FACT_LIVE = { goal: 1, plan: 1 };
+const FACT_ALIAS = { "年纪": "age", "岁数": "age", "貌龄": "age", "职业": "job", "工作": "job", "所属": "org", "地址": "home", "家住": "home", "档位": "tier", "魔力": "tier", "实力": "tier",
+  "喜好": "hobby", "兴趣": "hobby", "嫌恶": "dislike", "忌口": "taste", "饮食": "taste", "礼物": "gift", "梅网": "mei", "梅网账号": "mei", "账号": "mei", "社交账号": "mei", "混沌网": "mei", "家人": "family", "家庭": "family", "经历": "past", "弱点": "weak", "目标": "goal", "计划": "plan", "心思": "plan" };
+function factKey(label) { label = String(label || "").trim(); const f = FACT_KEYS.find(x => x[1] === label || x[0] === label); return f ? f[0] : (FACT_ALIAS[label] || ""); }
+function factLabel(run, key) { if (key === "mei") return (typeof meiWord === "function" ? meiWord(run, "brand") : "梅网") + "账号"; const f = FACT_KEYS.find(x => x[0] === key); return f ? f[1] : key; }
+function factSet(run, name, key, v, known, how) {
+  const k9 = stirFind(run, name); if (!k9 || !key || !v) return false;
+  const p = run.npcs[k9]; p.facts = p.facts || {};
+  if (FACT_LIVE[key]) { if (!known) return false; p[key] = String(v).trim().slice(0, key === "goal" ? 30 : 40); p.facts[key] = { k: 1, how: String(how || "").slice(0, 16), y: run.year }; return true; }
+  const old = p.facts[key] || {};
+  const nv = String(v).trim().slice(0, 40);
+  if (old.k && !known) return false;                     // 已知的不让幕后改
+  p.facts[key] = { v: known || !old.v ? nv : old.v, k: known ? 1 : (old.k || 0), how: known ? String(how || "").slice(0, 16) : (old.how || ""), y: known ? run.year : (old.y || null) };
+  if (known && old.v && old.v !== nv) p.facts[key].was = old.v;   // 她说的和底档不一样：留底（可能撒了谎）
+  return true;
+}
+function factMissing(p) { return FACT_KEYS.filter(f => !FACT_LIVE[f[0]] && !(p.facts || {})[f[0]]).length; }
+function factPromptLine(run, p) {                        /* 人物档案里的「档案」：分主角已知／未知 */
+  const fs = p.facts || {}, known = [], hid = [];
+  for (const [k] of FACT_KEYS) { if (FACT_LIVE[k]) continue; const f = fs[k]; if (!f || !f.v) continue; (f.k ? known : hid).push(factLabel(run, k) + "·" + f.v); }
+  return (known.length ? "档案（主角已知）：" + known.join("；") : "") + (hid.length ? (known.length ? "／" : "") + "档案（主角未知，只在她问起、打听、调查或对方主动说起时透露）：" + hid.join("；") : "");
+}
 /* ── 点开：人物／物品／地点／名词 ── */
 function entCanonOf(run, name) {                         /* 档上的人对应的原著人物卡 */
   let wb = []; try { wb = PromptM.allWB().filter(e => e && !e.off && e.grp === "人物" && PromptM.wbEraOk(e, run)); } catch (e) {}
@@ -6738,7 +6780,8 @@ function entHTML(run, k, id) {
       (p ? '<span class="ep-chip">' + U.esc(p.rel || "泛交") + "</span>" : "") + (canon ? '<span class="ep-chip canon">原著人物</span>' : "") +
       (p ? "" : '<span class="ep-chip dim">尚未结识</span>') + "</div>" +
       (p ? '<div class="ep-fav"><i style="width:' + U.clamp(fav, 2, 100) + '%;background:' + col + '"></i></div><div class="ep-sub">好感 ' + fav + (p.att ? " · " + U.esc(p.att) : "") + (p.n ? " · 同场 " + p.n + " 回" : "") + "</div>" : "") +
-      (p ? entRows([["外貌", p.look], ["近况", p.note], ["心愿", p.goal], ["打算", p.plan], ["有事找你", p.seek && p.seek.t], ["事迹", (p.deeds || []).slice(-3).join("；")]]) : "") +
+      (p ? entRows([["外貌", p.look], ["近况", p.note], ["有事找你", p.seek && p.seek.t], ["事迹", (p.deeds || []).slice(-3).join("；")]]) : "") +
+      (p ? entFactsHTML(run, key, p) : "") +
       '<div class="ep-sec">关系网</div>' + (net9.list.length ? entNetSVG(run, name, net9, col) + '<div class="nl">' + entNetList(run, net9) + "</div>" : '<div class="ep-sub">还没有记下她和谁有来往。</div>') +
       (canon ? '<details class="ep-fold"' + (p ? "" : " open") + '><summary>原著设定 · ' + U.esc(canon.name || "") + "</summary>" + entWbText(canon) + "</details>" : "") +
       (p ? '<div class="ep-act"><button class="btn sm" data-epgraph="1">打开完整关系图</button></div>' : "");
@@ -6773,6 +6816,26 @@ function entHTML(run, k, id) {
   if (!e) return '<div class="ep-sub">这条设定找不到了。</div>';
   return '<div class="ep-head" style="--sp:var(--ent-term)"><b>' + U.esc(e.name) + '</b>' + (e.grp ? '<span class="ep-chip">' + U.esc(e.grp) + "</span>" : "") + "</div>" + entWbText(e);
 }
+function entFactsHTML(run, key, p) {                   /* P237 档案：已知的亮，未知的问号＋问/查/探 */
+  const fs = p.facts || {}, nm = npcBare(key);
+  const nKnown = FACT_KEYS.filter(f => fs[f[0]] && fs[f[0]].k).length;
+  const VERB = { "问": "问", "探": "探", "查": "查", "听": "听" };
+  return '<div class="ep-sec">档案 <em class="fx-cnt">已知 ' + nKnown + " / " + FACT_KEYS.length + "</em></div>" + '<div class="fx">' + FACT_KEYS.map(([k, , verb]) => {
+    const f = FACT_LIVE[k] ? (fs[k] && fs[k].k && p[k] ? Object.assign({}, fs[k], { v: p[k] }) : null) : fs[k], lab = factLabel(run, k);
+    if (f && f.k) return '<div class="fx-row on"><b>' + U.esc(lab) + "</b><span>" + U.esc(f.v) + (f.how ? '<i class="fx-how">' + U.esc(f.how) + (f.y ? " · " + U.yearText(f.y) : "") + "</i>" : "") + "</span></div>";
+    return '<div class="fx-row"><b>' + U.esc(lab) + '</b><span class="fx-q">？？？</span><button class="fx-ask" data-ask="' + verb + "|" + U.esc(key) + "|" + k + '" title="' + (verb === "查" ? "去查" : verb === "探" ? "暗中打听" : verb === "听" ? "留心听" : "当面问") + '">' + VERB[verb] + "</button></div>";
+  }).join("") + "</div>";
+}
+function entAsk(run, verb, key, k) {                     /* 把一句行动填进输入框，交给玩家决定发不发 */
+  const nm = npcBare(key), lab = factLabel(run, k);
+  const txt = verb === "查" ? "在" + (typeof meiWord === "function" ? meiWord(run, "brand") : "梅网") + "上搜一搜" + nm + "的账号，看看她平时发些什么"
+    : verb === "探" ? "找熟人旁敲侧击，打听" + nm + "的" + lab
+    : verb === "听" ? "留心听" + nm + "说话，记下她的口头禅"
+    : "找个合适的话头，问" + nm + "她的" + lab;
+  entClose();
+  try { Game.setMode("act"); } catch (e) {}
+  const inp = U.$("#inp"); if (inp) { inp.value = txt; inp.focus(); try { Game.sizeInp(); } catch (e) {} }
+}
 function entOpen(k, id, anchor) {
   const run = S.run; if (!run) return;
   let pop = U.$("#ent-pop");
@@ -6782,6 +6845,8 @@ function entOpen(k, id, anchor) {
     pop.addEventListener("click", ev => {
       if (ev.target.closest("[data-epx]")) { entClose(); return; }
       if (ev.target.closest("[data-epgraph]")) { entClose(); try { Graph.open(); } catch (e9) {} return; }
+      const ak = ev.target.closest("[data-ask]");
+      if (ak) { const [vb, ky, fk] = ak.dataset.ask.split("|"); try { UI.close("ov-graph"); } catch (e9) {} entAsk(S.run, vb, ky, fk); return; }
       const t = ev.target.closest("[data-ent]");
       if (t) { ev.stopPropagation(); entOpen(t.dataset.ent, t.dataset.id, null); }
     });
@@ -17270,9 +17335,9 @@ const Graph = (() => {
       '<div class="hint">好感 ' + n.fav + (n.att ? " · " + U.esc(n.att) : "") + " · 同场 " + n.cnt + " 回" + (mailN ? " · 通信 " + mailN + " 封" : "") + "</div>" +
       (pp.look ? '<div class="hint">外貌 · ' + U.esc(pp.look) + "</div>" : "") +
       (pp.note ? '<div class="hint">近况 · ' + U.esc(pp.note) + "</div>" : "") +
-      (pp.secret ? '<div class="hint" style="color:#c9a2ff">心思 · ' + U.esc(pp.secret) + "</div>" : "") +
-      (pp.goal ? '<div class="hint">心愿 · ' + U.esc(pp.goal) + "</div>" : "") +   /* P232 */
-      (pp.plan ? '<div class="hint">打算 · ' + U.esc(pp.plan) + "</div>" : "") +
+      (pp.secret && pp.facts && pp.facts.plan && pp.facts.plan.k ? '<div class="hint" style="color:#c9a2ff">心思 · ' + U.esc(pp.secret) + "</div>" : "") +
+      (pp.goal && pp.facts && pp.facts.goal && pp.facts.goal.k ? '<div class="hint">心愿 · ' + U.esc(pp.goal) + "</div>" : "") +   /* P232；P237 探到了才显示 */
+      (pp.plan && pp.facts && pp.facts.plan && pp.facts.plan.k ? '<div class="hint">打算 · ' + U.esc(pp.plan) + "</div>" : "") +
       (pp.seek ? '<div class="hint" style="color:#ffcf7a">有事要找你 · ' + U.esc(pp.seek.t) + "</div>" : "") +
       ((pp.deeds || []).length ? '<div class="hint">事迹 · ' + U.esc(pp.deeds.slice(-3).join("；")) + "</div>" : "") +
       (n.y0 != null ? '<div class="hint">初见 ' + U.esc(U.yearText(n.y0)) + " · 近见 " + U.esc(U.yearText(n.y1)) + "</div>" : "");
@@ -17660,6 +17725,7 @@ const PromptM = (() => {
       if (p.plan) bits.push("打算：" + p.plan);
       if (p.seek) bits.push("正要找主角：" + p.seek.t);
       { const ln9 = linkPromptLine(run, n, new Set(fullNames)); if (ln9) bits.push("人际：" + ln9); }   /* P236 */
+      { const fc9 = factPromptLine(run, p); if (fc9) bits.push(fc9); }   /* P237 */
       if (p.look) bits.push("外貌：" + p.look);
       if (p.deeds && p.deeds.length) bits.push("事迹：" + p.deeds.join("；"));
       if (p.hist && p.hist.length) bits.push("与她的过往：" + p.hist.slice(-3).map(h9 => U.yearText(h9.y) + (h9.m ? h9.m + "月" : "") + "·" + h9.t).join("；"));   /* P192 */
@@ -17724,7 +17790,7 @@ const PromptM = (() => {
       + (typeof memoBlock === "function" ? memoBlock(run, extraText) : "")),   /* P192 相关既往：窗口外旧幕按人事地点检索 */
 ((typeof mtabBlock === "function" ? mtabBlock(run) : "") + (chron ? "【笔记】（主角亲笔，逐幕一条）\n" + chron + "\n" : "")),
 (roster ? "【人物名单】（名（关系·好感·态度）；好感与关系除非剧情推动不得乱动）\n" + roster + "\n" : ""),
-(dossier ? "【人物档案】（在场与被提及者的全档，扮演须贴合，玩家未必知其心思）\n" + dossier + "\n" : "") + (inj.chars === 0 ? "" : stirBlock(run, castSet)),   /* P232 并入同段，段表下标不动 */
+(dossier ? "【人物档案】（在场与被提及者的全档，扮演须贴合，玩家未必知其心思。标「主角未知」的档案只在主角问起、打听、调查或对方主动说起时才能写进正文——关系浅、好感低的会搪塞、说一半或撒谎；透露了就在状态栏写得知行）\n" + dossier + "\n" : "") + (inj.chars === 0 ? "" : stirBlock(run, castSet)),   /* P232 并入同段，段表下标不动 */
 (pactsTxt ? "【约定与伏笔】（未完成，适时兑现或回收）\n" + pactsTxt + "\n" : ""),
 (((run.threads || []).filter(t => t.status === "open").length) ? "【关注事项】（玩家自己在意的事，只推进不强加）\n" + run.threads.filter(t => t.status === "open").slice(-memP().th).map(t => "◆ " + t.title + (t.stakes ? "（" + t.stakes + "）" : "") + (t.due ? "限" + t.due : "") + (t.progress.length ? "：" + t.progress[t.progress.length - 1].t : "")).join("\n") + "\n" : ""),
 (sightsTxt ? "【地点见闻】（主角对这些地方的记忆）\n" + sightsTxt + "\n" : ""),
@@ -17783,6 +17849,7 @@ const PromptM = (() => {
 "关系：（可选，与某人关系质变时写：关系：名字→类型。类型限 恋人/家人/挚友/师徒/同僚/使魔·宠物/仇敌/泛交，可多段用｜分隔）",
 "事迹：（可选，某人做了值得长记的事：事迹：名字｜一句。每人至多留5条）",
 "外貌：（可选，人物首次亮相或形象大变时写：外貌：名字｜一句。主角写 外貌：我｜一句）",
+"得知：（可选，主角本幕问出、打听到、查到或听对方说出某人的档案时写：得知：名字｜项目｜内容。项目限 年龄/种族/职务/单位/住处/魔力档位/爱好/讨厌/口味/心仪礼物/口头禅/网络账号/家里/过往/软肋/秘密/心愿/打算；对方撒了谎就写她说的那个版本；可多行）",
 "人际：（可选，两个非主角人物之间的关系初次交代或有变时写：人际：甲｜乙｜关系｜一句近况｜冷暖±N。关系限 母女/姐妹/家人/伴侣/前任/暗恋/挚友/发小/师徒/上司/同僚/雇佣/盟友/对手/宿敌/债务/恩人；上司关系把上司写在前；冷暖只在变了时写，可省）",
 "心事：（可选，某人的心愿或眼下打算因剧情有变时写：心事：名字｜心愿：一句｜打算：一句，两项可只写一项；打算写她接下来要去做的事，不必和主角有关）",
 "身份：（可选，主角身份近况变化时写：身份：一句，如 身份：牧海者见习队员）",
@@ -18137,6 +18204,10 @@ MVU.proto(),
         stat.looks = stat.looks || [];
         if (i2 > 0) stat.looks.push({ name: v.slice(0, i2).trim(), t: v.slice(i2 + 1).trim() });
         else if (v) stat.looks.push({ name: "我", t: v });
+      }
+      else if (k === "得知") {                                  /* P237 得知：名字｜项目｜内容 */
+        const seg = v.split(/[｜|]/).map(s => s.trim());
+        if (seg[0] && seg[1] && seg[2]) { stat.learns = stat.learns || []; stat.learns.push({ name: seg[0], key: factKey(seg[1]), v: seg.slice(2).join("，") }); }
       }
       else if (k === "人际") {                                  /* P236 人际：甲｜乙｜关系｜近况｜冷暖±N */
         const seg = v.split(/[｜|]/).map(s => s.trim()).filter(Boolean), lk = { a: seg[0], b: seg[1] };
@@ -18632,6 +18703,7 @@ MVU.proto(),
       if (lk.name === "我" || lk.name === run.pname || lk.name === run.alias) run.profile.look = lk.t.slice(0, 40);
       else npcOf(lk.name).look = lk.t.slice(0, 40);
     }
+    if (stat.learns) for (const ln of stat.learns.slice(0, 8)) if (ln.key) factSet(run, ln.name, ln.key, ln.v, true, "本幕得知");   /* P237 */
     if (stat.links) for (const lk of stat.links.slice(0, 4)) {      /* P236 只认在册的人，或原著人物卡里有的名字 */
       const okA = stirFind(run, lk.a) || (typeof entDict === "function" && (entDict(run).map.get(lk.a) || {}).k === "canon");
       const okB = stirFind(run, lk.b) || (typeof entDict === "function" && (entDict(run).map.get(lk.b) || {}).k === "canon");
@@ -19577,7 +19649,7 @@ const Sim = (() => {
       "。势力：" + (Object.entries(run.factions || {}).map(([n, f]) => n + "（政:" + (f.pol || "—") + "；财:" + (f.eco || "—") + "）").join("｜") || "无") +
       "。近期大事：" + ((run.annals || []).slice(-5).map(a => U.yearText(a.y) + a.t).join("；") || "无");
   }
-  const CMD_KEYS = ["新闻", "势报", "势力", "版图", "民数", "人口", "大事", "信", "机会", "众声", "身边", "行情", "热点", "地标", "找上门", "交集", "人生"];   /* P232 找上门／交集；P233 人生 */
+  const CMD_KEYS = ["新闻", "势报", "势力", "版图", "民数", "人口", "大事", "信", "机会", "众声", "身边", "行情", "热点", "地标", "找上门", "交集", "人生", "档案"];   /* P232 找上门／交集；P233 人生 */
   const KEYEN = { news: "新闻", headline: "新闻", opportunity: "机会", opportunities: "机会", mail: "信", letter: "信", letters: "信", forces: "势力", faction: "势力", factions: "势力", event: "大事", events: "大事", people: "身边" };
   function eatCmd(stat, k, v) {
     v = String(v || "").replace(/[丨∣│]/g, "｜");   // 易混竖线一律当作分隔符
@@ -19644,6 +19716,11 @@ const Sim = (() => {
     else if (k === "找上门") {                                   /* P232 找上门：名字｜为什么事 */
       const seg = v.split(/[｜|]/).map(s => s.trim());
       if (seg[0] && seg[1]) { stat.seeks = stat.seeks || []; stat.seeks.push({ name: seg[0], t: seg.slice(1).join("，").slice(0, 50) }); }
+    }
+    else if (k === "档案") {                                     /* P237 档案：名字｜年龄：…｜爱好：…（幕后写，默认藏着） */
+      const seg = v.split(/[｜|]/).map(s => s.trim()), fx = { name: seg[0] || "", f: {} };
+      for (const s2 of seg.slice(1)) { const m2 = s2.match(/^([^：:]{1,6})[：:](.+)$/); if (m2) { const k2 = factKey(m2[1]); if (k2) fx.f[k2] = m2[2].trim(); } }
+      if (fx.name && Object.keys(fx.f).length) { stat.files = stat.files || []; stat.files.push(fx); }
     }
     else if (k === "人生") {                                     /* P233 人生：名字｜这些年的大变化 */
       const seg = v.split(/[｜|]/).map(s => s.trim());
@@ -19782,6 +19859,7 @@ const Sim = (() => {
       if (run.lifeY == null) run.lifeY = run.year;                  /* P233 年份往前走了，熟人的人生也要往前走 */
       const yrs9 = Math.max(0, (run.year || 0) - (run.lifeY || 0)), lifeN = jump || yrs9 >= 5 ? 4 : yrs9 >= 1 ? 2 : 0;
       const news9 = (run.news || []).slice(0, 3).map(n => n.title + (n.txt ? "（" + n.txt + "）" : ""));
+      const thin9 = names9.filter(n => factMissing(run.npcs[n]) >= 6).slice(0, 2);   /* P237 档案空的，这回补上 */
       const sys = "你是魔女世界的众生百态模拟器。为下列人物各推演一行她此刻在忙什么、心里打什么小算盘（主角不在场时的她们）。每行格式严格：\n" +
         "身边：名字｜近况一句｜好感±N（可选，变化才写）｜心思：她暗中的小算盘一句（可选）｜心愿：她长远想要的东西（没有心愿的人必须补上，已有的只在变了时写）｜打算：她接下来几天要去做的一件具体的事\n" +
         "近况要比上回往前走一步：打算办成了、办砸了、半路变了卦，都写出来，别原地踏步。\n" +
@@ -19790,12 +19868,14 @@ const Sim = (() => {
         "另可附至多一行 机会：名字｜标题｜一句｜期限（她主动向主角提出的请求或邀约，玩家可接可无视）。\n" +
         "贴合各自身份与好感，不重复旧近况。人物各有自己的生活与利益，不围着主角转。" +
         (news9.length ? "\n新闻会落到人头上：下面「近期新闻」若碰到某人的营生、住处、家人或钱袋，她的近况与打算要跟着变——涨价了就抱怨或囤货，出了事就避难、趁机发财或托人打听。" : "") +
+        (thin9.length ? "\n为" + thin9.map(x => "「" + x + "」").join("、") + "各补一行 档案：名字｜年龄：…｜种族：…｜职务：…｜单位：…｜住处：…｜魔力档位：…｜爱好：…｜讨厌：…｜口味：…｜心仪礼物：…｜口头禅：…｜网络账号：…｜家里：…｜过往：…｜软肋：…｜秘密：…（每项一句以内，要具体、有个性、合年代与身份；网络账号写账号名与粉丝数" + (e94m ? "，1994 线多半没有，写「没有」或拨号混沌网的旧账号" : "") + "；原著人物照原著写）。" +
+          thin9.map(x => { const cc = typeof entCanonOf === "function" ? entCanonOf(run, x) : null; return cc ? "「" + x + "」原著：" + String(cc.text || "").replace(/\n/g, " ").slice(0, 160) : ""; }).filter(Boolean).join("") : "") +
         (lifeN ? "\n距上回已过了" + (jump ? "一段岁月" : yrs9 + "年") + "：为名单里至多" + lifeN + "人各写一行 人生：名字｜这些年她身上的一件大变化（升职、调岗、考上编制、搬家、结对、孵了女儿、病了一场、生意赔了、发了笔财、出远门……按身份与年代挑，别全是好事），她的近况与打算按新现状写。" : "") +
         "\n各人只知道自己括号里「同场」「回信里说过」那几件，与下面「见报」的事；主角其余的行踪、账目、异界与私事她们一概不知，近况、心思与信里都不能提，不能写「听说你……」。" +
         (jump
           ? "\n主角刚跳过一段岁月：" + (pick.length ? "由" + pick.map(x => "「" + x + "」").join("、") + "各" : "请另挑其中1到2位（先挑家人与至交），各") + "补一行她们这些年寄来的信：信：名字｜标题｜正文（100字内）。写她们自己这些年的日子——搬家、生意、身子骨、屯里铺里机关里的事——主角的事只写见报的与同场见过的。" + (pick.length ? pick.map(x => mailLetterBrief(run, x)).join("") : "口吻按关系：家人家常，朋友贫嘴，同僚八卦，师父短硬。") + (e94m ? "1994 线：写信是魔女最主要的交流方式，不急的事都写信；信使凌晨三点把信送到门口，信封写「寄信人——某某收」；家里人寄邮局信，上了社交网的才发电邮。" : "")
           : (pick.length ? "\n这次由「" + pick[0] + "」寄一封信：信：" + pick[0] + "｜标题｜正文（80字内）。只写她自己那头的一件事——有事托、有饭催、有账要、有牢骚都行——不要问候套话，不写「亲爱的」不写「此致」。" + mailLetterBrief(run, pick[0]) : "\n这次不写信。")) + STYLE_S;
-      const out = await Prov.chat({ system: sys, messages: [{ role: "user", content: "人物：\n" + roster + "\n\n见报的事（谁都知道）：" + (pub.join("；") || "这阵子没什么见报的") + (news9.length ? "\n\n近期新闻：" + news9.join("；") : "") }], maxtok: 1000, temp: .9, aux: true, role: "news", signal: sigT(120000) });
+      const out = await Prov.chat({ system: sys, messages: [{ role: "user", content: "人物：\n" + roster + "\n\n见报的事（谁都知道）：" + (pub.join("；") || "这阵子没什么见报的") + (news9.length ? "\n\n近期新闻：" + news9.join("；") : "") }], maxtok: thin9.length ? 1800 : 1000, temp: .9, aux: true, role: "news", signal: sigT(120000) });
       const st = parseCmdLines(out);
       if (st.mails && !jump) st.mails = pick.length ? st.mails.slice(0, 1) : [];   /* P206 引擎说不写就不收，说写一封就只收一封 */
       if (st.mails && jump) st.mails = st.mails.slice(0, 2);
@@ -19813,6 +19893,7 @@ const Sim = (() => {
         if (!k9 || Object.keys(run.npcs).filter(n => run.npcs[n].seek).length >= 2) continue;
         run.npcs[k9].seek = { t: sk.t, a: acts9 };
       }
+      if (st.files) for (const fx of st.files.slice(0, 2)) for (const [k2, v2] of Object.entries(fx.f)) factSet(run, fx.name, k2, v2, false);   /* P237 */
       if (lifeN) run.lifeY = run.year;
       if (st.lives) for (const lf of st.lives.slice(0, lifeN || 0)) {   /* P233 人生大事记进事迹 */
         const k9 = stirFind(run, lf.name); if (!k9) continue;
