@@ -39,6 +39,7 @@
   --statbg:rgba(217,185,110,.055);
   --thumb:rgba(255,255,255,.14);
   --r:16px;
+  --ent-npc:#c9a2ff; --ent-canon:#f0a8c8; --ent-item:#e8b27a; --ent-place:#7fd0c8; --ent-term:#9fb8e8;   /* P235 专名高亮 */
   --font:"PingFang SC","HarmonyOS Sans SC","MiSans","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;
 }
 html[data-theme="light"]{
@@ -48,6 +49,7 @@ html[data-theme="light"]{
   --glass:rgba(255,255,255,.55);
   --line:rgba(90,74,40,.16); --line2:rgba(90,74,40,.3);
   --ink:#332c44; --ink2:#55506b; --mut:#8a8498;
+  --ent-npc:#6d4a9e; --ent-canon:#a8457a; --ent-item:#94561f; --ent-place:#2c7169; --ent-term:#3b5a94;
   --zhu:#6d4a9e; --zhu2:#59397f;
   --jin:#a1823f; --jin2:#7f662c;
   --dai:#a56a42; --ok:#5f8a52; --bad:#b0432a;
@@ -216,6 +218,44 @@ html[data-theme="light"] #tb-btns button:hover{color:var(--zhu)}
 .msg.ai .bubble{background:transparent;padding:0 2px}
 .msg .bubble{font-size:16px;line-height:1.86;white-space:pre-wrap;word-break:break-word}
 .msg .bubble q,.msg .bubble .say{color:var(--jin2)}
+/* P235 分开排：叙述段、对白卡、专名高亮、资料卡 */
+.msg.ai .bubble.rich{white-space:normal}
+.bubble.rich .nar{margin:0 0 .95em;color:var(--ink2);text-indent:2em}
+.bubble.rich .ln{position:relative;margin:.35em 0 1.05em;padding:8px 14px 9px 15px;border-radius:4px 12px 12px 12px;background:linear-gradient(90deg,color-mix(in srgb,var(--sp) 12%,transparent),var(--inset) 60%);border-left:3px solid var(--sp)}
+.bubble.rich .ln.anon{border-left-style:dashed;background:var(--inset)}
+.bubble.rich .ln-who{font-size:12.5px;letter-spacing:.12em;line-height:1.4;margin-bottom:3px}
+.bubble.rich .ln-who .ent{color:color-mix(in srgb,var(--sp) 62%,var(--ink));border-bottom:0;font-weight:600}
+html[data-era="y1994"]{--ent-npc:#5a2d91;--ent-canon:#a0306a;--ent-item:#8a4a10;--ent-place:#1f6b62;--ent-term:#2b4d8f}
+html[data-era="y1994"] .bubble.rich .ln{border-radius:0;background:#f4f1fa}
+.bubble.rich .ln .say{color:var(--ink)}
+.bubble.rich .ln-nar{color:var(--mut);font-size:.94em}
+.bubble.rich .story-fig{margin:.4em 0 1.1em}
+.ent{cursor:pointer;border-bottom:1px dotted currentColor;transition:background .15s;border-radius:2px}
+.ent:hover,.ent:focus-visible{background:var(--inset2)}
+.ent-npc{color:var(--ent-npc)} .ent-canon{color:var(--ent-canon)} .ent-item{color:var(--ent-item)} .ent-place{color:var(--ent-place)} .ent-term{color:var(--ent-term);border-bottom-style:dashed}
+.ent-pop{position:fixed;z-index:120;width:340px;max-width:calc(100vw - 24px);max-height:min(76vh,620px);overflow:auto;background:var(--panel2);border:1px solid var(--line2);border-radius:14px;padding:14px 16px 16px;box-shadow:0 18px 50px rgba(0,0,0,.45);display:none;backdrop-filter:blur(14px);font-size:13.5px;line-height:1.7}
+.ent-pop.on{display:block;animation:msgIn .22s ease both}
+.ent-pop.ep-sheet{left:0!important;right:0;bottom:0;top:auto!important;width:auto;max-width:none;max-height:72vh;border-radius:18px 18px 0 0;padding-bottom:calc(18px + env(safe-area-inset-bottom))}
+.ent-pop .ep-x{position:absolute;top:8px;right:10px;color:var(--mut);font-size:14px;padding:4px 7px;border-radius:8px}
+.ent-pop .ep-x:hover{background:var(--inset2);color:var(--ink)}
+.ep-head{display:flex;align-items:center;flex-wrap:wrap;gap:6px;padding-right:26px;margin-bottom:8px}
+.ep-head b{font-size:17px;color:color-mix(in srgb,var(--sp,var(--ink)) 70%,var(--ink));letter-spacing:.04em;margin-right:4px}
+.ep-chip{font-size:11px;border:1px solid var(--line2);border-radius:999px;padding:0 8px;color:var(--ink2)}
+.ep-chip.canon{color:var(--ent-canon);border-color:var(--ent-canon)} .ep-chip.dim{color:var(--mut)}
+.ep-fav{height:4px;border-radius:4px;background:var(--inset2);overflow:hidden;margin:2px 0 4px} .ep-fav i{display:block;height:100%}
+.ep-sub{color:var(--mut);font-size:12px;margin-bottom:6px}
+.ep-row{display:grid;grid-template-columns:4.6em 1fr;gap:8px;padding:3px 0;border-top:1px dashed var(--line)} .ep-row b{color:var(--mut);font-weight:500} .ep-row span{color:var(--ink)}
+.ep-sec{margin:10px 0 2px;font-size:11.5px;letter-spacing:.3em;color:var(--mut)}
+.ep-wb{color:var(--ink2);font-size:13px;line-height:1.75;margin-top:4px}
+.ep-fold{margin-top:8px;border-top:1px dashed var(--line);padding-top:6px} .ep-fold summary{cursor:pointer;color:var(--mut);font-size:12px}
+.ep-act{margin-top:10px;display:flex;justify-content:flex-end}
+svg.eg{width:100%;height:auto;display:block}
+svg.eg line{stroke-width:1.4;opacity:.55}
+svg.eg text{font-size:11px;fill:var(--ink);text-anchor:middle;font-family:var(--font)}
+svg.eg .eg-lab{font-size:9.5px;fill:var(--mut)}
+svg.eg .eg-node circle{stroke:var(--panel2);stroke-width:2}
+svg.eg .eg-node[data-ent]{cursor:pointer} svg.eg .eg-node[data-ent]:hover circle{stroke:var(--ink)}
+svg.eg .eg-node.ctr text{font-weight:600}
 .msg .tools{position:absolute;top:-4px;right:0;opacity:0;transition:.2s;display:flex;gap:4px}
 .msg:hover .tools{opacity:1}
 .msg .tools button{font-size:11.5px;color:var(--mut);border:1px solid var(--line);border-radius:8px;padding:2px 10px;background:var(--panel2)}
@@ -2549,6 +2589,10 @@ html[data-era="y1994"] #upd-bar{box-shadow:none}
         <div class="fgroup">
           <label>台词着色</label>
           <select id="disp-quote"><option value="1">金色（默认）</option><option value="0">不着色</option></select>
+        </div>
+        <div class="fgroup">
+          <label>正文排版（分开排：对白单独成卡、标出说话人；人名物品地名与设定词高亮，点开看资料与关系网）</label>
+          <select id="disp-rich"><option value="1">分开排＋高亮（默认）</option><option value="0">经典整段</option></select>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
           <button class="btn zhu" id="btn-dispsave">保 存</button>
@@ -6279,6 +6323,238 @@ function stirRoll(run) {                                 /* 本幕要不要来�
   run.stirUsed = used.concat(t.slice(0, 12)).slice(-Math.floor(pool.length * .7));
   return t;
 }
+/* ================= P235 正文排版：对白与叙述分开、专名高亮可点 =================
+   S.disp.rich：1＝分开排（默认），0＝经典整段。只动显示，不动存档与发给 AI 的文字。
+   词典：档上的人（npc）、世界书里的原著人物（canon）、背包装备法术（item）、地名与名下产业（place）、其余世界书条目的关键词（term）。
+   人物卡带「关系网」：和主角的关系、同场次数（记忆索引 run.memo 的在场名单）、身边层记下的交集（事迹「与某：」）、原著人物卡里互相提到的人。 */
+const ENT_STOP = new Set(["规定", "前辈", "职务", "收藏", "继承", "纪律", "例会", "报名", "教练", "整蛊", "赛季", "股价", "人情", "魔女", "大魔女", "原著", "剧情", "主线", "素材", "小女", "兄弟", "妹妹", "大女儿", "小女儿", "好大儿"]);
+let ENT_CACHE = null;
+function entSig(run) {
+  return [run.year, Object.keys(run.npcs || {}).length, (run.bag || []).length, Object.keys(run.gear || {}).length, Object.keys(run.spells || {}).length,
+    (run.estates || []).length, (run.pins || []).length, (run.xw || []).length, run.spot || "", (S.wbUser || []).length].join("|");
+}
+function entDict(run) {                                  /* 名字 → {k, id}；长名优先 */
+  const sig = entSig(run);
+  if (ENT_CACHE && ENT_CACHE.run === run && ENT_CACHE.sig === sig) return ENT_CACHE;
+  const map = new Map(), me = new Set([run.pname, run.alias].filter(Boolean));
+  const put = (nm, k, id) => { nm = String(nm || "").trim(); if (nm.length < 2 || me.has(nm) || map.has(nm) || ENT_STOP.has(nm)) return; map.set(nm, { k, id }); };
+  for (const n of Object.keys(run.npcs || {})) { if (run.npcs[n] && run.npcs[n].rel === "使魔·宠物" && n.length > 8) continue; put(n, "npc", n); put(npcBare(n), "npc", n); }
+  let wb = [];
+  try { wb = PromptM.allWB().filter(e => e && !e.off && PromptM.wbEraOk(e, run)); } catch (e) {}
+  for (const e of wb) if (e.grp === "人物") {                          // 已经结识的原著人物，别名也算到档上那个人
+    const met = (e.keys || []).map(k => entNpcKey(run, k)).find(Boolean);
+    for (const k of (e.keys || [])) put(k, met ? "npc" : "canon", met || e.id || e.name);
+  }
+  for (const b of (run.bag || [])) put(b.name, "item", "bag:" + b.name);
+  for (const sl of Object.keys(run.gear || {})) if (run.gear[sl]) put(run.gear[sl].name, "item", "gear:" + sl);
+  for (const n of Object.keys(run.spells || {})) put(n, "item", "spell:" + n);
+  for (const e of (run.estates || [])) put(e.name, "place", "estate:" + e.name);
+  for (const p of (run.pins || [])) put(p.name, "place", "pin:" + p.name);
+  for (const x of (run.xw || [])) put(x.name, "place", "xw:" + x.name);
+  for (const id of Object.keys(RNAME || {})) put(RNAME[id], "place", "region:" + id);
+  for (const k of Object.keys(run.placeNotes || {})) put(k, "place", "note:" + k);
+  for (const e of wb) if (e.grp !== "人物" && e.grp !== "文风" && e.grp !== "桌规") for (const k of (e.keys || [])) put(k, "term", e.id || e.name);
+  const keys = [...map.keys()].sort((a, b) => b.length - a.length).map(k => U.esc(k).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  ENT_CACHE = { run, sig, map, re: keys.length ? new RegExp(keys.join("|"), "g") : null };
+  return ENT_CACHE;
+}
+function relCol(rel) { return rel && rel !== "泛交" && RELCLR[rel] ? RELCLR[rel] : "var(--ent-npc)"; }   /* 泛交的灰太暗，名字用人物紫 */
+function entColor(run, k, id) {
+  if (k === "npc") { const p = (run.npcs || {})[id]; return relCol(p && p.rel); }
+  return "var(--ent-" + k + ")";
+}
+function entMark(html, D, seen) {                        /* 只换标签外的文字；人名每处都亮，其余每幕只亮头一处 */
+  if (!D.re) return html;
+  return html.split(/(<[^>]+>)/).map(part => {
+    if (!part || part[0] === "<") return part;
+    return part.replace(D.re, w => {
+      const nm = w.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+      const hit = D.map.get(nm); if (!hit) return w;
+      if (hit.k !== "npc" && hit.k !== "canon") { if (seen.has(hit.id)) return w; seen.add(hit.id); }
+      return '<span class="ent ent-' + hit.k + '" data-ent="' + hit.k + '" data-id="' + U.esc(hit.id) + '">' + w + "</span>";
+    });
+  }).join("");
+}
+function entPeople(D, text) {                            /* 这段文字里点到的人，按出现位置 */
+  const out = [];
+  if (!D.re) return out;
+  const raw = U.esc(text); D.re.lastIndex = 0; let m;
+  while ((m = D.re.exec(raw))) {
+    const nm = m[0].replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+    const hit = D.map.get(nm);
+    if (hit && (hit.k === "npc" || hit.k === "canon")) out.push({ at: m.index, nm, k: hit.k, id: hit.id });
+  }
+  return out;
+}
+function richProse(run, text, esc9) {                    /* esc9＝UI.prose 的单段转义（带正则替换） */
+  const D = entDict(run), seen = new Set();
+  let last = null;
+  const paras = String(text || "").split(/\n+/).map(x => x.trim()).filter(Boolean);
+  return paras.map(pa => {
+    if (/^【图】/.test(pa)) return esc9(pa) + "\n";      // 插图标记原样留给 imgStoryHTML
+    const ppl = entPeople(D, pa);
+    const q0 = pa.indexOf("「");
+    if (q0 < 0) {
+      if (ppl.length) last = ppl[ppl.length - 1];
+      return '<p class="nar">' + entMark(esc9(pa), D, seen) + "\n</p>";
+    }
+    const escQ0 = U.esc(pa.slice(0, q0)).length;
+    let who = ppl.filter(x => x.at < escQ0).pop() || null;
+    if (!who) {
+      const q1 = pa.indexOf("」"), tail = q1 > 0 ? pa.slice(q1 + 1, q1 + 14) : "";
+      const t2 = tail ? entPeople(D, tail) : [];
+      if (t2.length && /^[\s，,]*[^「」。]{0,8}?(说|道|问|答|喊|笑|叹|嘀咕|补充|开口)/.test(tail.slice(tail.indexOf(t2[0].nm)))) who = t2[0];
+    }
+    if (!who && q0 === 0) who = last;
+    if (ppl.length) last = ppl[ppl.length - 1]; else if (who) last = who;
+    const body = pa.split(/(「[^」]*」?)/).filter(Boolean).map(x => x[0] === "「" ? '<span class="say">' + esc9(x) + "</span>" : '<span class="ln-nar">' + esc9(x) + "</span>").join("");
+    const col = who ? entColor(run, who.k, who.id) : "var(--line2)";
+    const nm = who ? (who.k === "npc" ? npcBare(who.id) : who.nm) : "";
+    return '<div class="ln' + (who ? "" : " anon") + '" style="--sp:' + col + '">' +
+      (who ? '<div class="ln-who"><span class="ent ent-' + who.k + '" data-ent="' + who.k + '" data-id="' + U.esc(who.id) + '">' + U.esc(nm) + "</span></div>" : "") +
+      '<div class="ln-body">' + entMark(body, D, seen) + "\n</div></div>";
+  }).join("\n");
+}
+/* ── 点开：人物／物品／地点／名词 ── */
+function entCanonOf(run, name) {                         /* 档上的人对应的原著人物卡 */
+  let wb = []; try { wb = PromptM.allWB().filter(e => e && !e.off && e.grp === "人物" && PromptM.wbEraOk(e, run)); } catch (e) {}
+  const b = npcBare(name);
+  return wb.find(e => (e.id || e.name) === name) || wb.find(e => (e.keys || []).some(k => k === name || k === b)) || null;
+}
+function entNpcKey(run, nm) {                            /* 名字 → 档上的钥匙 */
+  if (!nm) return "";
+  if ((run.npcs || {})[nm]) return nm;
+  return Object.keys(run.npcs || {}).find(k => npcBare(k) === nm || npcBare(k) === npcBare(nm)) || "";
+}
+function entTies(run, key, canon) {                      /* 关系网的边：[{nm, k, id, lab, col}] */
+  const out = new Map();
+  const add = (nm, k, id, lab, col) => { if (!nm) return; const o = out.get(nm) || { nm, k, id, labs: [], col }; if (lab && !o.labs.includes(lab)) o.labs.push(lab); if (col && !o.col) o.col = col; out.set(nm, o); };
+  const p = key ? run.npcs[key] : null;
+  if (p) add(run.alias || run.pname || "你", "me", "", (p.rel || "泛交") + " · 好感" + (p.fav != null ? p.fav : 50), relCol(p.rel));
+  if (key) {
+    const cnt = {};
+    for (const e of (run.memo || [])) {
+      const cast = e.cast || [];
+      if (!cast.some(c => c === key || npcBare(c) === npcBare(key))) continue;
+      for (const c of cast) { const k2 = entNpcKey(run, c) || c; if (k2 !== key && npcBare(k2) !== npcBare(key)) cnt[k2] = (cnt[k2] || 0) + 1; }
+    }
+    Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 6).forEach(([k2, n]) => { const q = run.npcs[k2]; add(npcBare(k2), q ? "npc" : "canon", q ? k2 : k2, "同场×" + n, q ? relCol(q.rel) : ""); });
+    for (const d of (p.deeds || [])) {
+      const m = String(d).match(/^与(.{1,10}?)：(.+)$/); if (!m) continue;
+      const k2 = entNpcKey(run, m[1]); add(npcBare(k2 || m[1]), k2 ? "npc" : "canon", k2 || m[1], m[2].slice(0, 10), k2 && run.npcs[k2] ? relCol(run.npcs[k2].rel) : "");
+    }
+  }
+  if (canon) {
+    let wb = []; try { wb = PromptM.allWB().filter(e => e && !e.off && e.grp === "人物" && PromptM.wbEraOk(e, run)); } catch (e) {}
+    const mine = canon.keys || [];
+    for (const e of wb) {
+      if (e === canon || (e.id && e.id === canon.id)) continue;
+      const hitA = (e.keys || []).some(k => k.length >= 2 && String(canon.text || "").includes(k));
+      const hitB = mine.some(k => k.length >= 2 && String(e.text || "").includes(k));
+      if (!hitA && !hitB) continue;
+      const nm = (e.keys || [])[0] || e.name, k2 = entNpcKey(run, nm);
+      add(k2 ? npcBare(k2) : nm, k2 ? "npc" : "canon", k2 || e.id || e.name, "原著", k2 && run.npcs[k2] ? relCol(run.npcs[k2].rel) : "");
+      if (out.size >= 10) break;
+    }
+  }
+  return [...out.values()].slice(0, 10);
+}
+function entEgoSVG(center, ties, col) {                  /* 以此人为中心的小关系网 */
+  const W = 340, H = 250, cx = W / 2, cy = H / 2, R = 96;
+  const n = ties.length;
+  const pts = ties.map((t, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / Math.max(1, n); return { t, x: cx + Math.cos(a) * R * 1.25, y: cy + Math.sin(a) * R * .92 }; });
+  const lines = pts.map(q => '<line x1="' + cx + '" y1="' + cy + '" x2="' + q.x.toFixed(1) + '" y2="' + q.y.toFixed(1) + '" style="stroke:' + (q.t.col || "var(--line2)") + '"/>' +
+    '<text class="eg-lab" x="' + (cx + (q.x - cx) * .66).toFixed(1) + '" y="' + (cy + (q.y - cy) * .66 - 4).toFixed(1) + '">' + U.esc(q.t.labs.slice(0, 2).join("·")) + "</text>").join("");
+  const nodes = pts.map(q => '<g class="eg-node' + (q.t.k === "me" ? " me" : "") + '"' + (q.t.k === "me" ? "" : ' data-ent="' + q.t.k + '" data-id="' + U.esc(q.t.id) + '"') + '>' +
+    '<circle cx="' + q.x.toFixed(1) + '" cy="' + q.y.toFixed(1) + '" r="' + (q.t.k === "me" ? 9 : 7) + '" style="fill:' + (q.t.col || "var(--ent-canon)") + '"/>' +
+    '<text x="' + q.x.toFixed(1) + '" y="' + (q.y + (q.y > cy ? 20 : -12)).toFixed(1) + '">' + U.esc(String(q.t.nm).slice(0, 6)) + "</text></g>").join("");
+  return '<svg class="eg" viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + U.esc(center) + '的关系网">' + lines +
+    '<g class="eg-node ctr"><circle cx="' + cx + '" cy="' + cy + '" r="13" style="fill:' + col + '"/><text x="' + cx + '" y="' + (cy + 29) + '">' + U.esc(String(center).slice(0, 6)) + "</text></g>" + nodes + "</svg>";
+}
+function entRows(rows) { return rows.filter(r => r[1]).map(r => '<div class="ep-row"><b>' + r[0] + "</b><span>" + U.esc(String(r[1])) + "</span></div>").join(""); }
+function entWbText(e) { return e ? '<div class="ep-wb">' + U.esc(String(e.text || "")).replace(/\n/g, "<br>") + "</div>" : ""; }
+function entHTML(run, k, id) {
+  if (k === "npc" || k === "canon") {
+    const key = k === "npc" ? id : entNpcKey(run, id) || entNpcKey(run, ((PromptM.allWB().find(e => (e.id || e.name) === id) || {}).keys || [])[0]);
+    const p = key ? run.npcs[key] : null;
+    const canon = k === "canon" ? (PromptM.allWB().find(e => (e.id || e.name) === id) || entCanonOf(run, id)) : entCanonOf(run, key);
+    const name = p ? npcBare(key) : ((canon && (canon.keys || [])[0]) || id);
+    const col = p ? (relCol(p.rel)) : "var(--ent-canon)";
+    const ties = entTies(run, key, canon);
+    const fav = p && p.fav != null ? p.fav : 50;
+    return '<div class="ep-head" style="--sp:' + col + '"><b>' + U.esc(name) + "</b>" +
+      (p ? '<span class="ep-chip">' + U.esc(p.rel || "泛交") + "</span>" : "") + (canon ? '<span class="ep-chip canon">原著人物</span>' : "") +
+      (p ? "" : '<span class="ep-chip dim">尚未结识</span>') + "</div>" +
+      (p ? '<div class="ep-fav"><i style="width:' + U.clamp(fav, 2, 100) + '%;background:' + col + '"></i></div><div class="ep-sub">好感 ' + fav + (p.att ? " · " + U.esc(p.att) : "") + (p.n ? " · 同场 " + p.n + " 回" : "") + "</div>" : "") +
+      (p ? entRows([["外貌", p.look], ["近况", p.note], ["心愿", p.goal], ["打算", p.plan], ["有事找你", p.seek && p.seek.t], ["事迹", (p.deeds || []).slice(-3).join("；")]]) : "") +
+      '<div class="ep-sec">关系网</div>' + (ties.length ? entEgoSVG(name, ties, col) : '<div class="ep-sub">还没有记下她和谁有来往。</div>') +
+      (canon ? '<details class="ep-fold"' + (p ? "" : " open") + '><summary>原著设定 · ' + U.esc(canon.name || "") + "</summary>" + entWbText(canon) + "</details>" : "") +
+      (p ? '<div class="ep-act"><button class="btn sm" data-epgraph="1">打开完整关系图</button></div>' : "");
+  }
+  if (k === "item") {
+    const [kind, nm] = [id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)];
+    let it = null, where = "";
+    if (kind === "bag") { it = (run.bag || []).find(b => b.name === nm); where = "背包"; }
+    else if (kind === "gear") { it = (run.gear || {})[nm]; where = "装备·" + ((SLOTS.find(x => x[0] === nm) || [])[1] || ""); }
+    else if (kind === "spell") { const sp = (run.spells || {})[nm]; it = sp ? Object.assign({ name: nm }, sp) : null; where = "法术"; }
+    if (!it) return '<div class="ep-head"><b>' + U.esc(nm) + '</b></div><div class="ep-sub">这件东西已经不在身上了。</div>';
+    return '<div class="ep-head" style="--sp:var(--ent-item)"><b>' + U.esc(it.name) + "</b>" + (it.n > 1 ? '<span class="ep-chip">×' + it.n + "</span>" : "") + (it.q ? '<span class="ep-chip">' + U.esc(it.q) + "</span>" : "") + '<span class="ep-chip dim">' + where + "</span></div>" +
+      entRows([["说明", it.desc], ["等级", it.lv ? it.lv + "级" : ""], ["消耗", it.cost], ["范围", it.range], ["效果", it.eff], ["改造", it.mod]]);
+  }
+  if (k === "place") {
+    const [kind, nm] = [id.slice(0, id.indexOf(":")), id.slice(id.indexOf(":") + 1)];
+    if (kind === "region") {
+      const r = regionById(nm) || {}, name = RNAME[nm] || nm;
+      const mine = (run.estates || []).filter(e => e.region === nm).map(e => e.name).concat((run.pins || []).filter(p => p.region === nm).map(p => p.name));
+      const notes = (run.placeNotes || {})[name] || [];
+      return '<div class="ep-head" style="--sp:var(--ent-place)"><b>' + U.esc(name) + '</b><span class="ep-chip">' + (r.kind === "world" ? "异界" : r.kind === "site" ? "地标" : "城市") + "</span>" + (run.place === nm ? '<span class="ep-chip">你在这里</span>' : "") + "</div>" +
+        entRows([["枢纽", r.c], ["名物", r.p], ["名下", mine.join("、")], ["见闻", notes.slice(-3).map(x => x.t).join("；")]]);
+    }
+    let rows = [];
+    if (kind === "estate") { const e = (run.estates || []).find(x => x.name === nm) || {}; rows = [["类型", e.kind || e.size], ["所在", RNAME[e.region]], ["设施", (e.fac || []).map(f => f.name || f).join("、")]]; }
+    else if (kind === "pin") { const p = (run.pins || []).find(x => x.name === nm) || {}; rows = [["行当", p.trade], ["所在", RNAME[p.region]], ["等级", p.lv ? p.lv + "级" : ""], ["年入", p.inc ? p.inc + "元" : ""]]; }
+    else if (kind === "xw") { const x = (run.xw || []).find(q => q.name === nm) || {}; rows = [["规模", x.scale], ["资源", x.res], ["特质", x.trait && x.trait.name], ["开发", x.dev != null ? x.dev + "期" : ""]]; }
+    else if (kind === "note") rows = [["见闻", ((run.placeNotes || {})[nm] || []).slice(-4).map(x => x.t).join("；")]];
+    return '<div class="ep-head" style="--sp:var(--ent-place)"><b>' + U.esc(nm) + '</b><span class="ep-chip">' + ({ estate: "名下", pin: "产业", xw: "折叠空间", note: "去过" }[kind] || "") + "</span></div>" + entRows(rows);
+  }
+  const e = PromptM.allWB().find(x => (x.id || x.name) === id);
+  if (!e) return '<div class="ep-sub">这条设定找不到了。</div>';
+  return '<div class="ep-head" style="--sp:var(--ent-term)"><b>' + U.esc(e.name) + '</b>' + (e.grp ? '<span class="ep-chip">' + U.esc(e.grp) + "</span>" : "") + "</div>" + entWbText(e);
+}
+function entOpen(k, id, anchor) {
+  const run = S.run; if (!run) return;
+  let pop = U.$("#ent-pop");
+  if (!pop) {
+    pop = U.el("div", "ent-pop"); pop.id = "ent-pop"; pop.setAttribute("role", "dialog");
+    document.body.appendChild(pop);
+    pop.addEventListener("click", ev => {
+      if (ev.target.closest("[data-epx]")) { entClose(); return; }
+      if (ev.target.closest("[data-epgraph]")) { entClose(); try { Graph.open(); } catch (e9) {} return; }
+      const t = ev.target.closest("[data-ent]");
+      if (t) { ev.stopPropagation(); entOpen(t.dataset.ent, t.dataset.id, null); }
+    });
+  }
+  let html = "";
+  try { html = entHTML(run, k, id); } catch (e) { html = '<div class="ep-sub">读不出这条资料：' + U.esc(e.message || e) + "</div>"; }
+  pop.innerHTML = '<button class="ep-x" data-epx="1" aria-label="关闭">✕</button>' + html;
+  pop.classList.add("on");
+  const mob = window.innerWidth < 720;
+  pop.classList.toggle("ep-sheet", mob);
+  if (mob) { pop.style.left = pop.style.top = ""; return; }
+  if (anchor) {
+    const r = anchor.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight;
+    let x = Math.min(window.innerWidth - w - 12, Math.max(12, r.left + r.width / 2 - w / 2));
+    let y = r.bottom + 8; if (y + h > window.innerHeight - 12) y = Math.max(12, r.top - h - 8);
+    pop.style.left = x + "px"; pop.style.top = y + "px";
+  }
+}
+function entClose() { const p = U.$("#ent-pop"); if (p) p.classList.remove("on"); }
+document.addEventListener("click", ev => {
+  const t = ev.target.closest && ev.target.closest("#story [data-ent]");
+  if (t) { ev.preventDefault(); entOpen(t.dataset.ent, t.dataset.id, t); return; }
+  if (!ev.target.closest || !ev.target.closest("#ent-pop")) entClose();
+});
+document.addEventListener("keydown", ev => { if (ev.key === "Escape") entClose(); });
 function memoRosterPick(run, names, cap) {               /* 名单进提示词：近见者、走动多的优先，顺序仍按入档先后 */
   cap = cap || 24;
   if (names.length <= cap) return names;
@@ -18662,7 +18938,7 @@ MVU.proto(),
       "</div></details>";
   }
 
-  return { buildSystem, buildMessages, ctxIdx, ctxPend, styleAudit, lintNote, presentVoices, LINT_BAN, LINT_CAP, stripStat, applyStat, statCardHTML, splitThink, assetNudge, assetHarvest, PM_DEF, activeWB, wbWorldOk };
+  return { buildSystem, buildMessages, ctxIdx, ctxPend, styleAudit, lintNote, presentVoices, LINT_BAN, LINT_CAP, stripStat, applyStat, statCardHTML, splitThink, assetNudge, assetHarvest, PM_DEF, activeWB, wbWorldOk, allWB, wbEraOk };   /* P235 专名词典要用 */
 })();
 
 /* ================= MVU · 引擎底层唯一状态机 =================
@@ -19312,6 +19588,10 @@ const UI = (() => {
     if (S.disp.quote) h = h.replace(/「([^」]{1,120})」/g, '「<span class="say">$1</span>」');
     return h;
   }
+  function proseAI(text) {                                            // P235 分开排：对白卡＋专名高亮
+    if (S.disp.rich === 0 || !S.run) return prose(text);
+    try { return richProse(S.run, applyRegex(text, false), t => U.esc(t)); } catch (e) { console.error("richProse", e); return prose(text); }
+  }
   const MODE_WHO = { say: "我 说", act: "我 做", free: "描 写", years: "跳 时 间" };
   function actNo(idx) { // 第几幕：数到 idx 为止的 AI 消息数
     let n = 0;
@@ -19328,7 +19608,8 @@ const UI = (() => {
     if (m.role === "ai" && m.resolvedStat) stat = m.resolvedStat;       // 语义状态引擎已经审定过的最终 Model
     if (m.role === "player") clean = clean.replace(/^【(言|行|书|越岁月|说|做|描写|跳过岁月)】/, "");
     if (m.hide) d.classList.add("hid");
-    d.innerHTML = '<div class="who">' + who + (m.hide ? '<span class="nosend">已屏蔽 · 不发给 AI</span>' : "") + '</div><div class="bubble">' + (typeof imgStoryHTML === "function" ? imgStoryHTML(m, prose(clean)) : prose(clean)) + "</div>" +
+    const rich9 = m.role === "ai" && S.disp.rich !== 0, body9 = rich9 ? proseAI(clean) : prose(clean);   /* P235 */
+    d.innerHTML = '<div class="who">' + who + (m.hide ? '<span class="nosend">已屏蔽 · 不发给 AI</span>' : "") + '</div><div class="bubble' + (rich9 ? " rich" : "") + '">' + (typeof imgStoryHTML === "function" ? imgStoryHTML(m, body9) : body9) + "</div>" +
       '<div class="tools">' + (m.role === "ai" && typeof imgReady === "function" && imgReady() ? '<button data-imgscene="' + idx + '" title="解析这一幕，出一张插图">图</button>' : "") + '<button data-hide="' + idx + '">' + (m.hide ? "复" : "屏") + '</button><button data-del="' + idx + '">删</button></div>';
     if (m.role === "player" && m.roll) {
       const R = m.roll, BT = ["受挫", "代价成功", "成功", "大成"];
@@ -23036,7 +23317,7 @@ const Game = (() => {
     U.$("#api-stream").value = S.api.stream ? "1" : "0";
     if (U.$("#api-sysinline")) U.$("#api-sysinline").value = S.api.sysinline ? "1" : "0";
     renderUsage();
-    U.$("#disp-ctx").value = S.disp.ctx; U.$("#disp-quote").value = S.disp.quote ? "1" : "0";
+    U.$("#disp-ctx").value = S.disp.ctx; U.$("#disp-quote").value = S.disp.quote ? "1" : "0"; U.$("#disp-rich").value = S.disp.rich === 0 ? "0" : "1";
     if (U.$("#disp-mem")) U.$("#disp-mem").value = S.disp.mem || "m";
     U.$("#disp-l1").value = S.disp.l1cad; U.$("#disp-l2").value = S.disp.l2cad; U.$("#disp-stir").value = String(S.disp.stir != null ? S.disp.stir : 1);
     if (U.$("#disp-mailcad")) U.$("#disp-mailcad").value = String([0, 2, 4].includes(Number(S.disp.mailCad)) ? Number(S.disp.mailCad) : 2);   /* P206 */
@@ -23188,6 +23469,7 @@ const Game = (() => {
     S.disp.ctx = U.clamp(Number(U.$("#disp-ctx").value) || 24, 6, 60);
     S.disp.mem = MEMP_TAB[(U.$("#disp-mem") || {}).value] ? U.$("#disp-mem").value : "m";
     S.disp.quote = U.$("#disp-quote").value === "1";
+    S.disp.rich = U.$("#disp-rich").value === "0" ? 0 : 1;   /* P235 */
     S.disp.l1cad = U.clamp(Number(U.$("#disp-l1").value) || 4, 1, 20);
     S.disp.l2cad = U.clamp(Number(U.$("#disp-l2").value) || 3, 1, 20);
     S.disp.stir = U.clamp(Number(U.$("#disp-stir").value), 0, 2);   /* P233 */
