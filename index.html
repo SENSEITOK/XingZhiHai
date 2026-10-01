@@ -762,6 +762,12 @@ html[data-theme="light"] #graph-wrap{background:radial-gradient(80% 70% at 50% 4
 .gear-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
 /* 装备格（P165 铸币小人退场，改两列网格） */
 .doll-wrap{position:relative;display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin:2px 0 4px}
+.doll-wrap.doll-on{grid-template-columns:1fr 1.15fr 1fr;align-items:stretch}
+.doll-wrap.doll-on .doll-col{display:flex;flex-direction:column;gap:6px;justify-content:space-between}
+.doll-wrap.doll-on .kin-cell{grid-column:1 / -1}
+.doll-fig{position:relative;aspect-ratio:var(--dw) / var(--dh);align-self:center;border-radius:12px;background:radial-gradient(70% 55% at 50% 58%,color-mix(in srgb,var(--zhu) 22%,transparent),transparent 72%);cursor:zoom-in}
+.doll-fig::after{content:"";position:absolute;left:18%;right:18%;bottom:3%;height:5%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.35),transparent);z-index:0}
+.doll-fig .dl{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:1;image-rendering:auto;pointer-events:none}
 .dslot{position:relative;text-align:center;background:var(--inset);border:1px solid var(--line);border-radius:10px;padding:4px 8px 5px;cursor:pointer;transition:.2s;z-index:2}
 .dslot:hover{border-color:var(--line2);z-index:4}
 .dslot .sl{display:block;color:var(--mut);font-size:9.5px;letter-spacing:.18em}
@@ -6797,6 +6803,41 @@ function ptPanelHTML(run, pid, name) {                   /* 资料卡末尾：�
       (pr.look ? '<div class="ep-sub">' + U.esc(pr.look) + "</div>" : "") +
       box("NovelAI 基础提示词", pr.nai_base) + box("NovelAI 角色提示词", pr.nai_char) + box("NovelAI 负面", pr.nai_uc) + box("GPT 生图", pr.gpt) +
       '<div class="ep-sub">建议尺寸 832×1216 竖图；白底出图后勾「去白底」再上传，对白卡和资料卡都会用上。</div></details>';
+}
+/* ================= P239 纸娃娃：装备栏里的 2D 小人 =================
+   素材随包附带（「小人」文件夹）：同一个素体上用局部重绘逐件画出来，再按前后差异抠成透明图层，所以骨骼天然对齐。
+   DOLL.base 素体；DOLL.hair 发型（按主角外貌里的发色发型挑）；DOLL.slots[类] 各件装备（按装备名里的字挑最像的，挑不中用该类第一件）。
+   叠放次序：素体 → 靴 → 袍 → 饰 → 发 → 帽 → 杖帚。品质给图层描一圈光。素材缺时退回两列格子。 */
+const DOLL = { w: 416, h: 608, base: "", hair: [], slots: { hat: [], robe: [], boots: [], wand: [], acc: [] } };
+const DOLL_SLOT = { hat: "hat", robe: "robe", boots: "boots", wand: "wand", acc1: "acc", acc2: "acc" };
+const DOLL_Z = ["boots", "robe", "acc", "hair", "hat", "wand"];
+const DOLL_GLOW = { "良": "rgba(143,178,110,.55)", "稀": "rgba(171,144,240,.8)", "传奇": "rgba(232,205,143,.9)", "伟大": "rgba(239,159,192,.95)" };
+function dollOn() { return !!(DOLL.base && DOLL.slots.robe.length); }
+function dollPick(list, text) {                          /* 按字面挑最像的一件 */
+  if (!list.length) return null;
+  const t = String(text || ""); let best = null, bs = 0;
+  for (const it of list) { const sc = (it.kw || []).reduce((a, k) => a + (t.includes(k) ? k.length : 0), 0); if (sc > bs) { bs = sc; best = it; } }
+  return best || list[0];
+}
+function dollLayers(run) {
+  const out = [], g = run.gear || {};
+  const look = [(run.profile && run.profile.look) || "", (run.origin && run.origin.label) || ""].join(" ");
+  const hair = dollPick(DOLL.hair, look);
+  const pick = { hair: hair ? [{ it: hair }] : [] };
+  for (const [sk, cat] of Object.entries(DOLL_SLOT)) {
+    const it = g[sk]; if (!it) continue;
+    const L = dollPick(DOLL.slots[cat] || [], it.name + " " + (it.desc || ""));
+    if (L && !(pick[cat] || []).some(x => x.it === L)) (pick[cat] = pick[cat] || []).push({ it: L, q: it.q, nm: it.name });
+  }
+  for (const z of DOLL_Z) for (const x of (pick[z] || [])) out.push(Object.assign({ z }, x));
+  return out;
+}
+function dollHTML(run) {
+  if (!dollOn()) return "";
+  const ls = dollLayers(run);
+  return '<div class="doll-fig" style="--dw:' + DOLL.w + ";--dh:" + DOLL.h + '" title="点开看大图">' +
+    '<img class="dl base" src="' + U.esc(DOLL.base) + '" alt="">' +
+    ls.map(l => '<img class="dl ' + l.z + '" src="' + U.esc(l.it.src) + '" alt="' + U.esc(l.nm || "") + '"' + (DOLL_GLOW[l.q] ? ' style="filter:drop-shadow(0 0 2px ' + DOLL_GLOW[l.q] + ") drop-shadow(0 0 5px " + DOLL_GLOW[l.q] + ')"' : "") + ">").join("") + "</div>";
 }
 /* ── 点开：人物／物品／地点／名词 ── */
 function entCanonOf(run, name) {                         /* 档上的人对应的原著人物卡 */
@@ -20435,7 +20476,10 @@ const UI = (() => {
       ((function () { const ks = Object.keys(run.skills || {}); return ks.length ? '<div class="pc-mana" data-dbtab="skills" style="cursor:pointer" title="点开技能页">技能 · ' + ks.slice(0, 6).map(k => U.esc(k) + ((run.skills[k].lv || 1) > 1 ? (run.skills[k].lv) : "")).join("、") + (ks.length > 6 ? " 等" + ks.length + "项" : "") + "</div>" : ""; })()) +
       ((run.conds || []).length ? '<div class="pc-mana" style="color:#e8a8a8">状态 · ' + run.conds.map(c => U.esc(c.name)).join("、") + "</div>" : "") + "</div>" +
       '<div class="pcard"><h4>在 场</h4>' + castRows + "</div>" +
-      '<div class="pcard"><h4>装 备</h4><div class="doll-wrap">' + gearCells + kinCell + "</div>" + (typeof gearSheetHTML === "function" ? gearSheetHTML(run) : "") + "</div>" +   /* P194 判定面板 */
+      '<div class="pcard"><h4>装 备</h4>' + (typeof dollOn === "function" && dollOn()   /* P239 有素材就排成「左三格·小人·右三格」 */
+        ? '<div class="doll-wrap doll-on">' + (function () { const cell = k => (gearCells.match(new RegExp('<div class="dslot[^"]*"[^>]*data-slotk="' + k + '"[\\s\\S]*?</b></div>')) || [""])[0];
+            return '<div class="doll-col">' + cell("hat") + cell("robe") + cell("boots") + "</div>" + dollHTML(run) + '<div class="doll-col">' + cell("wand") + cell("acc1") + cell("acc2") + "</div>" + kinCell; })() + "</div>"
+        : '<div class="doll-wrap">' + gearCells + kinCell + "</div>") + (typeof gearSheetHTML === "function" ? gearSheetHTML(run) : "") + "</div>" +   /* P194 判定面板 */
       '<div class="pcard"><h4>法 术</h4>' + (Object.entries(run.spells || {}).slice(0, 5).map(([n, sp]) =>
         '<div class="bag-item q-xi" data-gdesc="' + U.esc(n + "（" + (sp.lv || 1) + "级）" + (sp.cost ? "·耗" + sp.cost : "") + (sp.range ? "·" + sp.range : "") + (sp.mod ? "·改造：" + sp.mod : "") + (sp.desc ? "：" + sp.desc : "")) + '"><b>' + U.esc(n) + "</b><span class=\"n\">" + (sp.lv || 1) + "级" + (sp.mod ? "·改" : "") + "</span></div>").join("") || '<p class="hint">暂无法术</p>') + "</div>" +
       '<div class="pcard bagbox"><h4>背 包</h4>' + bagRows + "</div>" +
