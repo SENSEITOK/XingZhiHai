@@ -6694,40 +6694,40 @@ function factPromptLine(run, p) {                        /* 人物档案里的�
    DB.portraits[名字]＝{id（ImgStore 图）, z（头像放大倍数）, fy（头像上下偏移%）}，全档共用；名字取人物真名，原著人物的别名也认。
    PT_FILES：随包附带的内建立绘（「立绘」文件夹，相对路径），玩家上传的优先。PT_PROMPTS：二卷原著人物的生图提示词。 */
 const PT_FILES = {   /* P240 二卷原著人物内建立绘（NovelAI 5 出图，透明底，头像裁切按脸的位置算好） */
-  "雾花": {"src": "立绘/雾花.webp", "z": 4.44, "fy": 4.9, "fx": -4.3},
-  "莉音": {"src": "立绘/莉音.webp", "z": 4.57, "fy": 3.7, "fx": 0.9},
-  "晴玫": {"src": "立绘/晴玫.webp", "z": 4.02, "fy": 2.6, "fx": -3.3},
-  "山芙": {"src": "立绘/山芙.webp", "z": 3.99, "fy": 3.0, "fx": -1.0},
-  "枯华": {"src": "立绘/枯华.webp", "z": 3.97, "fy": 3.0, "fx": 2.9},
-  "苦雨": {"src": "立绘/苦雨.webp", "z": 4.02, "fy": 0.7, "fx": 0.3},
-  "秽心": {"src": "立绘/秽心.webp", "z": 4.05, "fy": 1.2, "fx": 1.2},
-  "孙敏赫": {"src": "立绘/孙敏赫.webp", "z": 4.08, "fy": 1.5, "fx": 1.4},
-  "李若微": {"src": "立绘/李若微.webp", "z": 4.99, "fy": 8.0, "fx": 0.6},
-  "徐嘉欣": {"src": "立绘/徐嘉欣.webp", "z": 3.94, "fy": 2.5, "fx": 0.7},
-  "红依依": {"src": "立绘/红依依.webp", "z": 5.08, "fy": 5.4, "fx": 4.6},
-  "秦常青": {"src": "立绘/秦常青.webp", "z": 4.4, "fy": 3.7, "fx": -0.6},
-  "姜灵灵": {"src": "立绘/姜灵灵.webp", "z": 3.5, "fy": 0.3, "fx": -7.5},
-  "黄心音": {"src": "立绘/黄心音.webp", "z": 4.99, "fy": 2.2, "fx": -4.2},
-  "爱知": {"src": "立绘/爱知.webp", "z": 4.99, "fy": 2.9, "fx": 1.6},
-  "冬显": {"src": "立绘/冬显.webp", "z": 3.94, "fy": 2.6, "fx": -1.7},
-  "卡米拉": {"src": "立绘/卡米拉.webp", "z": 4.99, "fy": 1.5, "fx": 1.3},
-  "心壳": {"src": "立绘/心壳.webp", "z": 4.05, "fy": 5.5, "fx": 2.9},
-  "老艾": {"src": "立绘/老艾.webp", "z": 4.99, "fy": 4.7, "fx": -2.2},
-  "阿丽塔": {"src": "立绘/阿丽塔.webp", "z": 4.6, "fy": 0.4, "fx": 0.4},
-  "海蚀": {"src": "立绘/海蚀.webp", "z": 6.73, "fy": 14.8, "fx": 2.2},
-  "大卫": {"src": "立绘/大卫.webp", "z": 3.86, "fy": 3.9, "fx": 0.8},
-  "歌莉娅": {"src": "立绘/歌莉娅.webp", "z": 4.99, "fy": 1.4, "fx": -3.2},
-  "狂恋": {"src": "立绘/狂恋.webp", "z": 5.65, "fy": 4.0, "fx": -2.5},
-  "乔伊": {"src": "立绘/乔伊.webp", "z": 4.99, "fy": 1.5, "fx": 2.2},
-  "彼得": {"src": "立绘/彼得.webp", "z": 4.34, "fy": 3.5, "fx": -0.2},
-  "茕缺": {"src": "立绘/茕缺.webp", "z": 4.99, "fy": 2.6, "fx": 0.2},
-  "楚虞君": {"src": "立绘/楚虞君.webp", "z": 4.37, "fy": 2.3, "fx": 0.8},
-  "恶名": {"src": "立绘/恶名.webp", "z": 4.4, "fy": 9.2, "fx": -0.6},
-  "克维坦": {"src": "立绘/克维坦.webp", "z": 4.79, "fy": 3.5, "fx": -2.1},
-  "拿破仑": {"src": "立绘/拿破仑.webp", "z": 2.3, "fy": 15.1, "fx": -4.0},
-  "威灵顿": {"src": "立绘/威灵顿.webp", "z": 2.43, "fy": 20.2, "fx": -8.0},
-  "尤瑟": {"src": "立绘/尤瑟.webp", "z": 4.4, "fy": 5.7, "fx": 12.6},
-  "文学猫灯": {"src": "立绘/文学猫灯.webp", "z": 4.68, "fy": 7.7, "fx": -6.1}
+  "雾花": {"src": "立绘/雾花.webp", "z": 4.44, "fy": 4.9, "fx": -4.3, "outfits": {"便服": {"src": "立绘/雾花_便服.webp", "zh": "黄色卫衣配牛仔长裤"}, "正装": {"src": "立绘/雾花_正装.webp", "zh": "藏蓝刺绣旗袍礼服"}}},
+  "莉音": {"src": "立绘/莉音.webp", "z": 4.57, "fy": 3.7, "fx": 0.9, "outfits": {"便服": {"src": "立绘/莉音_便服.webp", "zh": "黑皮夹克高腰长裤"}, "正装": {"src": "立绘/莉音_正装.webp", "zh": "敞领黑西装利落冷艳"}}},
+  "晴玫": {"src": "立绘/晴玫.webp", "z": 4.02, "fy": 2.6, "fx": -3.3, "outfits": {"便服": {"src": "立绘/晴玫_便服.webp", "zh": "黑卫衣配牛仔裤"}, "正装": {"src": "立绘/晴玫_正装.webp", "zh": "黑色礼服外套制服"}}},
+  "山芙": {"src": "立绘/山芙.webp", "z": 3.99, "fy": 3.0, "fx": -1.0, "outfits": {"便服": {"src": "立绘/山芙_便服.webp", "zh": "奶油毛衣配长裙"}, "正装": {"src": "立绘/山芙_正装.webp", "zh": "深绿丝绒连衣裙"}}},
+  "枯华": {"src": "立绘/枯华.webp", "z": 3.97, "fy": 3.0, "fx": 2.9, "outfits": {"便服": {"src": "立绘/枯华_便服.webp", "zh": "露肩上衣皮质短裙"}, "正装": {"src": "立绘/枯华_正装.webp", "zh": "绯红高开衩晚礼服"}}},
+  "苦雨": {"src": "立绘/苦雨.webp", "z": 4.02, "fy": 0.7, "fx": 0.3, "outfits": {"便服": {"src": "立绘/苦雨_便服.webp", "zh": "露肩上衣牛仔短裤"}, "正装": {"src": "立绘/苦雨_正装.webp", "zh": "午夜蓝露背晚礼服"}}},
+  "秽心": {"src": "立绘/秽心.webp", "z": 4.05, "fy": 1.2, "fx": 1.2, "outfits": {"便服": {"src": "立绘/秽心_便服.webp", "zh": "碎花吊带短裙"}, "正装": {"src": "立绘/秽心_正装.webp", "zh": "翠绿高开衩旗袍裙"}}},
+  "孙敏赫": {"src": "立绘/孙敏赫.webp", "z": 4.08, "fy": 1.5, "fx": 1.4, "outfits": {"便服": {"src": "立绘/孙敏赫_便服.webp", "zh": "短牛仔外套热裤"}, "正装": {"src": "立绘/孙敏赫_正装.webp", "zh": "黑西装深V红缎里"}}},
+  "李若微": {"src": "立绘/李若微.webp", "z": 4.99, "fy": 8.0, "fx": 0.6, "outfits": {"便服": {"src": "立绘/李若微_便服.webp", "zh": "亚麻衬衫阔腿裤"}, "正装": {"src": "立绘/李若微_正装.webp", "zh": "藏蓝金绣高开衩旗袍"}}},
+  "徐嘉欣": {"src": "立绘/徐嘉欣.webp", "z": 3.94, "fy": 2.5, "fx": 0.7, "outfits": {"便服": {"src": "立绘/徐嘉欣_便服.webp", "zh": "短款卫衣工装短裤"}, "正装": {"src": "立绘/徐嘉欣_正装.webp", "zh": "白西装深V吊带"}}},
+  "红依依": {"src": "立绘/红依依.webp", "z": 5.08, "fy": 5.4, "fx": 4.6, "outfits": {"便服": {"src": "立绘/红依依_便服.webp", "zh": "黑皮夹克高腰短裙"}, "正装": {"src": "立绘/红依依_正装.webp", "zh": "黑色露肩高开衩礼服"}}},
+  "秦常青": {"src": "立绘/秦常青.webp", "z": 4.4, "fy": 3.7, "fx": -0.6, "outfits": {"便服": {"src": "立绘/秦常青_便服.webp", "zh": "滑肩开衫牛仔短裤"}, "正装": {"src": "立绘/秦常青_正装.webp", "zh": "炭灰深V西装裙"}}},
+  "姜灵灵": {"src": "立绘/姜灵灵.webp", "z": 3.5, "fy": 0.3, "fx": -7.5, "outfits": {"便服": {"src": "立绘/姜灵灵_便服.webp", "zh": "露肩短上衣百褶裙"}, "正装": {"src": "立绘/姜灵灵_正装.webp", "zh": "白银抹胸高开衩礼服"}}},
+  "黄心音": {"src": "立绘/黄心音.webp", "z": 4.99, "fy": 2.2, "fx": -4.2, "outfits": {"便服": {"src": "立绘/黄心音_便服.webp", "zh": "露肩卫衣骑行短裤"}, "正装": {"src": "立绘/黄心音_正装.webp", "zh": "深蓝缎面吊带裙"}}},
+  "爱知": {"src": "立绘/爱知.webp", "z": 4.99, "fy": 2.9, "fx": 1.6, "outfits": {"便服": {"src": "立绘/爱知_便服.webp", "zh": "短款连帽衫百褶裙"}, "正装": {"src": "立绘/爱知_正装.webp", "zh": "黑丝绒露肩鸡尾酒裙"}}},
+  "冬显": {"src": "立绘/冬显.webp", "z": 3.94, "fy": 2.6, "fx": -1.7, "outfits": {"便服": {"src": "立绘/冬显_便服.webp", "zh": "皮夹克短T皮短裙"}, "正装": {"src": "立绘/冬显_正装.webp", "zh": "酒红西装深V短裙"}}},
+  "卡米拉": {"src": "立绘/卡米拉.webp", "z": 4.99, "fy": 1.5, "fx": 1.3, "outfits": {"便服": {"src": "立绘/卡米拉_便服.webp", "zh": "背心背带短裤"}, "正装": {"src": "立绘/卡米拉_正装.webp", "zh": "棕西装敞领马甲"}}},
+  "心壳": {"src": "立绘/心壳.webp", "z": 4.05, "fy": 5.5, "fx": 2.9, "outfits": {"便服": {"src": "立绘/心壳_便服.webp", "zh": "露肩短毛衣紫短裙"}, "正装": {"src": "立绘/心壳_正装.webp", "zh": "珍珠白露背鱼尾礼服"}}},
+  "老艾": {"src": "立绘/老艾.webp", "z": 4.99, "fy": 4.7, "fx": -2.2, "outfits": {"便服": {"src": "立绘/老艾_便服.webp", "zh": "运动短卫衣骑行短裤"}, "正装": {"src": "立绘/老艾_正装.webp", "zh": "黑燕尾服式西装裙"}}},
+  "阿丽塔": {"src": "立绘/阿丽塔.webp", "z": 4.6, "fy": 0.4, "fx": 0.4, "outfits": {"便服": {"src": "立绘/阿丽塔_便服.webp", "zh": "露肩短卫衣牛仔短裙"}, "正装": {"src": "立绘/阿丽塔_正装.webp", "zh": "粉缎露肩高开衩礼服"}}},
+  "海蚀": {"src": "立绘/海蚀.webp", "z": 6.73, "fy": 14.8, "fx": 2.2, "outfits": {"便服": {"src": "立绘/海蚀_便服.webp", "zh": "露肩软毛衣短裙"}, "正装": {"src": "立绘/海蚀_正装.webp", "zh": "白金露肩缎面礼服"}}},
+  "大卫": {"src": "立绘/大卫.webp", "z": 3.86, "fy": 3.9, "fx": 0.8, "outfits": {"便服": {"src": "立绘/大卫_便服.webp", "zh": "短款针织衫百褶短裙"}, "正装": {"src": "立绘/大卫_正装.webp", "zh": "黑丝绒露肩短礼裙"}}},
+  "歌莉娅": {"src": "立绘/歌莉娅.webp", "z": 4.99, "fy": 1.4, "fx": -3.2, "outfits": {"便服": {"src": "立绘/歌莉娅_便服.webp", "zh": "白衬衫配针织背心"}, "正装": {"src": "立绘/歌莉娅_正装.webp", "zh": "藏蓝王子礼服"}}},
+  "狂恋": {"src": "立绘/狂恋.webp", "z": 5.65, "fy": 4.0, "fx": -2.5, "outfits": {"便服": {"src": "立绘/狂恋_便服.webp", "zh": "短款针织驼色大衣"}, "正装": {"src": "立绘/狂恋_正装.webp", "zh": "深红露背高开衩礼服"}}},
+  "乔伊": {"src": "立绘/乔伊.webp", "z": 4.99, "fy": 1.5, "fx": 2.2, "outfits": {"便服": {"src": "立绘/乔伊_便服.webp", "zh": "短款红卫衣牛仔短裤"}, "正装": {"src": "立绘/乔伊_正装.webp", "zh": "炭灰深V西装裙"}}},
+  "彼得": {"src": "立绘/彼得.webp", "z": 4.34, "fy": 3.5, "fx": -0.2, "outfits": {"便服": {"src": "立绘/彼得_便服.webp", "zh": "粉露肩短卫衣牛仔裙"}, "正装": {"src": "立绘/彼得_正装.webp", "zh": "粉缎鸡尾酒裙皮草"}}},
+  "茕缺": {"src": "立绘/茕缺.webp", "z": 4.99, "fy": 2.6, "fx": 0.2, "outfits": {"便服": {"src": "立绘/茕缺_便服.webp", "zh": "露肩短毛衣牛仔短裙"}, "正装": {"src": "立绘/茕缺_正装.webp", "zh": "海军蓝西装短裙"}}},
+  "楚虞君": {"src": "立绘/楚虞君.webp", "z": 4.37, "fy": 2.3, "fx": 0.8, "outfits": {"便服": {"src": "立绘/楚虞君_便服.webp", "zh": "露肩短卫衣黑短裤"}, "正装": {"src": "立绘/楚虞君_正装.webp", "zh": "黑亮片露背高开衩裙"}}},
+  "恶名": {"src": "立绘/恶名.webp", "z": 4.4, "fy": 9.2, "fx": -0.6, "outfits": {"便服": {"src": "立绘/恶名_便服.webp", "zh": "露肩短针织卡其短裙"}, "正装": {"src": "立绘/恶名_正装.webp", "zh": "白制服式礼服短裙"}}},
+  "克维坦": {"src": "立绘/克维坦.webp", "z": 4.79, "fy": 3.5, "fx": -2.1, "outfits": {"便服": {"src": "立绘/克维坦_便服.webp", "zh": "露肩短卫衣工装短裤"}, "正装": {"src": "立绘/克维坦_正装.webp", "zh": "深紫露肩高开衩礼服"}}},
+  "拿破仑": {"src": "立绘/拿破仑.webp", "z": 2.3, "fy": 15.1, "fx": -4.0, "outfits": {"便服": {"src": "立绘/拿破仑_便服.webp", "zh": "鲨鱼连帽衫"}, "正装": {"src": "立绘/拿破仑_正装.webp", "zh": "红色军礼服双角帽"}}},
+  "威灵顿": {"src": "立绘/威灵顿.webp", "z": 2.43, "fy": 20.2, "fx": -8.0, "outfits": {"便服": {"src": "立绘/威灵顿_便服.webp", "zh": "粉色连体睡衣"}, "正装": {"src": "立绘/威灵顿_正装.webp", "zh": "黑哥特小礼裙"}}},
+  "尤瑟": {"src": "立绘/尤瑟.webp", "z": 4.4, "fy": 5.7, "fx": 12.6, "outfits": {"便服": {"src": "立绘/尤瑟_便服.webp", "zh": "露肩卫衣黑短裤"}, "正装": {"src": "立绘/尤瑟_正装.webp", "zh": "黑缎吊带裙配西装"}}},
+  "文学猫灯": {"src": "立绘/文学猫灯.webp", "z": 4.68, "fy": 7.7, "fx": -6.1, "outfits": {"便服": {"src": "立绘/文学猫灯_便服.webp", "zh": "小围巾与针织帽"}, "正装": {"src": "立绘/文学猫灯_正装.webp", "zh": "黑领结与小礼帽"}}}
 };
 const PT_COMMON = {"nai_base": "masterpiece, best quality, very aesthetic, absurdres, illustration, light novel cover, painterly, soft lighting, muted colors, desaturated, pale colors, delicate, soft shading, realistic shading, detailed hair, hair strands, detailed eyes, beautiful detailed face, rim light, full body, standing, slight three-quarter view, centered, feet visible, simple background, transparent background", "nai_uc": "nsfw, nude, cleavage, revealing clothes, lowres, worst quality, low quality, bad quality, jpeg artifacts, blurry, bad anatomy, bad hands, extra fingers, missing fingers, fused fingers, extra arms, extra legs, deformed, disfigured, bad proportions, long neck, text, watermark, signature, logo, username, cropped, out of frame, cut off feet, multiple views, reference sheet, comic, sketch, monochrome, busy background, scenery, vibrant colors, saturated, flat color, cel shading, thick outlines, chibi, 3d, upper body, close-up, cowboy shot, portrait", "gpt_style": "A soft painterly light-novel-cover illustration style: muted, slightly desaturated pale palette, gentle rim light, delicate realistic shading, fine individual hair strands, expressive detailed eyes; full-body standing character, slight three-quarter view, centered, feet visible, plain white background, 832x1216 portrait (2:3)."};
 /* 二卷原著人物立绘提示词（按通读笔记的外貌写，未写明处为推断） */
@@ -7160,6 +7160,7 @@ function entClose() { const p = U.$("#ent-pop"); if (p) p.classList.remove("on")
 document.addEventListener("click", ev => {
   const t = ev.target.closest && ev.target.closest("#story [data-ent]");
   if (t) { ev.preventDefault(); entOpen(t.dataset.ent, t.dataset.id, t); return; }
+  if (ev.target && ev.target.isConnected === false) return;          // 卡内按钮点完卡片重绘了，别当成点在外面
   if (!ev.target.closest || (!ev.target.closest("#ent-pop") && !ev.target.closest("#graph-cv"))) entClose();
 });
 document.addEventListener("keydown", ev => { if (ev.key === "Escape") entClose(); });
