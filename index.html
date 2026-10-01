@@ -258,7 +258,7 @@ svg.eg2 path{transition:stroke-opacity .2s} svg.eg2 path:hover{stroke-opacity:.9
 .nl{margin-top:4px}
 /* P238 立绘 */
 .pt-av{position:relative;display:inline-block;width:42px;height:42px;border-radius:50%;overflow:hidden;flex:none;background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--sp,var(--zhu)) 30%,transparent),var(--inset2));box-shadow:0 0 0 2px color-mix(in srgb,var(--sp,var(--zhu)) 70%,transparent),0 4px 12px rgba(0,0,0,.25)}
-.pt-av img{position:absolute;left:50%;top:0;width:calc(100% * var(--z,2.8));max-width:none;height:auto;transform:translate(-50%,calc(-1 * var(--fy,3%)))}
+.pt-av img{position:absolute;left:50%;top:0;width:calc(100% * var(--z,2.8));max-width:none;height:auto;transform:translate(calc(-50% + var(--fx,0%)),calc(-1 * var(--fy,3%)))}
 .pt-av img.img-missing{display:none}
 .pt-av.big{width:64px;height:64px}
 .bubble.rich .ln.has-pt{padding-left:68px;min-height:58px}
@@ -6735,11 +6735,11 @@ function ptOf(run, pid) {
   if (!pid) return null;
   const m = ptMap(), ns = ptNames(run, pid);
   for (const n of ns) if (m[n] && m[n].id) return Object.assign({ z: 2.8, fy: 3, nm: n }, m[n]);
-  for (const n of ns) if (PT_FILES[n]) { const f = PT_FILES[n], c = m[n] || {}; return { src: f.src || f, z: c.z || f.z || 2.8, fy: c.fy != null ? c.fy : (f.fy != null ? f.fy : 3), nm: n, builtin: 1 }; }
+  for (const n of ns) if (PT_FILES[n]) { const f = PT_FILES[n], c = m[n] || {}; return { src: f.src || f, z: c.z || f.z || 2.8, fy: c.fy != null ? c.fy : (f.fy != null ? f.fy : 3), fx: f.fx || 0, nm: n, builtin: 1 }; }
   return null;
 }
 function ptImg(pt) { return pt.id ? '<img data-imgid="' + U.esc(pt.id) + '" alt="">' : '<img src="' + U.esc(pt.src) + '" alt="" onerror="this.classList.add(\'img-missing\')">'; }
-function ptAvatar(pt, cls) { return '<span class="pt-av' + (cls ? " " + cls : "") + '" style="--z:' + pt.z + ";--fy:" + pt.fy + '%">' + ptImg(pt) + "</span>"; }
+function ptAvatar(pt, cls) { return '<span class="pt-av' + (cls ? " " + cls : "") + '" style="--z:' + pt.z + ";--fy:" + pt.fy + "%;--fx:" + (pt.fx || 0) + '%">' + ptImg(pt) + "</span>"; }
 function ptPromptOf(run, pid) {                          /* 原著人物用整理好的；其余按外貌、DNA 与已知档案拼 */
   const ns = ptNames(run, pid), hit = ns.map(n => PT_PROMPTS[n]).find(Boolean);
   if (hit) return { nai_base: PT_COMMON.nai_base, nai_char: hit.nai_char, nai_uc: PT_COMMON.nai_uc + (hit.nai_uc_extra ? ", " + hit.nai_uc_extra : ""), gpt: hit.gpt, look: hit.look };
