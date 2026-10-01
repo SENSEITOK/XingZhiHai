@@ -775,6 +775,21 @@ html[data-theme="light"] #graph-wrap{background:radial-gradient(80% 70% at 50% 4
 .doll-fig{position:relative;aspect-ratio:var(--dw) / var(--dh);grid-column:1 / -1;height:min(46vh,300px);justify-self:center;border-radius:12px;background:radial-gradient(70% 55% at 50% 58%,color-mix(in srgb,var(--zhu) 22%,transparent),transparent 72%);cursor:zoom-in}
 .doll-fig::after{content:"";position:absolute;left:18%;right:18%;bottom:3%;height:5%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.35),transparent);z-index:0}
 .doll-fig .dl{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:1;image-rendering:auto;pointer-events:none}
+.dn-sheet{margin-top:8px;display:flex;flex-direction:column;gap:6px;font-size:12px}
+.dn-top{display:flex;align-items:center;gap:6px}
+.dn-hp{flex:1;display:flex;align-items:center;gap:5px;min-width:0}.dn-hp span{color:var(--ink3,#999)}
+.dn-bar{flex:1;height:7px;border-radius:4px;background:rgba(128,128,128,.22);overflow:hidden}.dn-bar b{display:block;height:100%;background:linear-gradient(90deg,#c0605a,#e08a6e);border-radius:4px}
+.dn-bar.me b{background:linear-gradient(90deg,#5aa06a,#8fc77e)}.dn-hp em,.dn-foe em{font-style:normal;font-variant-numeric:tabular-nums;min-width:42px;text-align:right}
+.dn-st{display:flex;flex-direction:column;align-items:center;line-height:1.1;color:var(--ink3,#999);font-size:10px;padding:2px 6px;border:1px solid var(--line2,#444);border-radius:7px}.dn-st b{font-size:14px;color:var(--ink,#ddd)}
+.dn-insp{border:1px solid var(--line2,#444);background:none;color:var(--ink3,#999);border-radius:7px;padding:4px 7px;cursor:pointer}.dn-insp.on{color:#e8cd8f;border-color:#e8cd8f;box-shadow:0 0 6px rgba(232,205,143,.5)}
+.dn-doms{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}.dn-dom{display:flex;flex-direction:column;align-items:center;border:1px solid var(--line2,#444);border-radius:7px;padding:3px 0}.dn-dom span{font-size:10px;color:var(--ink3,#999)}.dn-dom b{font-size:14px}
+.dn-perks{display:flex;flex-wrap:wrap;gap:4px}.dn-perks span{font-size:11px;padding:1px 7px;border-radius:10px;background:color-mix(in srgb,var(--zhu,#a77) 18%,transparent);cursor:help}
+.dn-fight{border:1px solid rgba(192,96,90,.5);border-radius:9px;padding:6px 8px;display:flex;flex-direction:column;gap:4px}.dn-ft{display:flex;justify-content:space-between;align-items:center;color:#e08a6e}.dn-ft button{font-size:11px;padding:1px 8px;border-radius:6px;border:1px solid var(--line2,#444);background:none;color:inherit;cursor:pointer}
+.dn-foe{display:flex;align-items:center;gap:6px}.dn-foe>span{min-width:92px;display:flex;flex-direction:column;line-height:1.15}.dn-foe i{font-style:normal;font-size:10px;color:var(--ink3,#999)}.dn-foe.down{opacity:.45;text-decoration:line-through}
+.dslot .dn-tag{display:block;font-style:normal;font-size:10px;color:var(--ink3,#999);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dice-chip.d20 .dd i,.dice-chip.d20 .dd1{display:inline-block;min-width:18px;text-align:center;font-style:normal;border:1px solid currentColor;border-radius:4px;margin:0 2px;padding:0 2px;opacity:.55}.dice-chip.d20 .dd i.on,.dice-chip.d20 .dd1{opacity:1;font-weight:600}
+.dice-chip.d20 .dd1.n20{color:#e8cd8f;box-shadow:0 0 6px rgba(232,205,143,.6)}.dice-chip.d20 .dd1.n1{color:#d06a6a}.dice-chip .adv{font-size:11px;margin:0 4px;opacity:.8}
+.dice-chip.fx{margin-top:3px;opacity:.92}.dice-chip.fx.foe{color:#e0a08a}.dice-chip.fx.hp{color:#8fc77e}
 .doll-fig.big{position:fixed;top:4vh;left:50%;transform:translateX(-50%);height:92vh;width:auto;max-width:96vw;z-index:9999;background:var(--panel);box-shadow:0 0 0 100vmax rgba(0,0,0,.62);cursor:zoom-out}
 .dslot{position:relative;text-align:center;background:var(--inset);border:1px solid var(--line);border-radius:10px;padding:4px 8px 5px;cursor:pointer;transition:.2s;z-index:2}
 .dslot:hover{border-color:var(--line2);z-index:4}
@@ -3914,7 +3929,7 @@ function incomeOf(run) {
   const total = pins + fac + div + xwv + wage + pat + alt;
   return { pins, fac, div, xw: xwv, wage, pat, pet, alt, job: jl, stopped, up: up + pet, total, net: total - up - pet };
 }
-/* 出阵：引擎掷 2D6＋军势档＋阵型－敌情，四档定生死；折损与战利由引擎算 */
+/* 出阵：引擎掷 d20＋（军势档＋阵型＋士气－敌情）×2，四档定生死（P242 由 2D6 改 d20）；折损与战利由引擎算 */
 function armySortie(run, goal, stanceId, foeTier, xwId) {
   const a = armyInit(run), s = armyStat(run);
   if (!s.n) return { ok: false, why: "手上一个兵都没有" };
@@ -3923,11 +3938,11 @@ function armySortie(run, goal, stanceId, foeTier, xwId) {
   const xw = xwId && !pl9 ? ((run.xw) || []).find(x => x.id === xwId) : null;
   if (xw && !xw.probed) xw.probed = 1;                                   // 打过一场，真凶揭底
   const foe = U.clamp(Number(foeTier) || (pl9 && typeof pwRisk === "function" ? pwRisk(run, pl9.id) : xw ? (xw.risk || 3) : Math.max(1, armyTier(run) + (Math.random() < .35 ? 1 : 0))), 1, 7);
-  const d1 = 1 + Math.floor(Math.random() * 6), d2 = 1 + Math.floor(Math.random() * 6);
+  const d20 = 1 + Math.floor(Math.random() * 20), d1 = d20, d2 = 0;   /* P242 改 d20：每档 +2，DC 14 得胜 */
   const tier = armyTier(run);
   const mor = s.morale >= 80 ? 1 : s.morale <= 35 ? -2 : s.morale <= 55 ? -1 : 0;
-  const total = d1 + d2 + tier + st.mod + mor - foe + easySortieMod();   /* P219 简单模式 +1 */
-  const band = total >= 12 ? 3 : total >= 9 ? 2 : total >= 6 ? 1 : 0;
+  const total = d20 + 2 * (tier + st.mod + mor - foe + easySortieMod());   /* P219 简单模式 +1 档 */
+  const band = d20 === 20 ? 3 : d20 === 1 ? 0 : total >= 22 ? 3 : total >= 14 ? 2 : total >= 7 ? 1 : 0;
   const BNAME = ["溃败", "苦战", "得胜", "大捷"];
   const lossPct = [.34, .18, .09, .04][band] * (1 + st.risk * .12) * easyLossMul();   /* P219 折损 ×.6 */
   const lost = {};
@@ -6064,6 +6079,7 @@ function gearDomRows(run) {
   });
 }
 function gearSheetHTML(run) {
+  if (typeof dndSheetHTML === "function") return dndSheetHTML(run);   /* P242 换成 D&D 角色卡 */
   const rows = gearDomRows(run);
   const sgn = n => (n > 0 ? "+" : "") + n;
   return '<div class="gear-sheet">' + rows.map(r => '<div class="gear-dom" title="' + U.esc(r.d + "：底子" + sgn(r.base) + " 装备" + sgn(r.gear) + " 天赋" + sgn(r.tal) + " 职业" + sgn(r.prf) + (r.empty.length ? "；" + r.empty.join("/") + "位空着，这一域没有装备加成" : "")) + '"><span class="gd">' + r.d + '</span><b class="' + (r.total > 0 ? "up" : r.total < 0 ? "dn" : "") + '">' + sgn(r.total) + '</b><span class="gs">' + [r.base ? "底" + sgn(r.base) : "", r.gear ? "装" + sgn(r.gear) : "", r.tal ? "天" + sgn(r.tal) : "", r.prf ? "职" + sgn(r.prf) : ""].filter(Boolean).join(" ") + (r.empty.length ? '<i class="ge">' + U.esc(r.empty.join("/")) + '空</i>' : "") + '</span></div>').join("") +
@@ -6905,6 +6921,241 @@ function dollHTML(run) {
     '<img class="dl base" src="' + U.esc(DOLL.base) + '" alt="">' +
     ls.map(l => '<img class="dl ' + l.z + '" src="' + U.esc(l.src) + '" alt="' + U.esc(l.nm || "") + '"' + (DOLL_GLOW[l.q] ? ' style="filter:drop-shadow(0 0 2px ' + DOLL_GLOW[l.q] + ") drop-shadow(0 0 5px " + DOLL_GLOW[l.q] + ')"' : "") + ">").join("") + "</div>";
 }
+/* ================= P242 骰与剑：D&D 式判定、装备词条、近身战斗 =================
+   判定改 d20：一枚 d20＋调整值，对难度 DC。调整值沿用原来的各路「档」，每档折 +2（属性、天赋、职业、魔力、位面、狠活、简单模式），
+   装备按品质直接加（凡+0 良+1 稀+2 传奇+3 伟大+4，对口槽位合计封 +4），法术每档 +2，装备与法术合计封 +6。
+   优势／劣势：掷两枚取高／取低；情境、装备词条、灵感都能给；有优有劣互相抵掉。天然 20 必成且大成，天然 1 必败（简单模式下不算）。
+   四档照旧：≥DC+10 或天然 20 大成；≥DC 成功；差 5 以内代价成功；再差受挫。
+   装备词条：按名字认出来，存档不用改——杖帚定伤害骰，袍定护甲，靴管先攻，饰与帽各有护身、博引之类的小本事。
+   战斗：生命值、护甲等级都归引擎。裁定者认出「攻击」就对敌人的护甲掷命中，中了掷伤害；同一幕敌人回手，对主角护甲掷，中了扣血。
+   血到 0 是倒下（昏迷、被俘或被救，不写死），过一天回满。战况整块交给主模型照写，不许改数。 */
+const DND_Q = { "凡": 0, "良": 1, "稀": 2, "传奇": 3, "伟大": 4 };
+const DND_DC = [[5, "轻而易举"], [8, "简单"], [10, "寻常"], [13, "要点本事"], [15, "困难"], [18, "很难"], [20, "极难"], [25, "近乎不可能"]];
+function dndDcName(dc) { let nm = DND_DC[0][1]; for (const [v, n] of DND_DC) if (dc >= v) nm = n; return nm; }
+const DND_WEAPON = [   /* 杖帚槽：伤害骰 */
+  [/剑|刀|刃|镰|枪|斧/, "1d10", "利刃"], [/法杖|权杖|长杖|伞|棍/, "1d8", "长柄"], [/扫帚|帚/, "1d6", "扫帚"],
+  [/书|典|册|卷/, "1d6", "魔导书"], [/灯/, "1d6", "提灯"], [/魔杖|短杖|杖|棒|指挥/, "1d4", "短杖"]
+];
+const DND_ARMOR = [    /* 袍槽：护甲底数 */
+  [/铠|甲|盔|胸甲/, 15, "甲胄"], [/机能|战术|作战|防护|防弹/, 13, "护具"], [/风衣|大衣|外套|皮衣|夹克|工装|工作服|连体/, 12, "厚衣"],
+  [/袍|斗篷|披风|纱/, 11, "法袍"]
+];
+/* 词条：{nm, txt, eff}  eff：adv 优势／dis 劣势（附在某类情境上，由裁定者看情境点名）；ac+N、init+N、save+N、dr+N 常驻；crit19 */
+const DND_PERK = [
+  { re: /扫帚|帚/, nm: "御帚", txt: "追逐、飞行、赶路的检定有优势", eff: "adv" },
+  { re: /斗篷|披风|黑纱|夜纹|夜行/, nm: "夜行", txt: "潜行、躲藏、甩掉尾巴的检定有优势", eff: "adv" },
+  { re: /灯|灯笼/, nm: "照夜", txt: "黑暗里不吃劣势；安抚灵体、亡灵的交际检定有优势", eff: "adv" },
+  { re: /书|典|册/, nm: "博引", txt: "查证、辨识法术与古物的学识检定有优势", eff: "adv" },
+  { re: /剑|刀|刃/, nm: "锋锐", txt: "近身攻击掷出 19 也算重击", eff: "crit19" },
+  { re: /伞/, nm: "遮护", txt: "撑开挡在身前，护甲 +1", eff: "ac+1" },
+  { re: /礼服|旗袍|西装|晚礼服|缎|套装|洋装|礼裙/, nm: "体面", txt: "正式场合、宴会、谈判桌上的交际检定有优势", eff: "adv" },
+  { re: /校服|学员|学生/, nm: "学生证", txt: "对老师、长辈、管理员装可怜的交际检定有优势", eff: "adv" },
+  { re: /机能|赛博|霓虹|科技/, nm: "梅网接驳", txt: "跟设备、电子锁、梅网后台打交道的检定有优势", eff: "adv" },
+  { re: /露肩|短裙|皮衣|晚礼服|开衩|小黑裙/, nm: "惹眼", txt: "吸引注意、撩人、镇场的交际检定有优势；想低调潜行则吃劣势", eff: "adv" },
+  { re: /工装|工作服|防护|连体/, nm: "皮实", txt: "每次挨打少掉 1 点血", eff: "dr+1" },
+  { re: /铃|猫/, nm: "猫缘", txt: "跟猫、使魔、小动物打交道的检定有优势", eff: "adv" },
+  { re: /护符|符|誓约|坠|护身/, nm: "护身", txt: "抵抗法术、诅咒、魅惑与精神控制的检定 +2", eff: "save+2" },
+  { re: /军靴|战靴|作战靴|长靴|过膝|软靴/, nm: "健步", txt: "先攻 +2；长途跋涉、攀爬的体魄检定有优势", eff: "init+2" },
+  { re: /高跟|凉鞋|厚底/, nm: "气场", txt: "交际检定 +1；奔跑、攀爬吃劣势", eff: "cha+1" },
+  { re: /球鞋|运动鞋|跑鞋/, nm: "快腿", txt: "逃跑、追人的检定有优势", eff: "adv" },
+  { re: /尖帽|魔女帽|尖顶/, nm: "正统魔女", txt: "在魔女同行面前的交际检定有优势", eff: "adv" },
+  { re: /王冠|冠|冕/, nm: "威仪", txt: "威吓、号令他人的检定有优势", eff: "adv" },
+  { re: /围巾|披肩/, nm: "御寒", txt: "风雪、寒夜里的体魄检定不吃劣势", eff: "adv" },
+  { re: /眼镜|单片镜|镜/, nm: "明察", txt: "搜查、看穿伪装的学识检定有优势", eff: "adv" }
+];
+const DND_SLOT_DOM = { wand: ["出力", "控制"], robe: ["体魄"], boots: ["体魄"], hat: ["学识", "控制"], acc1: ["交际"], acc2: ["交际"] };
+function dndItem(sk, it) {                               /* 一件装备的规则面：品质加值、伤害骰／护甲、词条 */
+  if (!it) return null;
+  const nm = String(it.name || "") + " " + String(it.desc || "").slice(0, 20), q = DND_Q[it.q] || 0, out = { q, perks: [] };
+  if (sk === "wand") { const w = DND_WEAPON.find(x => x[0].test(nm)); out.die = w ? w[1] : "1d4"; out.kind = w ? w[2] : "法器"; }
+  if (sk === "robe") { const a = DND_ARMOR.find(x => x[0].test(nm)); out.ac = a ? a[1] : 10; out.kind = a ? a[2] : "便服"; }
+  for (const p of DND_PERK) { if (out.perks.length >= 2) break; if (p.re.test(nm)) out.perks.push(p); }
+  if (q >= 3) out.perks.push({ nm: q >= 4 ? "伟大之器" : "传奇之器", txt: "每场战斗一次，挨打时可让这一击落空", eff: "parry" });
+  return out;
+}
+function dndItemLine(sk, it) {                           /* 格子悬浮说明 */
+  const d = dndItem(sk, it); if (!d) return "";
+  return [d.q ? "品质 +" + d.q : "", d.die ? "伤害 " + d.die + "（" + d.kind + "）" : "", d.ac ? "护甲 " + d.ac + "（" + d.kind + "）" : ""].concat(d.perks.map(p => "【" + p.nm + "】" + p.txt)).filter(Boolean).join("；");
+}
+function dndPerks(run) { const out = []; for (const [sk, it] of Object.entries((run && run.gear) || {})) { const d = dndItem(sk, it); if (d) for (const p of d.perks) out.push(Object.assign({ from: it.name, sk }, p)); } return out; }
+function dndEffSum(run, key) { return dndPerks(run).reduce((a, p) => a + (p.eff.startsWith(key + "+") ? +p.eff.slice(key.length + 1) || 0 : 0), 0); }
+function dndGearBonus(run, dom) {
+  let m = 0;
+  for (const [sk, doms] of Object.entries(DND_SLOT_DOM)) { const it = run.gear && run.gear[sk]; if (it && doms.includes(dom)) m += DND_Q[it.q] || 0; }
+  if (dom === "交际") m += dndEffSum(run, "cha");
+  return U.clamp(m, 0, 4);
+}
+function dndAbil(run, dom) { const tv = (run.traits || {})[dom] != null ? run.traits[dom] : 1; return U.clamp(tv - 1, -1, 2) * 2; }
+function dndLevel(run) { return Math.max(1, Math.floor(typeof profCR === "function" ? profCR(run) : 1)); }
+function dndProf(run) { return 2 + Math.floor((dndLevel(run) - 1) / 4); }   /* 熟练加值：一到四级 +2，往上每四级 +1 */
+function dndHpMax(run) { const tv = (run.traits || {})["体魄"] != null ? run.traits["体魄"] : 1; return 8 + tv * 4 + dndLevel(run) * 4; }
+function dndAC(run) {
+  const r = run.gear && run.gear.robe, d = dndItem("robe", r), tv = (run.traits || {})["体魄"] != null ? run.traits["体魄"] : 1;
+  return (d ? d.ac + d.q : 10) + (tv >= 2 ? 1 : 0) + dndEffSum(run, "ac");
+}
+function dndHp(run) {                                    /* 血条：过一天回满 */
+  const max = dndHpMax(run), day = run.year + "-" + ((run.clock && run.clock.m) || 0) + "-" + ((run.clock && run.clock.d) || 0);
+  if (!run.hp || run.hp.day !== day) run.hp = { cur: max, day };
+  run.hp.cur = U.clamp(run.hp.cur, 0, max); run.hp.max = max;
+  return run.hp;
+}
+function dndDie(expr) {                                  /* "2d6+3" → {rolls,bonus,total} */
+  const m = String(expr || "1d4").match(/(\d+)d(\d+)\s*([+-]\s*\d+)?/); if (!m) return { rolls: [], bonus: 0, total: 0 };
+  const n = Math.min(20, +m[1]), f = +m[2], b = m[3] ? +m[3].replace(/\s/g, "") : 0, rolls = [];
+  for (let i = 0; i < n; i++) rolls.push(1 + Math.floor(Math.random() * f));
+  return { rolls, bonus: b, total: Math.max(1, rolls.reduce((a, c) => a + c, 0) + b) };
+}
+function dndD20(adv) { const a = 1 + Math.floor(Math.random() * 20); if (!adv) return { dice: [a], die: a }; const b = 1 + Math.floor(Math.random() * 20); return { dice: [a, b], die: adv > 0 ? Math.max(a, b) : Math.min(a, b) }; }
+/* 敌人按等级取数：护甲、生命、命中、伤害（1 级街头混混，5 级同行好手，10 级传奇） */
+const DND_FOE = [null, [11, 9, 3, "1d6+1"], [12, 16, 4, "1d8+2"], [13, 26, 5, "1d10+2"], [14, 36, 6, "2d6+3"], [15, 50, 7, "2d8+3"],
+  [16, 68, 8, "2d10+4"], [17, 90, 9, "3d8+5"], [18, 120, 10, "3d10+6"], [19, 155, 11, "4d10+7"], [20, 200, 12, "5d10+8"]];
+function dndFoe(run, f) {                                /* 战场上登记／找回一名敌人 */
+  if (!f || !f.name) return null;
+  const nm = String(f.name).slice(0, 12); run.fight = run.fight || { foes: [], round: 0, y: run.year };
+  let e = run.fight.foes.find(x => x.name === nm);
+  if (!e) {
+    const lv = U.clamp(Math.round(+f.lv || 1), 1, 10), t = DND_FOE[lv];
+    e = { name: nm, lv, ac: t[0], hp: t[1], max: t[1], atk: t[2], dmg: t[3] };
+    run.fight.foes.push(e); if (run.fight.foes.length > 4) run.fight.foes.shift();
+  }
+  return e;
+}
+function dndSpellDmg(run, text) {                        /* 正文点了自家法术就按法术等级出伤害 */
+  let best = null;
+  for (const [n, sp] of Object.entries((run && run.spells) || {})) {
+    if (!String(text || "").includes(n)) continue;
+    const lv = sp.lv || 1, ex = lv >= 10 ? "10d8" : lv >= 7 ? "6d8" : lv >= 4 ? "4d6" : "2d6";
+    if (!best || lv > best.lv) best = { lv, ex, nm: n };
+  }
+  return best;
+}
+/* 一次判定（含战斗回合）。adj 来自裁定者；返回存进 player 楼层的 roll */
+function dndResolve(run, adj, text) {
+  const dom = ["出力", "控制", "学识", "体魄", "交际"].includes(adj.domain) ? adj.domain : "控制";
+  const kind = ["attack", "defend", "flee", "save"].includes(adj.kind) ? adj.kind : "check";
+  const perksAll = dndPerks(run), named = [].concat(adj.perks || []).map(String);
+  const used = perksAll.filter(p => named.some(n => n && (p.nm === n || n.includes(p.nm))));
+  let adv = U.clamp(Math.round(+adj.adv || 0), -1, 1);
+  const insp = run.inspArm && (run.insp || 0) > 0;
+  if (insp) { run.insp--; run.inspArm = 0; }
+  const advN = (adv > 0 ? 1 : 0) + (insp ? 1 : 0) + (used.some(p => p.eff === "adv") ? 1 : 0), disN = (adv < 0 ? 1 : 0) + (used.some(p => p.eff === "dis") ? 1 : 0);
+  const netAdv = advN && disN ? 0 : advN ? 1 : disN ? -1 : 0;
+  /* 调整值：旧的「档」每档 +2 */
+  const tm = typeof traitModOf === "function" ? traitModOf(run, dom) : 0, tal = typeof talentMod === "function" ? talentMod(run, dom) : 0;
+  const prf = (typeof profMod === "function" ? profMod(run, dom) : 0) - ((run.profSplit || 0) >= 6 ? 1 : 0);
+  const mnm = typeof manaTierMod === "function" ? manaTierMod(run, dom) : 0, hard = run._hard ? (run._hard.boost || 0) : 0;
+  const tmd = typeof turnOn === "function" && turnOn() ? turnMod(run) : 0, ez = typeof easyRollMod === "function" ? easyRollMod() : 0;
+  const gear = dndGearBonus(run, dom), sp = typeof spellModOf === "function" ? spellModOf(run, text) : 0;
+  const eq = Math.min(6, gear + sp * 2), save = kind === "save" ? dndEffSum(run, "save") : 0;
+  const parts = { 属性: dndAbil(run, dom), 装备: gear, 法术: sp * 2, 天赋: tal * 2, 职业: prf * 2, 魔力: mnm * 2, 位面: tm * 2, 狠活: hard * 2, 赶工: tmd * 2, 简单: ez * 2, 护身: save };
+  if (eq < gear + sp * 2) parts.法术 = eq - gear;
+  const mod = Object.values(parts).reduce((a, b) => a + b, 0);
+  const r = dndD20(netAdv), easy = typeof easyOn === "function" && easyOn();
+  const hp = dndHp(run), out = { d20: 1, domain: dom, kind, dice: r.dice, die: r.die, adv: netAdv, insp: insp ? 1 : 0, perks: used.map(p => p.nm), parts, mod, total: r.die + mod, goal: String(adj.goal || "").slice(0, 30), lose: String(adj.lose || "").slice(0, 30) };
+  let dc = U.clamp(Math.round(+adj.dc || 12), 5, 30);
+  let foe = null;
+  if (kind === "attack" || kind === "defend" || (adj.foe && adj.foe.name)) foe = dndFoe(run, adj.foe);
+  if (kind === "attack" && !foe && run.fight) foe = (run.fight.foes || []).find(f => f.hp > 0) || null;
+  if (kind === "attack" && foe) dc = foe.ac;
+  out.dc = dc; out.dcName = kind === "attack" ? "护甲" : dndDcName(dc);
+  /* 四档 */
+  let band = out.total >= dc + 10 ? 3 : out.total >= dc ? 2 : out.total >= dc - 5 ? 1 : 0;
+  if (r.die === 20) band = 3;
+  if (r.die === 1 && !easy) band = 0;
+  if (easy && band === 0 && r.die !== 1 && out.total >= dc - 8) band = 1;   /* 简单模式：差得不远都算代价成功 */
+  out.band = band; out.nat = r.die === 20 ? 20 : r.die === 1 ? 1 : 0;
+  if (r.die === 20 || r.die === 1) run.insp = Math.min(3, (run.insp || 0) + 1);   /* 天然 20 喜得灵感；天然 1 也补一枚，倒霉有偿 */
+  out.t6 = U.clamp(Math.round(9 + (out.total - dc) / 2.5), 2, 15);              /* 给老算法（勘探出档线）用的 2D6 口径 */
+  /* 战斗：命中与伤害 */
+  if (kind === "attack" && foe) {
+    const w = dndItem("wand", run.gear && run.gear.wand), spd = dndSpellDmg(run, text);
+    const crit19 = perksAll.some(p => p.eff === "crit19") && !spd;
+    const hit = r.die === 20 || (r.die !== 1 && out.total >= foe.ac), crit = r.die === 20 || (crit19 && r.die === 19 && hit);
+    let ex = spd ? spd.ex : (w ? w.die : "1d4") + "+" + Math.max(0, dndAbil(run, dom) / 2 + (w ? w.q : 0));
+    if (crit) ex = ex.replace(/^(\d+)d/, (m0, n) => (2 * n) + "d");
+    const dm = hit ? dndDie(ex) : null;
+    if (hit) foe.hp = Math.max(0, foe.hp - dm.total);
+    out.atk = { foe: foe.name, ac: foe.ac, hit: hit ? 1 : 0, crit: crit ? 1 : 0, ex: hit ? ex : "", dmg: hit ? dm.total : 0, rolls: hit ? dm.rolls : [], via: spd ? "法术·" + spd.nm : (run.gear && run.gear.wand ? run.gear.wand.name : "徒手"), foeHp: foe.hp, foeMax: foe.max, down: foe.hp <= 0 ? 1 : 0 };
+    out.band = !hit ? (out.total >= foe.ac - 3 ? 1 : 0) : (crit || foe.hp <= 0) ? 3 : 2;
+  }
+  /* 敌人回手：本幕还有站着的敌人就轮到她们（逃跑成功、全倒了除外） */
+  const fl = run.fight;
+  if (fl) {
+    fl.round = (fl.round || 0) + 1;
+    const fled = kind === "flee" && band >= 2, up = (fl.foes || []).filter(f => f.hp > 0);
+    out.foeHits = [];
+    if (!fled && up.length) {
+      const ac = dndAC(run), dr = dndEffSum(run, "dr"), parry = perksAll.find(p => p.eff === "parry");
+      for (const f of up.slice(0, 3)) {
+        const fa = dndD20(kind === "defend" && band >= 2 ? -1 : 0), tot = fa.die + f.atk, hit = fa.die === 20 || (fa.die !== 1 && tot >= ac);
+        let dmg = 0, parried = 0;
+        if (hit && parry && !fl.parried) { parried = 1; fl.parried = 1; }
+        else if (hit) { dmg = Math.max(0, dndDie(fa.die === 20 ? f.dmg.replace(/^(\d+)d/, (m0, n) => (2 * n) + "d") : f.dmg).total - dr); hp.cur = Math.max(0, hp.cur - dmg); }
+        out.foeHits.push({ foe: f.name, dice: fa.dice, die: fa.die, total: tot, ac, hit: hit ? 1 : 0, parried, dmg });
+        if (hp.cur <= 0) break;
+      }
+    }
+    out.hp = { cur: hp.cur, max: hp.max };
+    if (hp.cur <= 0) {                                    /* 倒下：不写死 */
+      out.ko = 1; run.conds = run.conds || [];
+      if (!run.conds.some(c => c.name === "重伤倒地")) run.conds.push({ name: "重伤倒地", note: "战斗中被打倒，须昏迷、被俘或被人救下；好转用状态行更新", y: run.year });
+      run.fight = null;
+    } else if (fled) { out.fled = 1; run.fight = null; }
+    else if (!(fl.foes || []).some(f => f.hp > 0)) { out.won = 1; run.fight = null; }
+  }
+  return out;
+}
+/* 给主模型的整块：判定结果＋战况 */
+function dndRollBlock(r) {
+  const BT = ["受挫", "代价成功", "成功", "大成"], G = [
+    "行动受挫并引出新麻烦——必须落实代价，但要开出新局面，不许写成死胡同。", "只成功一部分，并且要付出明确代价。", "完整成功，干净利落。", "成功且有额外收获（人脉、情报、余裕或小彩头）。"];
+  const sg = n => (n >= 0 ? "+" : "") + n;
+  const pt = Object.entries(r.parts || {}).filter(([, v]) => v).map(([k, v]) => k + sg(v)).join(" ");
+  let s = "\n⟦判定结果⟧" + (r.goal ? "目标：" + r.goal + "。" : "") + "领域：" + r.domain + "。d20" + (r.adv > 0 ? "优势[" + r.dice.join("、") + "]取高" : r.adv < 0 ? "劣势[" + r.dice.join("、") + "]取低" : "") + "＝" + r.die +
+    (r.mod ? sg(r.mod) + "（" + pt + "）" : "") + "＝" + r.total + "，对" + r.dcName + " " + r.dc + " → 【" + (r.atk && !r.atk.hit ? (r.band ? "擦过" : "落空") : BT[r.band]) + "】" + (r.nat === 20 ? "（天然 20！）" : r.nat === 1 ? "（天然 1，出了岔子）" : "") + "。" + (r.atk && !r.atk.hit ? (r.band ? "没伤到人，但逼退了对方或抢到了位置。" : "扑空，还露了破绽。") : G[r.band]) +
+    (r.perks && r.perks.length ? "（装备词条生效：" + r.perks.join("、") + "，正文带一笔。）" : "") + (r.insp ? "（她用掉一枚灵感。）" : "") +
+    (r.band <= 1 && r.lose ? "代价方向：" + r.lose + "。" : "");
+  if (r.atk) s += "攻击「" + r.atk.foe + "」（护甲" + r.atk.ac + "）用" + r.atk.via + "：" + (r.atk.hit ? (r.atk.crit ? "重击命中" : "命中") + "，伤害" + r.atk.ex + "＝" + r.atk.dmg + "，对方剩 " + r.atk.foeHp + "/" + r.atk.foeMax + " 生命" + (r.atk.down ? "——倒下了" : r.atk.foeHp <= r.atk.foeMax / 3 ? "，已是强弩之末" : "") : "落空") + "。";
+  for (const h of (r.foeHits || [])) s += "「" + h.foe + "」回手 d20=" + h.die + "→" + h.total + " 对她的护甲" + h.ac + "：" + (h.parried ? "本该命中，被传奇装备挡开" : h.hit ? "命中，她掉 " + h.dmg + " 点血" : "落空") + "。";
+  if (r.hp) s += "她现在 " + r.hp.cur + "/" + r.hp.max + " 生命" + (r.ko ? "——倒下了：写她昏迷、被俘或被人救下，不许写死" : r.hp.cur <= r.hp.max / 3 ? "，伤得不轻" : "") + "。";
+  if (r.won) s += "敌人全倒，这一仗打完了。"; if (r.fled) s += "她脱身了，战斗结束。";
+  return s + "严格按此叙述，数字不得改。⟦/判定结果⟧";
+}
+function dndChipHTML(R) {                               /* 正文楼层下的骰子条 */
+  const BT = ["受挫", "代价成功", "成功", "大成"], sg = n => (n >= 0 ? "＋" : "－") + Math.abs(n);
+  const dice = R.dice.length > 1 ? '<span class="dd">' + R.dice.map(d => '<i class="' + (d === R.die ? "on" : "") + '">' + d + "</i>").join("") + "</span>" : '<i class="dd1' + (R.nat ? " n" + R.nat : "") + '">' + R.die + "</i>";
+  let h = '<div class="dice-chip d20 b' + R.band + '">' + (R.kind === "attack" ? "⚔ " : "⚄ ") + U.esc(R.domain) + " · d20 " + dice + (R.adv ? '<span class="adv">' + (R.adv > 0 ? "优势" : "劣势") + "</span>" : "") +
+    (R.mod ? sg(R.mod) : "") + "＝<b>" + R.total + "</b> 对 " + U.esc(R.dcName) + " " + R.dc + " · " + (R.atk && !R.atk.hit ? (R.band ? "擦过" : "落空") : BT[R.band]) + (R.nat === 20 ? " ✦" : "") +
+    (R.perks && R.perks.length ? '<span class="dg">' + U.esc(R.perks.join("·")) + "</span>" : "") + (R.goal ? '<span class="dg">' + U.esc(R.goal) + "</span>" : "") + "</div>";
+  if (R.atk) h += '<div class="dice-chip fx">' + (R.atk.hit ? (R.atk.crit ? "重击 " : "命中 ") + U.esc(R.atk.foe) + " · " + U.esc(R.atk.ex) + "＝<b>" + R.atk.dmg + "</b> · 剩 " + R.atk.foeHp + "/" + R.atk.foeMax + (R.atk.down ? " · 倒下" : "") : "落空 · " + U.esc(R.atk.foe)) + "</div>";
+  for (const x of (R.foeHits || [])) h += '<div class="dice-chip fx foe">' + U.esc(x.foe) + " 回手 " + x.die + "→" + x.total + " 对护甲 " + x.ac + " · " + (x.parried ? "被挡开" : x.hit ? "−" + x.dmg + " 血" : "落空") + "</div>";
+  if (R.hp) h += '<div class="dice-chip fx hp">生命 ' + R.hp.cur + "/" + R.hp.max + (R.ko ? " · 倒下" : R.won ? " · 战斗结束（胜）" : R.fled ? " · 脱身" : "") + "</div>";
+  return h;
+}
+/* 侧栏角色卡：生命、护甲、先攻、熟练、灵感、五域调整值、战况 */
+function dndSheetHTML(run) {
+  const hp = dndHp(run), ac = dndAC(run), ini = dndAbil(run, "体魄") / 2 + dndEffSum(run, "init"), sg = n => (n >= 0 ? "+" : "") + n;
+  const doms = ["出力", "控制", "学识", "体魄", "交际"].map(d => {
+    const v = dndAbil(run, d) + dndGearBonus(run, d) + (typeof talentMod === "function" ? talentMod(run, d) * 2 : 0) + ((typeof profMod === "function" ? profMod(run, d) : 0) - ((run.profSplit || 0) >= 6 ? 1 : 0)) * 2;
+    return '<div class="dn-dom"><span>' + d + "</span><b>" + sg(v) + "</b></div>";
+  }).join("");
+  const perks = dndPerks(run);
+  const f = run.fight && (run.fight.foes || []).length ? '<div class="dn-fight"><div class="dn-ft">⚔ 交战中 · 第 ' + (run.fight.round || 0) + ' 回合<button data-fightend="1" title="把战况清掉（打完了或已脱离）">收兵</button></div>' +
+    run.fight.foes.map(e => '<div class="dn-foe' + (e.hp <= 0 ? " down" : "") + '"><span>' + U.esc(e.name) + "<i>" + e.lv + "级 · 护甲" + e.ac + "</i></span>" + '<div class="dn-bar"><b style="width:' + Math.round(100 * e.hp / e.max) + '%"></b></div><em>' + e.hp + "/" + e.max + "</em></div>").join("") + "</div>" : "";
+  return '<div class="dn-sheet"><div class="dn-top"><div class="dn-hp"><span>生命</span><div class="dn-bar me"><b style="width:' + Math.round(100 * hp.cur / hp.max) + '%"></b></div><em>' + hp.cur + "/" + hp.max + "</em></div>" +
+    '<div class="dn-st" title="护甲等级：敌人的命中要掷到这个数">护甲<b>' + ac + '</b></div><div class="dn-st" title="先攻">先攻<b>' + sg(ini) + '</b></div>' +
+    '<button class="dn-insp' + (run.inspArm ? " on" : "") + '" data-insp="1" title="灵感：天然 20 或天然 1 得一枚，最多三枚。点亮后，下一次判定掷两枚取高">✦ ' + (run.insp || 0) + "</button></div>" +
+    '<div class="dn-doms" title="五域调整值：d20 加上这个数，对难度 DC">' + doms + "</div>" + f +
+    (perks.length ? '<div class="dn-perks">' + perks.map(p => '<span title="' + U.esc(p.from + "：" + p.txt) + '">' + U.esc(p.nm) + "</span>").join("") + "</div>" : "") +
+    '<div class="gear-legend"><span class="q-liang">良 +1</span><span class="q-xi">稀 +2</span><span class="q-chuan">传奇 +3</span><span class="q-weida">伟大 +4</span><i>d20＋调整值对难度：简单 8 · 寻常 10 · 要点本事 13 · 困难 15 · 很难 18 · 极难 20。杖帚定伤害骰，袍定护甲；悬停格子看词条</i></div></div>';
+}
+document.addEventListener("click", ev => {               /* 角色卡上的两个钮 */
+  const t = ev.target && ev.target.closest ? ev.target.closest("[data-insp],[data-fightend]") : null;
+  if (!t || typeof S === "undefined" || !S.run) return;
+  if (t.dataset.insp) { if ((S.run.insp || 0) > 0) { S.run.inspArm = S.run.inspArm ? 0 : 1; U.toast(S.run.inspArm ? "下一次判定用灵感：掷两枚取高" : "收起灵感"); } else U.toast("还没有灵感：掷出天然 20 或天然 1 时得一枚"); }
+  if (t.dataset.fightend) { S.run.fight = null; U.toast("战况已清"); }
+  ev.stopPropagation(); Game.autosave(); UI.panels();
+}, true);
 document.addEventListener("click", ev => {                /* 点小人看大图，再点收回 */
   const f = ev.target && ev.target.closest ? ev.target.closest(".doll-fig") : null;
   if (!f) return; f.classList.toggle("big"); ev.stopPropagation();
@@ -18056,6 +18307,7 @@ const PromptM = (() => {
 "",
 (wb.filter(e => e.pos === "top").length ? "【世界书·纲要】\n" + wb.filter(e => e.pos === "top").map(e => "◆ " + e.name + "：" + e.text).join("\n") + "\n\n" : "") + "【世界】魔女自公元643年蔓延成为主流人种：卵生（父族母族两位母亲之蛋须冰箱存八月再孵化十八天；家中称谓＝父系母亲/母系母亲，魔女皆女性、无父亲）、骑扫帚、魔女/大魔女两级、职业体系（观星者最贵、传奇即花钱）、魔女决斗联赛与艾琳杯、连结太阳系诸异世界的星之海。1994线野蛮生长，2077线穹顶航道、伟大魔女辈出。原著人物（江涵、安洁莉特、阿加莎、希斯特利亚、阿库卡塔娅等）可依其性格与年代作为NPC登场。",
 "【主角】玩家扮演的原创角色「" + run.pname + "」，魔女名「" + run.alias + "」，出身：" + ((run.origin && run.origin.label) || "魔女") + ((run.origin && run.origin.trait) ? "——" + run.origin.trait : "") + " 她不是原著任何角色，也不是 AI 的角色：她的心思、抉择与台词一律由玩家给出，你不得代写。她的处境以本提示词里的数字为准，不要另行断言她的家境、心气或家人的态度。" + (run.identity ? " 社会身份：" + run.identity + "。" : "")
+  + (typeof dndHp === "function" ? (function () { const h9 = dndHp(run), pk9 = dndPerks(run); return " 体况：生命 " + h9.cur + "/" + h9.max + "，护甲 " + dndAC(run) + (run.fight && (run.fight.foes || []).some(f => f.hp > 0) ? "，正在交战" : "") + "。" + (pk9.length ? "装备词条：" + pk9.map(p => p.nm + "（" + p.from + "）").join("、") + "——写到这身行头时带上它的本事。" : ""); })() : "")   /* P242 */
   + (run.profile && run.profile.look ? " 外貌：" + run.profile.look + "。" : "") + (function () { const ts = talentList(run); return ts.length ? " 天赋：" + ts.map(t => t.nm + (t.lv > 1 ? t.lv + "级" : "") + "（" + t.d + "）").join("；") + "。天赋的加成已由引擎计入判定与账房，正文只须体现她确实擅长这些。" : ""; })() + (run.profile && run.profile.temper ? " 性格：" + run.profile.temper + "——她的言行须合这脾气，但主意仍只由玩家拿。" : "") + (run.profile && run.profile.status ? " 身份近况：" + run.profile.status + "。" : ""),
 "【当前】" + U.yearText(run.year) + (run.clock ? " " + run.clock.m + "月" + run.clock.d + "日·" + (run.clock.part || "午") : "") + "，" + (era ? era.name : "—") + "，身在" + (RNAME[run.place] || "—") + (curR ? "（枢纽" + curR.c + "，名物：" + curR.p + "）" : "") + "。存款" + U.fmtYuan(run.wealth || 0) + "，年入合计" + incomeOf(run).total + "元/年（产业＋空岛设施＋股权年息）。" + (run.lastDeny ? "【账房驳回】上幕交易未成：" + run.lastDeny + "——请在剧情中自然处理这次未遂的交易，不要当作已完成。" : "") + (run.lastLint ? "【文风纠察】上幕：" + run.lastLint + "。本幕改正，不要在正文里提这件事。" : "") + (run._nudge ? "【引擎对不上账】" + run._nudge : "") + (function () { const st = altStat(run); if (!st) return ""; const a = run.alt; return "【异界·" + a.nm + "】占 " + st.own + "/" + st.all + " 片，踏查 " + st.seen + " 片，治下 " + st.pop + " 万口，贡赋约" + U.fmtYuan(st.inc) + "/年。信仰 " + st.faith + "（他们觉得她多神圣），轻视 " + st.slight + "（他们觉得她多好欺负），破绽 " + Math.round(a.heat) + "。片区名单（都是本界的地皮，不是卷宗）：" + a.rs.slice(0, 12).map(r9 => r9.nm + (r9.own ? "·已归化" + (r9.att ? "·" + r9.att : "") : (r9.seen ? "·已踏查" : "·未踏查")) + ((r9.gar || 0) ? "·驻军" + r9.gar + "员" : "")).join("、") + (a.rs.length > 12 ? " 等" + a.rs.length + "片" : "") + "。玩家写「异界：某片区名」或「归化某片」＝要归化本界这一片（状态栏落 异界：归化片区名），照本界剧情写，绝不是买新界、更不是拉去柜台。传送门在" + (a.portal ? "她手上" : "别人手上") + "。" + ((a.log || []).length ? "界内近事：" + a.log.slice(-3).map(l9 => l9.t).join("；") + "。" : "") + "——官面上这叫开垦。她扮的是圣女，扮的是弱；轻视攒够了才好摊牌，所以吃亏是本钱，不是失手。" + (((run.alts || []).length > 1) ? "名下共 " + run.alts.length + " 个界（" + run.alts.map(x9 => x9.nm).join("、") + "），状态栏里的异界动词只作用于眼下这一个。" : ""); })() + (function () { const ls = (run.lots || []); if (!ls.length) return ""; return "【标的】账房挂出来的开发权，这一季就这几宗（引擎发的牌：名、规格、界相、矿藏、特质、起价、估值一个字都不许改，也不许自造别的标的。你只管把行市讲活——谁在抬价、谁在观望、经手人什么脸色）：" + ls.map(l => l.nm + "（" + l.scale + "·" + l.bio + "·" + l.res + "·" + l.trait + "·凶险" + l.risk + "级，起价" + U.fmtYuan(l.bid0) + "，估值" + U.fmtYuan(l.val) + "，自去踏勘的盘缠" + U.fmtYuan(xwLotFee(l)) + (l.tried ? "·已扑空" + l.tried + "趟" : "") + "）").join("；") + "。要落槌写 竞拍：标的名｜出价N元（须 A2）；要自己去踏勘写 勘定：标的名。成没成一律引擎裁，不得先行宣布。"; })() + (function () { if (eraByYear(run.year).id !== "y2077" || typeof PLANES77 === "undefined") return ""; const ps9 = PLANES77.map(p9 => p9.name + "（" + p9.own + (p9.kind === "pole" ? "" : "·控股" + p9.stake + "%") + "·" + p9.p + "）").join("；"); return "【多面宇宙·体制】风暴点（混沌风暴）是魔女现居与全力开发之地，国策维稳，对外只求争取开发时间。位面控股是魔女们共有的家国账（按控制与探索度分配，引擎的数一个字不许改）：" + ps9 + "。个人或公司要另持份额，写股权行（股权：+位面名联合开发｜N%｜价M元）由账房核价——按《魔女异界打捞法》，发现无主异界纳入星图者得50%股份，多面宇宙联合会等主要组织抽走一份作保护费。代理人战争只在无绝对控股的世界打，正文不得越线开战。当局与四大巨企共治：公职有编制、有油水、有纪委；巨企职位，公司即小国。" + ((run.fame || 0) ? "政治声望（名气）" + run.fame + "——评优、上报、授勋、办成大事都涨，代言与教练的门票也是它。" : ""); })() + (function () { const md9 = run.medals || [], mr9 = run.merit || 0, gc9 = run.gclass || 0, gf9 = run.gongfen || 0; if (!md9.length && !mr9 && !gc9 && !gf9) return ""; return "【勋赏·科层】军功 " + mr9 + "，勋章 " + (md9.length ? md9.map(m9 => "「" + m9.nm + "」（" + m9.y + "年）").join("、") : "暂无") + "，科层职级「" + (GCLASS[gc9] || "白身") + "」" + (gf9 ? "，公分 " + gf9 + "（公门硬通货，单笔超三十的奖励要到财宝库登记）" : "") + "。这四样全归引擎：军功只在出阵里挣（得胜+1大捷+3），勋章按含金量自动授（大众级＜机构级＜姓氏级＜姓氏+机构，顶级是伟大魔女候补骑士团勋章、可荫直系），科层按年资＋军功折算＋勋章年结核定——正文不得自行授勋、晋级或改这些数，授勋与调职以信箱公函为准。勋章是公开荣誉——授章见报，名气随含金量涨（引擎已按章加过，正文别再自行加码）；军功本身只是档案里的数，记档不见报，光有战功不授章照样没人认识。科层入口按学历：A2（大学）以上考公直入编制定「转正科员」，A1（戏称小学毕业证）与白身走非常态考试的快捷通道从「临时工」熬起——劳动派遣、同工同酬都是熬出来的年头，档案黑点一笔抵四分年资。高阶勋章的兑换（梅琳娜高阶装备、自选传奇法术）要在正文里找机关办，成没成引擎裁。"; })() + (function () { const m9 = run.mei; if (!m9 || !m9.on || !meiEra(run)) return ""; const e94 = typeof meiEra94 === "function" && meiEra94(run); const w9 = k9 => meiWord(run, k9);   /* P201c 提示词按线 */ const p9 = (m9.posts || [])[0]; const f9 = (m9.feed || []).filter(x => x.src !== "demo").slice(0, 2).map(x => x.from + "《" + String(x.txt).slice(0, 24) + "…》").join("；"); return "【" + meiWord(run, "brand") + "】她的" + meiWord(run, "acct") + "：" + meiWord(run, "fans") + " " + m9.fans + "（" + meiTierOf(m9.fans) + "）" + (p9 ? (p9.kind === "live" ? "；最近开播：「" + String(p9.txt).slice(0, 30) + "」（观众" + (p9.viewers || 0) + (p9.viral ? "·上过热榜" : "") + "）" : "；最近自己发的" + w9("post") + "：「" + String(p9.txt).slice(0, 40) + "」（赞" + p9.likes + "·转" + p9.rp + (p9.viral ? "·上过" + w9("hotPage") : "") + "）") : "；还没发过" + w9("post")) + (f9 ? "。" + w9("line") + "热帖：" + f9 : "") + ((m9.trend || []).length ? "。" + meiWord(run, "hot") + "：" + m9.trend.map(x => x.t).join("、") : "") + ((m9.bigfo || []).length ? "。关注了她" + meiWord(run, "acct") + "的大V：" + m9.bigfo.join("、") + "（很长脸）" : "") + "。这些是公开信息，NPC 可自然议论她的" + w9("post") + "与" + w9("hot") + "——认不认得出她按境界来：" + meiTierOf(m9.fans) + "在街上" + (m9.fans >= 100000 ? "偶尔会被认出来" : "没人认识") + "。" + w9("fans") + "、赞转与" + (e94 ? "频道" : "自媒体") + "收益全归引擎骰，正文不得报这些数的增减。旁人（旧识、官号、名人）在剧情里发了值得上时间线的动态，可在状态栏写 梅网：作者名｜动态内容（一幕至多两条，作者不得是她本人" + (typeof meiEra94 === "function" && meiEra94(run) ? "；1994 线的网叫社交网，行名仍写「梅网」" : "") + "）；她自己的动态与直播得她去" + meiWord(run, "brand") + "页发，正文里不得代发。" + (e94 ? "涨关注不止刷帖：授勋、科层晋升这类见报的大事，引擎自会往她账号推一条并结关注量；打了胜仗本身不推送，军功不见报。这几条推送正文照常写事情本身，不提数，也不代发那条推。" : "涨粉不止刷帖：授勋、归化片区、买下开垦权、科层晋升，引擎自会往播客推一条并结粉丝；打了胜仗本身不推送，军功不见报。这几条推送正文照常写事情本身，不提数，也不代发那条动态。") + "剧情里有人当场点了关注（旧识、家人、朋友、生意上的、她真打过交道的" + w9("brand") + "名人），写 圈粉：人名｜一句：动词只认「圈粉」，一幕至多两条，带来多少" + w9("fans") + "由引擎掷骰，正文只写这个人怎么点的关注、说了什么，不报数。仇敌、好感太浅、界内信众、档案里没有的人，一律不作数，同一个人只算一次。带货与周边两门生意在" + w9("brand") + "页「" + w9("biz") + "」里由她自己办，正文不代办、不报佣金与分成的数；金主找上门、私信里磨价钱、周边打样、" + (e94 ? "网友" : "粉丝") + "骂她恰烂钱，这些照常写。" + (e94 ? "1994 的网是拨号混沌网络：上网的是有薪魔女与球迷，大号说正经话、小号说人话，爱对线爱阴阳，加 www 显得宅；没有集市、位面、公分、机器猫这些东西，正文里不得出现。" : "梅网集市（中古店买岛、挂牌出让、猫球探险队投资）也在梅网页里办：约了看岛的，正文写上门看岛、卖家怎么说、岛什么样，成不成交由她在集市里点，正文不得代她付钱或宣布成交。") + meiSocialContext(run) + (typeof meiMarketContext === "function" ? meiMarketContext(run) : "") + (typeof meiHotContext === "function" ? meiHotContext(run) : ""); })() + (function () { const all9 = DB.get("xzh_forge", []) || []; if (!all9.length) return ""; const st9 = fgStandRegion(run.year); const em9 = eraMult(run.year || 1994); const ow9 = all9.filter(f9 => f9.own).map(f9 => "「" + f9.nm + "」（" + ((FG_SPEC[f9.spec] || {}).nm || "?") + "规格·已持有）").join("、"); const un9 = all9.filter(f9 => !f9.own).map(f9 => "「" + f9.nm + "」").join("、"); return "【掮客·定制异界】" + (run.alt ? "她眼下正经营「" + run.alt.nm + "」——柜台戏只有玩家明说要买新卷宗界才登场，本界片区的事别往柜台扯。" : "") + "铸好的卷宗：" + (ow9 || "") + (ow9 && un9 ? "；" : "") + (un9 ? "待购：" + un9 : "") + "。行价是账房定死的：小规格 " + U.fmtYuan(FG_SPEC.xiao.price * em9) + "（猫球摊——摊主是只会拨算盘的猫球，今年摊子支在" + st9.name + "）；中 " + U.fmtYuan(FG_SPEC.zhong.price * em9) + "、大 " + U.fmtYuan(FG_SPEC.da.price * em9) + "（南城·折叠空间管理局柜台，公文腔，先验资后成契，二手坐标诊断书随卷宗公示概不退换）。柜台戏尽管演——管事、验资、盖章都写活；成契写 购界：卷宗名｜小/中/大，人不在柜台地界或钱不够账房都会驳，驳了要在正文圆场。买定后写 异界：+卷宗名 落地。硬闸只管这份卷宗名单：名单里没成契的踏不进去；名单之外的地名——尤其她眼下经营之界的片区——不归掮客管，别当成不存在，更别拉去柜台。"; })() + (function () { if (!turnOn()) return ""; const tn = turnInit(run); const l = TURN_SLOT.filter(x => x.id !== "ling" && !tn.used[x.id]); return "【本周】第" + (tn.w || 1) + "周，还剩" + (l.length ? l.map(x => x.nm).join("、") : "无") + "可用" + (tn.debt ? "；已赶工" + tn.debt + "次，人是疲的" : "") + "。魔女昼伏夜出：下午两点起身，四点上工，十点下班，后半夜才是她过日子的时辰——落笔的时辰要对得上。"; })() + (function () { const jl = jobLine(run); return jl ? "营生：" + jl.j.nm + (jl.rank ? "（" + jl.rank + "）" : "") + "，年入约" + U.fmtYuan(jl.pay) + (jl.gov ? "；这是编制内的位子，预算过手" + (jl.heat >= 40 ? "，眼下风头 " + jl.heat + "，查得紧" : "") : "") + "。" : "营生：无（没有固定进项）。"; })() + (function () { const ps = profList(run); return ps.length ? "职业：" + ps.map(p => p.nm + "·" + p.lv + "级").join("，") + "（综合挑战等级 " + profCR(run) + (run.profSplit ? "；已转职 " + run.profSplit + " 次，主体经验分流" : "") + "）。资格：" + ((run.certs || []).join("、") || "无") + (certHas(run, "A2") ? "（有开发权，中烈度的界进得去）" : "（没 A2：中烈度以上的界只能翻墙进，海关那关抽查一次就够她喝一壶）") + (run.black ? "，档案有 " + run.black + " 笔偷渡黑档" : "") + "。" : ""; })() + (function () { const m2 = manaOf(run); return "年岁 " + (run.age || 18) + "（" + (pubertyWindow(run.age || 18, run.third) ? "正在第" + ["", "一", "二", "三"][pubertyWindow(run.age || 18, run.third)] + "段发育期，魔力飞涨" : "不在发育期，魔力长得极慢") + "）。魔力量" + manaN(m2.cap) + "公仑（" + m2.tier + "；同侪常见" + m2.peer + "），可用" + manaN(m2.cur) + "/" + manaN(m2.val) + "魔力值" + (m2.pct <= 15 ? "，已近枯竭，施法须写吃力或失手" : m2.pct <= 40 ? "，剩得不多" : "") + "。"; })() + (run.mana ? "魔力近况：" + run.mana + "。" : ""),
 (function () { const al = almanacOf(run.clock && run.clock.m); const nx = almanacOf((al.m % 12) + 1); return "【节令】" + al.m + "月·" + al.name + "——" + al.txt + "。下月：" + nx.name + "。街景生意与众人话题须应季；日期推进跨月时自然带出节令更替。" +
@@ -18065,7 +18317,7 @@ const PromptM = (() => {
 + (run._hard ? (function () { const t = talentOf(run._hard.id) || {}; return "【狠活已发动·引擎已定】主角使了「" + t.nm + "」：" + t.d
   + " 本幕判定已加" + run._hard.boost + "档，代价已入档（伤势「" + t.hurtTxt + "」、魔力上限暂缩）。正文必须写出这份疼与后果，不得当作轻松取胜；也不得替她再加别的加成。"; })() : "")
 + (run.lastWar ? (function () { const w = run.lastWar; return "【战阵裁定·引擎已定】本幕仆从军出阵「" + w.goal + "」" + (w.xw ? "（战场在自家折叠空间「" + w.xw + "」，敌情档取该界真凶）" : "") + "，阵型" + w.stance
-  + "（2D6＝" + w.d1 + "+" + w.d2 + "，军势档" + w.tier + "，敌情档" + w.foe + "，合计" + w.total + "）→ 判定【" + w.bandName + "】。"
+  + "（" + (w.d2 === 0 ? "d20＝" + w.d1 : "2D6＝" + w.d1 + "+" + w.d2) + "，军势档" + w.tier + "，敌情档" + w.foe + "，合计" + w.total + "）→ 判定【" + w.bandName + "】。"
   + (w.lost ? "折损：" + w.lost + "；" : "无折损；") + "余" + w.left + "员，士气" + armyStat(run).morale
   + (w.spoil ? "，战利已入账" + U.fmtYuan(w.spoil) : "，无所获")
   + (w.hurt ? "。主角亲临阵前，本幕负伤（须写进伤势与状态行）" : "。")
@@ -18241,6 +18493,7 @@ MVU.proto(),
     "成功且有额外收获（人脉、情报、余裕或小彩头）。"
   ];
   function rollBlock(r) {
+    if (r.d20 && typeof dndRollBlock === "function") return dndRollBlock(r);   /* P242 */
     return "\n⟦判定结果⟧" + (r.goal ? "目标：" + r.goal + "。" : "") + "领域：" + r.domain +
       "。2D6＝" + r.d1 + "+" + r.d2 + (r.mod ? (r.mod > 0 ? "+" : "") + r.mod : "") + "＝" + r.total +
       "（" + BAND_TXT[r.band] + "）。" + BAND_GUIDE[r.band] +
@@ -20234,7 +20487,11 @@ const Sim = (() => {
   }
   async function adjudicate(run, text) {
     if (!Prov.ready()) return null;
-    const sys = "你是跑团裁定者（只裁定，不创造任务、不写剧情、不改点数）。判断玩家这次行动是否需要检定：仅当『结果不确定』且『失败有实际代价』才需要；聊天、购物、观察、日常赶路一律不需要。只输出一行JSON，不要输出其他任何文字：{\"need\":0或1,\"domain\":\"出力/控制/学识/体魄/交际 其中之一\",\"mod\":-3到3的整数（情境准备装备伤病的合计修正）,\"goal\":\"玩家想达成什么（一句）\",\"lose\":\"失败的代价（一句）\"}";
+    const pk9 = typeof dndPerks === "function" ? dndPerks(run).filter(p => p.eff === "adv" || p.eff === "dis").map(p => p.nm + "（" + p.txt + "）").join("；") : "";
+    const fl9 = run.fight && (run.fight.foes || []).some(f => f.hp > 0) ? "正在交战：" + run.fight.foes.filter(f => f.hp > 0).map(f => f.name + "（" + f.lv + "级，剩" + f.hp + "/" + f.max + "血）").join("、") + "。交战中凡是冲着敌人、躲闪、逃跑、施法的行动都要检定。" : "";
+    const sys = "你是 D&D 式跑团的裁定者（只裁定，不创造任务、不写剧情、不改点数）。判断玩家这次行动要不要检定：仅当『结果不确定』且『失败有实际代价』才要；聊天、购物、观察、日常赶路一律不要。" + fl9 +
+      "只输出一行JSON，不要输出其他任何文字：{\"need\":0或1,\"kind\":\"check（一般检定）/attack（动手攻击某个敌人）/defend（招架、躲闪、护住别人）/flee（逃跑脱身）/save（抵抗法术、毒、诅咒、魅惑）\",\"domain\":\"出力/控制/学识/体魄/交际 其中之一\",\"dc\":难度（简单8、寻常10、要点本事13、困难15、很难18、极难20、近乎不可能25；攻击时可省）,\"adv\":1优势/0/-1劣势（情境明显有利或不利才给）,\"perks\":[本次情境用得上的装备词条名，没有就空],\"foe\":{\"name\":\"敌人名\",\"lv\":1到10（1街头混混，3受过训练，5同行好手，7精英，10传奇）} 或 null（只在打斗里给）,\"goal\":\"玩家想达成什么（一句）\",\"lose\":\"失败的代价（一句）\"}" +
+      (pk9 ? "\n她身上的装备词条：" + pk9 : "");
     const out = await Prov.chat({ system: sys, messages: [{ role: "user", content: stateDigest(run) + "\n玩家行动：" + String(text).slice(0, 300) }], maxtok: 180, temp: 0, aux: true, role: "judge", signal: sigT(45000) });
     try {
       const m = String(out).match(/\{[\s\S]*\}/);
@@ -20311,7 +20568,8 @@ const UI = (() => {
     const rich9 = m.role === "ai" && S.disp.rich !== 0, body9 = rich9 ? proseAI(clean) : prose(clean);   /* P235 */
     d.innerHTML = '<div class="who">' + who + (m.hide ? '<span class="nosend">已屏蔽 · 不发给 AI</span>' : "") + '</div><div class="bubble' + (rich9 ? " rich" : "") + '">' + (typeof imgStoryHTML === "function" ? imgStoryHTML(m, body9) : body9) + "</div>" +
       '<div class="tools">' + (m.role === "ai" && typeof imgReady === "function" && imgReady() ? '<button data-imgscene="' + idx + '" title="解析这一幕，出一张插图">图</button>' : "") + '<button data-hide="' + idx + '">' + (m.hide ? "复" : "屏") + '</button><button data-del="' + idx + '">删</button></div>';
-    if (m.role === "player" && m.roll) {
+    if (m.role === "player" && m.roll && m.roll.d20 && typeof dndChipHTML === "function") d.insertAdjacentHTML("beforeend", dndChipHTML(m.roll));   /* P242 */
+    else if (m.role === "player" && m.roll) {
       const R = m.roll, BT = ["受挫", "代价成功", "成功", "大成"];
       d.insertAdjacentHTML("beforeend",
         '<div class="dice-chip b' + R.band + '">⚄ ' + U.esc(R.domain) + ' 判定 · ' + R.d1 + '＋' + R.d2 +
@@ -20525,7 +20783,7 @@ const UI = (() => {
     const gearCells = SLOTS.map(([k, lb]) => {                 /* P165 两列网格，小人退场 */
       const it = run.gear[k];
       return it
-        ? '<div class="dslot ' + (QCLS[it.q] || "") + '" draggable="true" data-slotk="' + k + '" data-slot="' + k + '" data-gdesc="' + U.esc(it.name + "（" + it.q + "）" + (it.desc ? "：" + it.desc : "")) + '"><span class="sl">' + lb + '</span><b>' + U.esc(it.name) + "</b></div>"
+        ? '<div class="dslot ' + (QCLS[it.q] || "") + '" draggable="true" data-slotk="' + k + '" data-slot="' + k + '" data-gdesc="' + U.esc(it.name + "（" + it.q + "）" + (it.desc ? "：" + it.desc : "") + (typeof dndItemLine === "function" && dndItemLine(k, it) ? "　〔" + dndItemLine(k, it) + "〕" : "")) + '"><span class="sl">' + lb + '</span><b>' + U.esc(it.name) + "</b>" + (typeof dndItem === "function" ? (function () { const d9 = dndItem(k, it); return d9 && (d9.die || d9.ac || d9.perks.length) ? '<em class="dn-tag">' + U.esc([d9.die || "", d9.ac ? "甲" + (d9.ac + d9.q) : "", d9.perks.map(p => p.nm).join("·")].filter(Boolean).join(" ")) + "</em>" : ""; })() : "") + "</div>"
         : '<div class="dslot empty" data-slotk="' + k + '"><span class="sl">' + lb + '</span><b>—</b></div>';
     }).join("");
     const bagRows = (run.bag || []).slice(0, 20).map((b, bi) =>
@@ -20720,7 +20978,7 @@ const UI = (() => {
     const wars = (a.wars || []).length ? '<div class="wartl">' + (a.wars || []).slice().reverse().map(w =>
       '<div class="warx b' + w.band + '"><div class="wy">' + U.yearText(w.y) + " · " + w.stance + (w.xw ? " · 战场 " + U.esc(w.xw) : "") + "</div>" +
       '<div class="wg">' + U.esc(w.goal) + " —— <b>" + w.bandName + "</b></div>" +
-      '<div class="wd"><span class="dice">' + (DICE[w.d1] || "") + (DICE[w.d2] || "") + " " + (w.d1 + w.d2) + "＋势" + w.tier + "－敌" + w.foe + "＝" + w.total + "</span>" +
+      '<div class="wd"><span class="dice">' + (w.d2 === 0 ? "d20 " + w.d1 + (w.d1 === 20 ? " ✦" : "") + "＋档差×2" : (DICE[w.d1] || "") + (DICE[w.d2] || "") + " " + (w.d1 + w.d2) + "＋势" + w.tier + "－敌" + w.foe) + "＝" + w.total + "</span>" +
       "<span><em>折损</em> " + (w.lost ? U.esc(w.lost) : "无") + "</span>" +
       (w.spoil ? "<span><em>战利</em> " + U.fmtYuan(w.spoil) + "</span>" : "") +
       "<span><em>余</em> " + w.left + " 员</span>" + (w.hurt ? '<span style="color:var(--bad)">主角挂彩</span>' : "") + "</div></div>").join("") + "</div>"
@@ -20968,29 +21226,14 @@ const Game = (() => {
         bub.innerHTML = UI.prose(PromptM.stripStat(full).clean);
       } else {
         S.abort = new AbortController();
-        /* 裁定者：需要时掷 2D6，结果锁定，主模型只能照此叙述；重新生成会重新裁定重掷 */
+        /* 裁定者：需要时掷 d20（P242），结果锁定，主模型只能照此叙述；重新生成会重新裁定重掷 */
         const lastPl = run.log.filter(m2 => m2.role === "player").slice(-1)[0];
         if (lastPl && /^【(说|做|描写)】/.test(lastPl.text)) {
           bub.textContent = "✦ 裁定中……";
           try {
             const adj = await Sim.adjudicate(run, PromptM.stripStat(lastPl.text).clean);
             if (adj) {
-              const d1 = 1 + Math.floor(Math.random() * 6), d2 = 1 + Math.floor(Math.random() * 6);
-              const tv = (run.traits || {})[adj.domain] != null ? run.traits[adj.domain] : 1;
-              const tmx = traitModOf(run, adj.domain || "控制");
-              const gmx = gearModOf(run, adj.domain || "控制");
-              const smx = spellModOf(run, PromptM.stripStat(lastPl.text).clean);
-              const eqx = U.clamp(gmx + smx, 0, 3);
-              const tal = talentMod(run, adj.domain || "控制");
-              const hard = run._hard ? (run._hard.boost || 0) : 0;
-              const mnm = manaTierMod(run, adj.domain || "控制");
-              const prf = profMod(run, adj.domain || "控制") - ((run.profSplit || 0) >= 6 ? 1 : 0);   // 转太多次会全方位弱化
-              const tmd = turnOn() ? turnMod(run) : 0;                                  // 赶工与熬夜
-              const ez9 = typeof easyRollMod === "function" ? easyRollMod() : 0;           /* P219 简单模式接线：修正 +1，大败只在 1+1 */
-              const mod = U.clamp(Math.round(adj.mod || 0), -3, 3) + U.clamp(tv - 1, -1, 2) + tmx + eqx + tal + hard + mnm + prf + tmd + ez9;
-              const total = d1 + d2 + mod;
-              const band = easyBand(d1, d2, total <= 5 ? 0 : total <= 8 ? 1 : total <= 11 ? 2 : 3);
-              lastPl.roll = { domain: adj.domain || "控制", d1, d2, mod, tm: tmx, gm: gmx, sm: smx, tal, hard, mnm, prf, ez: ez9, total, band, goal: String(adj.goal || "").slice(0, 30), lose: String(adj.lose || "").slice(0, 30) };
+              lastPl.roll = dndResolve(run, adj, PromptM.stripStat(lastPl.text).clean);   /* P242 d20 判定＋战斗回合 */
               run.rollLog = (run.rollLog || []).concat([Object.assign({ y: run.year }, lastPl.roll)]).slice(-40);
               UI.renderStory(); box.appendChild(live);
               bub.textContent = "";
@@ -21002,7 +21245,7 @@ const Game = (() => {
           const lxAll = run.xw || [], lx0 = lxAll[lxAll.length - 1];
           if (lx0 && lx0.pi === run.log.length - 1) run.lastFound = lx0;   // 同一幕重掷 → 沿用已勘得的发现
           else {
-            const tot = lastPl.roll ? lastPl.roll.total : (2 + Math.floor(Math.random() * 6) + Math.floor(Math.random() * 6));
+            const tot = lastPl.roll ? (lastPl.roll.d20 ? lastPl.roll.t6 : lastPl.roll.total) : (2 + Math.floor(Math.random() * 6) + Math.floor(Math.random() * 6));
             const vr = xwTry(run, tot);
             if (vr.found) {
               run.lastFound = vr.found;
@@ -21358,7 +21601,7 @@ const Game = (() => {
     if (/^p77_/.test(field) && typeof pwState === "function") { const st9 = pwState(run, field); if (st9 && !st9.zone) { U.toast("「" + st9.name + "」" + (st9.ours ? "是我方控股，不处于战争状态" : "是对方控股") + "——只能资助代理人，本人进不去"); return; } }   /* P215 */
     const r = armySortie(run, goal.trim(), stance, null, field || null);
     if (!r.ok) { U.toast(r.why); return; }
-    run.log.push({ role: "sys", text: "⚔ 出阵「" + r.goal + "」" + (r.xw ? "（战场：" + r.xw + "）" : "") + "·" + r.stance + "：2D6＝" + r.d1 + "+" + r.d2 + "，军势档" + r.tier + "，敌情档" + r.foe + " → " + r.bandName
+    run.log.push({ role: "sys", text: "⚔ 出阵「" + r.goal + "」" + (r.xw ? "（战场：" + r.xw + "）" : "") + "·" + r.stance + "：" + (r.d2 === 0 ? "d20＝" + r.d1 : "2D6＝" + r.d1 + "+" + r.d2) + "，军势档" + r.tier + "，敌情档" + r.foe + " → " + r.bandName
       + (r.pw ? "；魔女控股 " + r.pw.from + "%→" + r.pw.to + "%" + (r.pw.dip ? "（外交守住成果）" : "") : "") + (r.lost ? "；折损 " + r.lost : "；无折损") + (r.spoil ? "；战利 " + U.fmtYuan(r.spoil) : "") + "。余 " + r.left + " 员，士气 " + armyStat(run).morale + (r.hurt ? "；主角挂彩" : "") + (r.meritD ? "；军功 +" + r.meritD + (r.newMedal ? "，获授「" + r.newMedal + "」" : "") : "") });
     autosave();
     UI.close("ov-army"); UI.renderStory(); UI.panels(); UI.topbar();
@@ -22515,7 +22758,7 @@ const Game = (() => {
       const BT2 = ["受挫", "代价成功", "成功", "大成"];
       h = (run.rollLog || []).slice().reverse().map(r2 =>
         '<div class="db-row"><span class="y">' + U.esc(U.yearText(r2.y)) + '</span><b>' + U.esc(r2.domain) + '</b>' +
-        '<span class="y">' + r2.d1 + "+" + r2.d2 + (r2.mod ? (r2.mod > 0 ? "+" : "") + r2.mod : "") + "=" + r2.total + "</span>" +
+        '<span class="y">' + (r2.d20 ? "d20 " + r2.die + (r2.mod ? (r2.mod > 0 ? "+" : "") + r2.mod : "") + "=" + r2.total + " 对" + r2.dc : r2.d1 + "+" + r2.d2 + (r2.mod ? (r2.mod > 0 ? "+" : "") + r2.mod : "") + "=" + r2.total) + "</span>" +
         '<span class="db-chip">' + BT2[r2.band] + '</span><span class="grow hint" style="min-width:80px">' + U.esc(r2.goal || "") + "</span></div>").join("") ||
         '<p class="hint">还没有判定。</p>';
     } else {
