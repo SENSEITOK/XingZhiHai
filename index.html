@@ -6868,7 +6868,7 @@ function ptPanelHTML(run, pid, name) {                   /* 资料卡末尾：�
 }
 /* ================= P239 纸娃娃：装备栏里的 2D 小人 =================
    素材随包附带（「小人」文件夹）：同一个素体上用局部重绘逐件画出来，再按前后差异抠成透明图层，所以骨骼天然对齐。
-   DOLL.base 素体；DOLL.hair 发型（按主角外貌里的发色发型挑，挑不中用素体自带的黑短发）；帽子每种发型各画一张，按发型取；DOLL.slots[类] 各件装备（按装备名里的字挑最像的，挑不中用该类第一件）。
+   DOLL.base 素体（发与鞋已剥成图层）；DOLL.feet 默认平底鞋；DOLL.hair 发型（按主角外貌里的发色发型挑，挑不中用素体自带的黑短发）；帽子每种发型各画一张，按发型取；DOLL.slots[类] 各件装备（按装备名里的字挑最像的，挑不中用该类第一件）。
    叠放次序：素体 → 靴 → 袍 → 饰 → 发 → 帽 → 杖帚。品质给图层描一圈光。素材缺时退回两列格子。 */
 const DOLL = { w: 416, h: 608, base: "", hair: [], slots: { hat: [], robe: [], boots: [], wand: [], acc: [] } };
 const DOLL_SLOT = { hat: "hat", robe: "robe", boots: "boots", wand: "wand", acc1: "acc", acc2: "acc" };
@@ -6891,6 +6891,7 @@ function dollLayers(run) {
     const L = dollPick(DOLL.slots[cat] || [], it.name + " " + (it.desc || ""));
     if (L && !(pick[cat] || []).some(x => x.it === L)) (pick[cat] = pick[cat] || []).push({ it: L, q: it.q, nm: it.name });
   }
+  if (!pick.boots && DOLL.feet) pick.boots = [{ it: { src: DOLL.feet } }];   /* 没穿鞋就是素体自带的平底鞋 */
   for (const z of DOLL_Z) for (const x of (pick[z] || [])) {
     const src = typeof x.it.src === "object" ? (x.it.src[hair && hair.id] || Object.values(x.it.src)[0]) : x.it.src;   /* 帽子是按发型分别画的 */
     out.push(Object.assign({ z, src }, x));
