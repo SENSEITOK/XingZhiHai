@@ -775,6 +775,7 @@ html[data-theme="light"] #graph-wrap{background:radial-gradient(80% 70% at 50% 4
 .doll-fig{position:relative;aspect-ratio:var(--dw) / var(--dh);align-self:center;border-radius:12px;background:radial-gradient(70% 55% at 50% 58%,color-mix(in srgb,var(--zhu) 22%,transparent),transparent 72%);cursor:zoom-in}
 .doll-fig::after{content:"";position:absolute;left:18%;right:18%;bottom:3%;height:5%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.35),transparent);z-index:0}
 .doll-fig .dl{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:1;image-rendering:auto;pointer-events:none}
+.doll-fig.big{position:fixed;top:4vh;left:50%;transform:translateX(-50%);height:92vh;width:auto;max-width:96vw;z-index:9999;background:var(--panel);box-shadow:0 0 0 100vmax rgba(0,0,0,.62);cursor:zoom-out}
 .dslot{position:relative;text-align:center;background:var(--inset);border:1px solid var(--line);border-radius:10px;padding:4px 8px 5px;cursor:pointer;transition:.2s;z-index:2}
 .dslot:hover{border-color:var(--line2);z-index:4}
 .dslot .sl{display:block;color:var(--mut);font-size:9.5px;letter-spacing:.18em}
@@ -6867,7 +6868,7 @@ function ptPanelHTML(run, pid, name) {                   /* 资料卡末尾：�
 }
 /* ================= P239 纸娃娃：装备栏里的 2D 小人 =================
    素材随包附带（「小人」文件夹）：同一个素体上用局部重绘逐件画出来，再按前后差异抠成透明图层，所以骨骼天然对齐。
-   DOLL.base 素体；DOLL.hair 发型（按主角外貌里的发色发型挑）；DOLL.slots[类] 各件装备（按装备名里的字挑最像的，挑不中用该类第一件）。
+   DOLL.base 素体；DOLL.hair 发型（按主角外貌里的发色发型挑，挑不中用素体自带的黑短发）；帽子每种发型各画一张，按发型取；DOLL.slots[类] 各件装备（按装备名里的字挑最像的，挑不中用该类第一件）。
    叠放次序：素体 → 靴 → 袍 → 饰 → 发 → 帽 → 杖帚。品质给图层描一圈光。素材缺时退回两列格子。 */
 const DOLL = { w: 416, h: 608, base: "", hair: [], slots: { hat: [], robe: [], boots: [], wand: [], acc: [] } };
 const DOLL_SLOT = { hat: "hat", robe: "robe", boots: "boots", wand: "wand", acc1: "acc", acc2: "acc" };
@@ -6890,7 +6891,10 @@ function dollLayers(run) {
     const L = dollPick(DOLL.slots[cat] || [], it.name + " " + (it.desc || ""));
     if (L && !(pick[cat] || []).some(x => x.it === L)) (pick[cat] = pick[cat] || []).push({ it: L, q: it.q, nm: it.name });
   }
-  for (const z of DOLL_Z) for (const x of (pick[z] || [])) out.push(Object.assign({ z }, x));
+  for (const z of DOLL_Z) for (const x of (pick[z] || [])) {
+    const src = typeof x.it.src === "object" ? (x.it.src[hair && hair.id] || Object.values(x.it.src)[0]) : x.it.src;   /* 帽子是按发型分别画的 */
+    out.push(Object.assign({ z, src }, x));
+  }
   return out;
 }
 function dollHTML(run) {
@@ -6898,8 +6902,12 @@ function dollHTML(run) {
   const ls = dollLayers(run);
   return '<div class="doll-fig" style="--dw:' + DOLL.w + ";--dh:" + DOLL.h + '" title="点开看大图">' +
     '<img class="dl base" src="' + U.esc(DOLL.base) + '" alt="">' +
-    ls.map(l => '<img class="dl ' + l.z + '" src="' + U.esc(l.it.src) + '" alt="' + U.esc(l.nm || "") + '"' + (DOLL_GLOW[l.q] ? ' style="filter:drop-shadow(0 0 2px ' + DOLL_GLOW[l.q] + ") drop-shadow(0 0 5px " + DOLL_GLOW[l.q] + ')"' : "") + ">").join("") + "</div>";
+    ls.map(l => '<img class="dl ' + l.z + '" src="' + U.esc(l.src) + '" alt="' + U.esc(l.nm || "") + '"' + (DOLL_GLOW[l.q] ? ' style="filter:drop-shadow(0 0 2px ' + DOLL_GLOW[l.q] + ") drop-shadow(0 0 5px " + DOLL_GLOW[l.q] + ')"' : "") + ">").join("") + "</div>";
 }
+document.addEventListener("click", ev => {                /* 点小人看大图，再点收回 */
+  const f = ev.target && ev.target.closest ? ev.target.closest(".doll-fig") : null;
+  if (!f) return; f.classList.toggle("big"); ev.stopPropagation();
+}, true);
 /* ── 点开：人物／物品／地点／名词 ── */
 function entCanonOf(run, name) {                         /* 档上的人对应的原著人物卡 */
   let wb = []; try { wb = PromptM.allWB().filter(e => e && !e.off && e.grp === "人物" && PromptM.wbEraOk(e, run)); } catch (e) {}
