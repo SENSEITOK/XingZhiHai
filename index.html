@@ -275,6 +275,9 @@ svg.eg2 path{transition:stroke-opacity .2s} svg.eg2 path:hover{stroke-opacity:.9
 .ep-pt.empty{height:64px;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:12px;letter-spacing:.3em}
 .ep-pt.empty::after{display:none}
 .ent-pop.ep-sheet .ep-pt{border-radius:18px 18px 0 0}
+.pt-outs{position:absolute;left:0;right:0;bottom:10px;z-index:2;display:flex;justify-content:center;gap:6px}
+.pt-outs button{font-size:11.5px;padding:2px 12px;border-radius:999px;border:1px solid var(--line2);background:color-mix(in srgb,var(--panel2) 80%,transparent);color:var(--ink2);backdrop-filter:blur(6px)}
+.pt-outs button.on{color:var(--ink);border-color:var(--ent-npc);box-shadow:0 0 0 1px var(--ent-npc) inset}
 .pt-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}
 .pt-kw{font-size:11.5px;color:var(--mut);display:inline-flex!important;flex-direction:row!important;align-items:center;gap:4px;margin:0 0 0 auto!important;white-space:nowrap;width:auto!important}
 .pt-kw input{width:auto!important;margin:0}
@@ -6774,8 +6777,22 @@ function ptOf(run, pid) {
   if (!pid) return null;
   const m = ptMap(), ns = ptNames(run, pid);
   for (const n of ns) if (m[n] && m[n].id) return Object.assign({ z: 2.8, fy: 3, nm: n }, m[n]);
-  for (const n of ns) if (PT_FILES[n]) { const f = PT_FILES[n], c = m[n] || {}; return { src: f.src || f, z: c.z || f.z || 2.8, fy: c.fy != null ? c.fy : (f.fy != null ? f.fy : 3), fx: f.fx || 0, nm: n, builtin: 1 }; }
+  for (const n of ns) if (PT_FILES[n]) {
+    const f = PT_FILES[n], c = m[n] || {}, ofk = ptOutfitOf(run, pid), of = ofk && f.outfits && f.outfits[ofk];   /* P241 换装 */
+    return { src: (of && of.src) || f.src || f, z: c.z || f.z || 2.8, fy: c.fy != null ? c.fy : (f.fy != null ? f.fy : 3), fx: f.fx || 0, nm: n, builtin: 1, outfit: of ? ofk : "" };
+  }
   return null;
+}
+function ptFileOf(run, pid) { for (const n of ptNames(run, pid)) if (PT_FILES[n]) return PT_FILES[n]; return null; }
+function ptOutfitOf(run, pid) {                          /* 档上记的穿着；资料卡里临时看的也认 */
+  const k = (run.npcs || {})[pid] ? pid : entNpcKey(run, pid);
+  const p = k ? run.npcs[k] : null;
+  return (p && p.outfit) || (S._ptPeek && S._ptPeek[pid]) || "";
+}
+function ptOutfitLine(run, pid) {                        /* 人物档案里的「穿着」 */
+  const f = ptFileOf(run, pid); if (!f || !f.outfits) return "";
+  const cur = ptOutfitOf(run, pid), all = Object.keys(f.outfits);
+  return "穿着：" + (cur && f.outfits[cur] ? cur + "（" + f.outfits[cur].zh + "）" : "常服") + "；可换：常服、" + all.map(k => k + "（" + f.outfits[k].zh + "）").join("、");
 }
 function ptImg(pt) { return pt.id ? '<img data-imgid="' + U.esc(pt.id) + '" alt="">' : '<img src="' + U.esc(pt.src) + '" alt="" onerror="this.classList.add(\'img-missing\')">'; }
 function ptAvatar(pt, cls) { return '<span class="pt-av' + (cls ? " " + cls : "") + '" style="--z:' + pt.z + ";--fy:" + pt.fy + "%;--fx:" + (pt.fx || 0) + '%">' + ptImg(pt) + "</span>"; }
@@ -6828,7 +6845,12 @@ function ptCrop(run, pid, z, fy) {                        /* 头像裁切：玩�
   const m = ptMap(); m[pt.nm] = Object.assign({}, m[pt.nm] || {}, pt.id ? { id: pt.id } : {}, { z, fy }); DB.set("portraits", m);
 }
 function ptRefresh() { try { UI.renderStory(); } catch (e) {} }
-function ptHeroHTML(run, pid) { const pt = ptOf(run, pid); return pt ? '<div class="ep-pt">' + ptImg(pt) + "</div>" : ""; }
+function ptHeroHTML(run, pid) {
+  const pt = ptOf(run, pid); if (!pt) return "";
+  const f = ptFileOf(run, pid), outs = f && f.outfits ? ["常服"].concat(Object.keys(f.outfits)) : [];
+  const cur = pt.outfit || "常服";
+  return '<div class="ep-pt">' + ptImg(pt) + (outs.length > 1 ? '<div class="pt-outs">' + outs.map(o => '<button class="' + (o === cur ? "on" : "") + '" data-ptout="' + U.esc(pid) + "|" + U.esc(o) + '" title="' + U.esc(o === "常服" ? "原本的打扮" : f.outfits[o].zh) + '">' + U.esc(o) + "</button>").join("") + "</div>" : "") + "</div>";
+}
 function ptPanelHTML(run, pid, name) {                   /* 资料卡末尾：上传／出图／提示词／调头像 */
   const pt = ptOf(run, pid), pr = ptPromptOf(run, pid), canGen = typeof imgReady === "function" && imgReady();
   const box = (t, v) => '<div class="pt-pr"><div class="pt-pr-h"><b>' + t + '</b><button class="btn sm" data-ptcopy="1">复制</button></div><textarea readonly rows="' + Math.min(6, 2 + Math.ceil(String(v).length / 70)) + '">' + U.esc(v) + "</textarea></div>";
@@ -7088,6 +7110,13 @@ function entOpen(k, id, anchor) {
           .then(d => ptSave(S.run, pid, d, kw)).then(() => { ptRefresh(); entOpen(pop.dataset.k, pop.dataset.id, null); U.toast("立绘出好了"); })
           .catch(e9 => { U.toast("出图失败：" + (e9.message || e9)); pg9.disabled = false; pg9.textContent = "用文生图出一张"; });
         return;
+      }
+      const po = ev.target.closest("[data-ptout]");                // P241 换装：在册的人记进档，原著人物只是看看
+      if (po) {
+        const [pid, o] = po.dataset.ptout.split("|"), k9 = (S.run.npcs || {})[pid] ? pid : entNpcKey(S.run, pid);
+        if (k9) { if (o === "常服") delete S.run.npcs[k9].outfit; else S.run.npcs[k9].outfit = o; try { Game.autosave(); } catch (e9) {} }
+        else { S._ptPeek = S._ptPeek || {}; S._ptPeek[pid] = o === "常服" ? "" : o; }
+        ptRefresh(); entOpen(pop.dataset.k, pop.dataset.id, null); return;
       }
       const pd = ev.target.closest("[data-ptdel]");
       if (pd) { ptRemove(S.run, pd.dataset.ptdel); ptRefresh(); entOpen(pop.dataset.k, pop.dataset.id, null); return; }
@@ -17989,6 +18018,7 @@ const PromptM = (() => {
       if (p.seek) bits.push("正要找主角：" + p.seek.t);
       { const ln9 = linkPromptLine(run, n, new Set(fullNames)); if (ln9) bits.push("人际：" + ln9); }   /* P236 */
       { const fc9 = factPromptLine(run, p); if (fc9) bits.push(fc9); }   /* P237 */
+      { const ow9 = typeof ptOutfitLine === "function" ? ptOutfitLine(run, n) : ""; if (ow9) bits.push(ow9); }   /* P241 */
       if (p.look) bits.push("外貌：" + p.look);
       if (p.deeds && p.deeds.length) bits.push("事迹：" + p.deeds.join("；"));
       if (p.hist && p.hist.length) bits.push("与她的过往：" + p.hist.slice(-3).map(h9 => U.yearText(h9.y) + (h9.m ? h9.m + "月" : "") + "·" + h9.t).join("；"));   /* P192 */
@@ -18112,6 +18142,7 @@ const PromptM = (() => {
 "关系：（可选，与某人关系质变时写：关系：名字→类型。类型限 恋人/家人/挚友/师徒/同僚/使魔·宠物/仇敌/泛交，可多段用｜分隔）",
 "事迹：（可选，某人做了值得长记的事：事迹：名字｜一句。每人至多留5条）",
 "外貌：（可选，人物首次亮相或形象大变时写：外貌：名字｜一句。主角写 外貌：我｜一句）",
+"换装：（可选，人物档案里列了「可换」的人物换了打扮时写：换装：名字｜常服/便服/正装。下班、出游、典礼、做客时自然换，不必每幕写）",
 "得知：（可选，主角本幕问出、打听到、查到或听对方说出某人的档案时写：得知：名字｜项目｜内容。项目限 年龄/种族/职务/单位/住处/魔力档位/爱好/讨厌/口味/心仪礼物/口头禅/网络账号/家里/过往/软肋/秘密/心愿/打算；对方撒了谎就写她说的那个版本；可多行）",
 "人际：（可选，两个非主角人物之间的关系初次交代或有变时写：人际：甲｜乙｜关系｜一句近况｜冷暖±N。关系限 母女/姐妹/家人/伴侣/前任/暗恋/挚友/发小/师徒/上司/同僚/雇佣/盟友/对手/宿敌/债务/恩人；上司关系把上司写在前；冷暖只在变了时写，可省）",
 "心事：（可选，某人的心愿或眼下打算因剧情有变时写：心事：名字｜心愿：一句｜打算：一句，两项可只写一项；打算写她接下来要去做的事，不必和主角有关）",
@@ -18467,6 +18498,10 @@ MVU.proto(),
         stat.looks = stat.looks || [];
         if (i2 > 0) stat.looks.push({ name: v.slice(0, i2).trim(), t: v.slice(i2 + 1).trim() });
         else if (v) stat.looks.push({ name: "我", t: v });
+      }
+      else if (k === "换装") {                                  /* P241 换装：名字｜便服 */
+        const seg = v.split(/[｜|]/).map(s => s.trim());
+        if (seg[0] && seg[1]) { stat.dress = stat.dress || []; stat.dress.push({ name: seg[0], o: seg[1].replace(/[（(].*$/, "") }); }
       }
       else if (k === "得知") {                                  /* P237 得知：名字｜项目｜内容 */
         const seg = v.split(/[｜|]/).map(s => s.trim());
@@ -18965,6 +19000,11 @@ MVU.proto(),
       if (!lk.t) continue;
       if (lk.name === "我" || lk.name === run.pname || lk.name === run.alias) run.profile.look = lk.t.slice(0, 40);
       else npcOf(lk.name).look = lk.t.slice(0, 40);
+    }
+    if (stat.dress) for (const dr of stat.dress.slice(0, 4)) {       /* P241 只认立绘里有的那几套 */
+      const k9 = stirFind(run, dr.name), f9 = k9 && typeof ptFileOf === "function" ? ptFileOf(run, k9) : null;
+      if (!k9 || !f9 || !f9.outfits) continue;
+      if (dr.o === "常服") delete run.npcs[k9].outfit; else if (f9.outfits[dr.o]) run.npcs[k9].outfit = dr.o;
     }
     if (stat.learns) for (const ln of stat.learns.slice(0, 8)) if (ln.key) factSet(run, ln.name, ln.key, ln.v, true, "本幕得知");   /* P237 */
     if (stat.links) for (const lk of stat.links.slice(0, 4)) {      /* P236 只认在册的人，或原著人物卡里有的名字 */
