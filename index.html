@@ -256,6 +256,28 @@ svg.eg2 .eg-ctr{fill:#fff;font-size:13px;font-weight:700;text-anchor:middle}
 svg.eg2 path{transition:stroke-opacity .2s} svg.eg2 path:hover{stroke-opacity:.95}
 .ent-pop{width:440px}
 .nl{margin-top:4px}
+/* P238 立绘 */
+.pt-av{position:relative;display:inline-block;width:42px;height:42px;border-radius:50%;overflow:hidden;flex:none;background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--sp,var(--zhu)) 30%,transparent),var(--inset2));box-shadow:0 0 0 2px color-mix(in srgb,var(--sp,var(--zhu)) 70%,transparent),0 4px 12px rgba(0,0,0,.25)}
+.pt-av img{position:absolute;left:50%;top:0;width:calc(100% * var(--z,2.8));max-width:none;height:auto;transform:translate(-50%,calc(-1 * var(--fy,3%)))}
+.pt-av img.img-missing{display:none}
+.pt-av.big{width:64px;height:64px}
+.bubble.rich .ln.has-pt{padding-left:68px;min-height:58px}
+.bubble.rich .ln .ln-pt{position:absolute;left:13px;top:10px;border:0;background:none;line-height:0}
+.bubble.rich .ln .ln-pt:hover .pt-av{transform:scale(1.06)}
+.bubble.rich .ln .pt-av{transition:transform .2s}
+.ep-pt{position:relative;margin:-14px -16px 8px;height:min(46vh,340px);overflow:hidden;border-radius:14px 14px 0 0;background:radial-gradient(120% 90% at 50% 20%,color-mix(in srgb,var(--zhu) 26%,transparent),transparent 70%),linear-gradient(180deg,var(--inset2),transparent)}
+.ep-pt img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:50% 0;filter:drop-shadow(0 8px 18px rgba(0,0,0,.35))}
+.ep-pt::after{content:"";position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(180deg,transparent,var(--panel2));pointer-events:none}
+.ep-pt.empty{height:64px;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:12px;letter-spacing:.3em}
+.ep-pt.empty::after{display:none}
+.ent-pop.ep-sheet .ep-pt{border-radius:18px 18px 0 0}
+.pt-bar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0 0 8px}
+.pt-kw{font-size:11.5px;color:var(--mut);display:inline-flex!important;flex-direction:row!important;align-items:center;gap:4px;margin:0 0 0 auto!important;white-space:nowrap;width:auto!important}
+.pt-kw input{width:auto!important;margin:0}
+.pt-crop-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:8px}
+.pt-crop-row label{display:flex;flex-direction:column;font-size:11px;color:var(--mut);gap:2px}
+.pt-pr{margin-top:8px} .pt-pr-h{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;color:var(--mut);margin-bottom:3px}
+.pt-pr textarea{width:100%;font-size:11.5px;line-height:1.5;background:var(--inset);color:var(--ink2);border:1px solid var(--line);border-radius:8px;padding:6px 8px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace}
 .fx-cnt{font-style:normal;letter-spacing:.05em;margin-left:6px;color:var(--ent-npc)}
 .fx{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
 .fx-row{display:flex;align-items:baseline;gap:8px;padding:4px 0;border-top:1px dashed var(--line);min-width:0}
@@ -6443,7 +6465,9 @@ function richProse(run, text, esc9) {                    /* esc9＝UI.prose 的�
     const body = pa.split(/(「[^」]*」?)/).filter(Boolean).map(x => x[0] === "「" ? '<span class="say">' + esc9(x) + "</span>" : '<span class="ln-nar">' + esc9(x) + "</span>").join("");
     const col = who ? entColor(run, who.k, who.id) : "var(--line2)";
     const nm = who ? (who.k === "npc" ? npcBare(who.id) : who.nm) : "";
-    return '<div class="ln' + (who ? "" : " anon") + '" style="--sp:' + col + '">' +
+    const pt9 = who ? ptOf(run, who.k === "npc" ? who.id : who.nm) : null;   /* P238 有立绘就挂头像 */
+    return '<div class="ln' + (who ? "" : " anon") + (pt9 ? " has-pt" : "") + '" style="--sp:' + col + '">' +
+      (pt9 ? '<span class="ent ln-pt" data-ent="' + who.k + '" data-id="' + U.esc(who.id) + '">' + ptAvatar(pt9) + "</span>" : "") +
       (who ? '<div class="ln-who"><span class="ent ent-' + who.k + '" data-ent="' + who.k + '" data-id="' + U.esc(who.id) + '">' + U.esc(nm) + "</span></div>" : "") +
       '<div class="ln-body">' + entMark(body, D, seen) + "\n</div></div>";
   }).join("\n");
@@ -6653,6 +6677,91 @@ function factPromptLine(run, p) {                        /* 人物档案里的�
   for (const [k] of FACT_KEYS) { if (FACT_LIVE[k]) continue; const f = fs[k]; if (!f || !f.v) continue; (f.k ? known : hid).push(factLabel(run, k) + "·" + f.v); }
   return (known.length ? "档案（主角已知）：" + known.join("；") : "") + (hid.length ? (known.length ? "／" : "") + "档案（主角未知，只在她问起、打听、调查或对方主动说起时透露）：" + hid.join("；") : "");
 }
+/* ================= P238 立绘：对白卡头像、资料卡立绘、生图提示词 =================
+   DB.portraits[名字]＝{id（ImgStore 图）, z（头像放大倍数）, fy（头像上下偏移%）}，全档共用；名字取人物真名，原著人物的别名也认。
+   PT_FILES：随包附带的内建立绘（「立绘」文件夹，相对路径），玩家上传的优先。PT_PROMPTS：二卷原著人物的生图提示词。 */
+const PT_FILES = {};
+const PT_COMMON = { nai_base: "", nai_uc: "", gpt_style: "" };
+const PT_PROMPTS = {};
+function ptMap() { return DB.get("portraits", {}) || {}; }
+function ptNames(run, pid) {                             /* 一个人的所有叫法 */
+  const out = [pid, npcBare(pid)];
+  try { const c = entCanonOf(run, pid); if (c) out.push(...(c.keys || [])); } catch (e) {}
+  return [...new Set(out.filter(Boolean))];
+}
+function ptOf(run, pid) {
+  if (!pid) return null;
+  const m = ptMap(), ns = ptNames(run, pid);
+  for (const n of ns) if (m[n] && m[n].id) return Object.assign({ z: 2.8, fy: 3, nm: n }, m[n]);
+  for (const n of ns) if (PT_FILES[n]) { const f = PT_FILES[n], c = m[n] || {}; return { src: f.src || f, z: c.z || f.z || 2.8, fy: c.fy != null ? c.fy : (f.fy != null ? f.fy : 3), nm: n, builtin: 1 }; }
+  return null;
+}
+function ptImg(pt) { return pt.id ? '<img data-imgid="' + U.esc(pt.id) + '" alt="">' : '<img src="' + U.esc(pt.src) + '" alt="" onerror="this.classList.add(\'img-missing\')">'; }
+function ptAvatar(pt, cls) { return '<span class="pt-av' + (cls ? " " + cls : "") + '" style="--z:' + pt.z + ";--fy:" + pt.fy + '%">' + ptImg(pt) + "</span>"; }
+function ptPromptOf(run, pid) {                          /* 原著人物用整理好的；其余按外貌、DNA 与已知档案拼 */
+  const ns = ptNames(run, pid), hit = ns.map(n => PT_PROMPTS[n]).find(Boolean);
+  if (hit) return { nai_base: PT_COMMON.nai_base, nai_char: hit.nai_char, nai_uc: PT_COMMON.nai_uc + (hit.nai_uc_extra ? ", " + hit.nai_uc_extra : ""), gpt: hit.gpt, look: hit.look };
+  const p = (run.npcs || {})[pid] || {}, dna = typeof imgDnaOf === "function" ? imgDnaOf(run, pid) : null, fs = p.facts || {};
+  const look = [p.look, fs.race && fs.race.k ? fs.race.v : "", fs.age && fs.age.k ? fs.age.v : "", fs.job && fs.job.k ? fs.job.v : ""].filter(Boolean).join("；");
+  const base = PT_COMMON.nai_base || "masterpiece, best quality, very aesthetic, anime visual novel character sprite, full body, standing, simple background, white background";
+  return { nai_base: base, nai_char: "1girl, " + (dna ? dna.tags + ", " : "") + "（把这里换成外貌标签：" + (look || "外貌未记载") + "）",
+    nai_uc: PT_COMMON.nai_uc || "nsfw, lowres, bad anatomy, bad hands, extra fingers, text, watermark, signature, cropped, multiple views",
+    gpt: "A full-body anime visual-novel character sprite of a young witch woman in a near-future magical city: " + (look || "describe her look here") + ". " + (PT_COMMON.gpt_style || "Elegant clean lineart, soft cel shading, detailed eyes and hair.") + " Plain white background, full body, 2:3 portrait.", look, custom: 1 };
+}
+async function ptKeyWhite(dataUri) {                     /* 去白底：从四边往里，把近白的底色抠成透明，边缘柔一点 */
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error("图片解码失败")); i.src = dataUri; });
+  const cv = document.createElement("canvas"); cv.width = img.width; cv.height = img.height;
+  const cx = cv.getContext("2d"); cx.drawImage(img, 0, 0);
+  const W = cv.width, H = cv.height, im = cx.getImageData(0, 0, W, H), d = im.data, seen = new Uint8Array(W * H), st = [];
+  const white = i => d[i * 4] > 232 && d[i * 4 + 1] > 232 && d[i * 4 + 2] > 232 && d[i * 4 + 3] > 0;
+  for (let x = 0; x < W; x++) { st.push(x, (H - 1) * W + x); }
+  for (let y = 0; y < H; y++) { st.push(y * W, y * W + W - 1); }
+  while (st.length) {
+    const i = st.pop(); if (seen[i] || !white(i)) continue; seen[i] = 1; d[i * 4 + 3] = 0;
+    const x = i % W, y = (i / W) | 0;
+    if (x > 0) st.push(i - 1); if (x < W - 1) st.push(i + 1); if (y > 0) st.push(i - W); if (y < H - 1) st.push(i + W);
+  }
+  for (let i = 0; i < W * H; i++) {                      // 贴着透明区的浅色边：按亮度给半透明，去白边
+    if (seen[i] || d[i * 4 + 3] === 0) continue;
+    const x = i % W, y = (i / W) | 0;
+    if (!((x > 0 && seen[i - 1]) || (x < W - 1 && seen[i + 1]) || (y > 0 && seen[i - W]) || (y < H - 1 && seen[i + W]))) continue;
+    const lum = (d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2]) / 3; if (lum > 200) d[i * 4 + 3] = Math.round(255 * (255 - lum) / 55);
+  }
+  cx.putImageData(im, 0, 0);
+  return cv.toDataURL("image/png");
+}
+async function ptSave(run, pid, dataUri, keyWhite) {
+  let data = dataUri;
+  if (keyWhite) { try { data = await ptKeyWhite(data); } catch (e) {} }
+  data = await imgCompress(data, 450, 1216);
+  const id = "pt_" + U.uid(), m = ptMap(), nm = npcBare(pid) || pid;
+  const old = m[nm]; await ImgStore.put(id, data);
+  m[nm] = { id, z: old && old.z || 2.8, fy: old && old.fy != null ? old.fy : 3 };
+  DB.set("portraits", m);
+  if (old && old.id) { try { await ImgStore.del(old.id); } catch (e) {} }
+  return m[nm];
+}
+function ptRemove(run, pid) { const m = ptMap(), pt = ptOf(run, pid); if (!pt || pt.builtin) return; const id = m[pt.nm] && m[pt.nm].id; delete m[pt.nm]; DB.set("portraits", m); if (id) ImgStore.del(id).catch(() => {}); }
+function ptCrop(run, pid, z, fy) {                        /* 头像裁切：玩家的图与内建的图都记在 DB.portraits 里 */
+  const pt = ptOf(run, pid); if (!pt) return;
+  const m = ptMap(); m[pt.nm] = Object.assign({}, m[pt.nm] || {}, pt.id ? { id: pt.id } : {}, { z, fy }); DB.set("portraits", m);
+}
+function ptRefresh() { try { UI.renderStory(); } catch (e) {} }
+function ptHeroHTML(run, pid) { const pt = ptOf(run, pid); return pt ? '<div class="ep-pt">' + ptImg(pt) + "</div>" : ""; }
+function ptPanelHTML(run, pid, name) {                   /* 资料卡末尾：上传／出图／提示词／调头像 */
+  const pt = ptOf(run, pid), pr = ptPromptOf(run, pid), canGen = typeof imgReady === "function" && imgReady();
+  const box = (t, v) => '<div class="pt-pr"><div class="pt-pr-h"><b>' + t + '</b><button class="btn sm" data-ptcopy="1">复制</button></div><textarea readonly rows="' + Math.min(6, 2 + Math.ceil(String(v).length / 70)) + '">' + U.esc(v) + "</textarea></div>";
+  return '<div class="ep-sec">立绘</div><div class="pt-bar"><button class="btn sm" data-ptup="' + U.esc(pid) + '">' + (pt ? "换立绘" : "上传立绘") + "</button>" +
+    (canGen ? '<button class="btn sm" data-ptgen="' + U.esc(pid) + '">用文生图出一张</button>' : "") +
+    (pt && !pt.builtin ? '<button class="btn sm ghost" data-ptdel="' + U.esc(pid) + '">移除</button>' : "") +
+    '<label class="pt-kw"><input type="checkbox" data-ptkw="1"' + (S.disp.ptKey === 0 ? "" : " checked") + ">去白底</label></div>" +
+    (pt ? '<details class="ep-fold pt-crop"><summary>调头像（对白卡里的小圆图）</summary><div class="pt-crop-row">' + ptAvatar(pt, "big") +
+      '<label>放大<input type="range" min="1" max="5" step=".1" value="' + pt.z + '" data-ptz="' + U.esc(pid) + '"></label><label>上下<input type="range" min="0" max="45" step="1" value="' + pt.fy + '" data-ptfy="' + U.esc(pid) + '"></label></div></details>' : "") +
+    '<details class="ep-fold pt-prompt"><summary>立绘提示词' + (pr.custom ? "（按档案拼的草稿，外貌要自己补）" : "（NovelAI · GPT）") + "</summary>" +
+      (pr.look ? '<div class="ep-sub">' + U.esc(pr.look) + "</div>" : "") +
+      box("NovelAI 基础提示词", pr.nai_base) + box("NovelAI 角色提示词", pr.nai_char) + box("NovelAI 负面", pr.nai_uc) + box("GPT 生图", pr.gpt) +
+      '<div class="ep-sub">建议尺寸 832×1216 竖图；白底出图后勾「去白底」再上传，对白卡和资料卡都会用上。</div></details>';
+}
 /* ── 点开：人物／物品／地点／名词 ── */
 function entCanonOf(run, name) {                         /* 档上的人对应的原著人物卡 */
   let wb = []; try { wb = PromptM.allWB().filter(e => e && !e.off && e.grp === "人物" && PromptM.wbEraOk(e, run)); } catch (e) {}
@@ -6776,7 +6885,7 @@ function entHTML(run, k, id) {
     const col = p ? (relCol(p.rel)) : "var(--ent-canon)";
     const pid9 = key || name, net9 = entNet(run, pid9);
     const fav = p && p.fav != null ? p.fav : 50;
-    return '<div class="ep-head" style="--sp:' + col + '"><b>' + U.esc(name) + "</b>" +
+    return ptHeroHTML(run, key || name) + '<div class="ep-head" style="--sp:' + col + '"><b>' + U.esc(name) + "</b>" +
       (p ? '<span class="ep-chip">' + U.esc(p.rel || "泛交") + "</span>" : "") + (canon ? '<span class="ep-chip canon">原著人物</span>' : "") +
       (p ? "" : '<span class="ep-chip dim">尚未结识</span>') + "</div>" +
       (p ? '<div class="ep-fav"><i style="width:' + U.clamp(fav, 2, 100) + '%;background:' + col + '"></i></div><div class="ep-sub">好感 ' + fav + (p.att ? " · " + U.esc(p.att) : "") + (p.n ? " · 同场 " + p.n + " 回" : "") + "</div>" : "") +
@@ -6784,6 +6893,7 @@ function entHTML(run, k, id) {
       (p ? entFactsHTML(run, key, p) : "") +
       '<div class="ep-sec">关系网</div>' + (net9.list.length ? entNetSVG(run, name, net9, col) + '<div class="nl">' + entNetList(run, net9) + "</div>" : '<div class="ep-sub">还没有记下她和谁有来往。</div>') +
       (canon ? '<details class="ep-fold"' + (p ? "" : " open") + '><summary>原著设定 · ' + U.esc(canon.name || "") + "</summary>" + entWbText(canon) + "</details>" : "") +
+      ptPanelHTML(run, key || name, name) +   /* P238 */
       (p ? '<div class="ep-act"><button class="btn sm" data-epgraph="1">打开完整关系图</button></div>' : "");
   }
   if (k === "item") {
@@ -6845,6 +6955,28 @@ function entOpen(k, id, anchor) {
     pop.addEventListener("click", ev => {
       if (ev.target.closest("[data-epx]")) { entClose(); return; }
       if (ev.target.closest("[data-epgraph]")) { entClose(); try { Graph.open(); } catch (e9) {} return; }
+      const pu = ev.target.closest("[data-ptup]");                  // P238 立绘
+      if (pu) {
+        const pid = pu.dataset.ptup, kw = !!(pop.querySelector("[data-ptkw]") || {}).checked, inp = document.createElement("input");
+        inp.type = "file"; inp.accept = "image/*";
+        inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; const rd = new FileReader();
+          rd.onload = async () => { try { U.toast("处理立绘中…"); await ptSave(S.run, pid, rd.result, kw); ptRefresh(); entOpen(pop.dataset.k, pop.dataset.id, null); U.toast("立绘已存"); } catch (e9) { U.toast("立绘没存成：" + (e9.message || e9)); } };
+          rd.readAsDataURL(f); };
+        inp.click(); return;
+      }
+      const pg9 = ev.target.closest("[data-ptgen]");
+      if (pg9) {
+        const pid = pg9.dataset.ptgen, pr = ptPromptOf(S.run, pid), kw = !!(pop.querySelector("[data-ptkw]") || {}).checked;
+        pg9.disabled = true; pg9.textContent = "出图中…";
+        imgGenerate({ scene: pr.nai_base, chars: [{ prompt: pr.nai_char, uc: "", center: { x: .5, y: .5 } }], neg: pr.nai_uc, size: "832x1216", kb: 600, side: 1216 })
+          .then(d => ptSave(S.run, pid, d, kw)).then(() => { ptRefresh(); entOpen(pop.dataset.k, pop.dataset.id, null); U.toast("立绘出好了"); })
+          .catch(e9 => { U.toast("出图失败：" + (e9.message || e9)); pg9.disabled = false; pg9.textContent = "用文生图出一张"; });
+        return;
+      }
+      const pd = ev.target.closest("[data-ptdel]");
+      if (pd) { ptRemove(S.run, pd.dataset.ptdel); ptRefresh(); entOpen(pop.dataset.k, pop.dataset.id, null); return; }
+      const pc = ev.target.closest("[data-ptcopy]");
+      if (pc) { const ta = pc.closest(".pt-pr").querySelector("textarea"); try { navigator.clipboard.writeText(ta.value); U.toast("已复制"); } catch (e9) { ta.select(); document.execCommand("copy"); U.toast("已复制"); } return; }
       const ak = ev.target.closest("[data-ask]");
       if (ak) { const [vb, ky, fk] = ak.dataset.ask.split("|"); try { UI.close("ov-graph"); } catch (e9) {} entAsk(S.run, vb, ky, fk); return; }
       const t = ev.target.closest("[data-ent]");
@@ -6854,7 +6986,21 @@ function entOpen(k, id, anchor) {
   let html = "";
   try { html = entHTML(run, k, id); } catch (e) { html = '<div class="ep-sub">读不出这条资料：' + U.esc(e.message || e) + "</div>"; }
   pop.innerHTML = '<button class="ep-x" data-epx="1" aria-label="关闭">✕</button>' + html;
+  pop.dataset.k = k; pop.dataset.id = id;
   pop.classList.add("on");
+  if (typeof imgHydrate === "function") imgHydrate(pop);           // P238 立绘从图库填上
+  if (!pop._ptBound) {                                              // 调头像：拖动即生效
+    pop._ptBound = 1;
+    pop.addEventListener("input", ev => {
+      const z = ev.target.closest("[data-ptz]"), fy = ev.target.closest("[data-ptfy]"), kw = ev.target.closest("[data-ptkw]");
+      if (kw) { S.disp.ptKey = kw.checked ? 1 : 0; DB.set("disp", S.disp); return; }
+      if (!z && !fy) return;
+      const pid = (z || fy).dataset.ptz || (z || fy).dataset.ptfy, zv = Number(pop.querySelector("[data-ptz]").value), fv = Number(pop.querySelector("[data-ptfy]").value);
+      ptCrop(S.run, pid, zv, fv);
+      pop.querySelectorAll(".pt-av").forEach(a => { a.style.setProperty("--z", zv); a.style.setProperty("--fy", fv + "%"); });
+      clearTimeout(pop._ptT); pop._ptT = setTimeout(ptRefresh, 250);
+    });
+  }
   const mob = window.innerWidth < 720;
   pop.classList.toggle("ep-sheet", mob);
   if (mob) { pop.style.left = pop.style.top = ""; return; }
@@ -7372,6 +7518,7 @@ function imgAllRefIds() {                                    /* 当前局＋自�
   const out = new Set();
   imgRefIds(S.run, out); imgRefIds(DB.get("autosave", null), out);
   for (const s of (DB.get("slots", []) || [])) imgRefIds(s && (s.run || s), out);
+  for (const v of Object.values(DB.get("portraits", {}) || {})) if (v && v.id) out.add(v.id);   /* P238 立绘不算孤儿 */
   return out;
 }
 async function imgGalleryStats() { const st = await ImgStore.stats(); const refs = imgAllRefIds(); const ks = await ImgStore.keys(); return { n: st.n, bytes: st.bytes, orphans: ks.filter(k => !refs.has(k)).length, refs: refs.size }; }
@@ -22326,7 +22473,7 @@ const Game = (() => {
   }
   async function exportAll() {                                   /* P229 带图：所有存档引用的图一并塞进备份 */
     const j = { qqk: 1, autosave: DB.get("autosave", null), slots: slots(), wbUser: S.wbUser, disp: S.disp,
-      stPresets: S.stPresets, stRegex: S.stRegex, forge: DB.get("xzh_forge", []) };
+      stPresets: S.stPresets, stRegex: S.stRegex, forge: DB.get("xzh_forge", []), portraits: DB.get("portraits", {}) };   /* P238 */
     if (typeof imgExportAll === "function") { try { j.imgs = await imgExportAll(); if (!Object.keys(j.imgs).length) delete j.imgs; } catch (e) {} }
     U.download("xingzhihai-backup-" + Date.now() + ".json", JSON.stringify(j, null, 2));
     if (j.imgs) U.toast("备份带图 " + Object.keys(j.imgs).length + " 张");
@@ -22375,6 +22522,7 @@ const Game = (() => {
       if (j.stPresets) { S.stPresets = j.stPresets; DB.set("st_presets", S.stPresets); }
       if (j.stRegex) { S.stRegex = j.stRegex; DB.set("st_regex", S.stRegex); }
       if (j.forge) DB.set("xzh_forge", j.forge);
+      if (j.portraits && typeof j.portraits === "object") DB.set("portraits", Object.assign(DB.get("portraits", {}) || {}, j.portraits));
       if (j.imgs && typeof imgImportPack === "function") imgImportPack(j.imgs).then(n9 => { if (n9) { U.toast("图库收回 " + n9 + " 张"); if (typeof imgHydrate === "function") imgHydrate(); if (typeof imgGalleryStatsUI === "function") imgGalleryStatsUI().catch(() => {}); } }).catch(() => {});   /* P229 */
       U.toast("全量备份已导入"); renderSaves(); renderWB(); UI.titleTip();
       return "all";
