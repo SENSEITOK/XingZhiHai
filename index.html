@@ -6953,7 +6953,7 @@ function dollHTML(run) {
    优势／劣势：掷两枚取高／取低；情境、装备词条、灵感都能给；有优有劣互相抵掉。天然 20 必成且大成；天然 1 必败（简单模式下只有天然 1 还会受挫）。
    四档：≥DC+10 或天然 20 大成；≥DC 成功；差 5 以内代价成功；再差受挫。
    装备词条：按名字认出来，另认 desc 里的【词条】【瑕疵】标记（战利品带的）——杖帚定伤害骰，袍定护甲，靴管先攻，饰与帽各有护身、博引之类的小本事。
-   战斗（P244 修订）：魔女常备法师护甲（护甲至少 12，魔力档高再加，原著 2077:26795）；敌人 1–10 级；成群的杂兵合成一条，一击倒一个。
+   战斗（P244 修订）：魔女常备法师护甲（护甲至少 12，魔力档高再加，原著 2077:26795）；敌人 1–10 级；比她弱得多的一大群杂兵合成一条，按伤害一下倒一到几个；两到四个像样的对手各占一条（人多每条血薄），用队名再点是找回站着的同伙。
    开打先比先攻，她抢到先手，敌人头一回合不还手；写「打到底／速战速决」一口气连打至多三合（原著 1994:27604 真正的战斗交手极短）。
    敌人残血可能投降或逃跑；打赢了按敌人等级掉战利品卡（原著 2077:43768 收藏家之眼）。施法扣魔力值，不够可以硬撑（劣势、掉血）或烧金（原著 1994:29317）。
    战况换了日子、或连着两幕没交手就当散场；血到 0 是倒下（昏迷、被俘或被救，不写死），过一天回满。战况整块交给主模型照写，不许改数。 */
@@ -6984,7 +6984,7 @@ const DND_ARMOR = [    /* 袍槽：护甲底数 */
 const DND_PERK = [
   { re: /扫帚|帚/, nm: "御帚", txt: "追逐、飞行、赶路的检定有优势", eff: "adv" },
   { re: /斗篷|披风|黑纱|夜纹|夜行/, nm: "夜行", txt: "潜行、躲藏、甩掉尾巴的检定有优势", eff: "adv" },
-  { re: /灯|灯笼/, nm: "照夜", txt: "黑暗里不吃劣势；安抚灵体、亡灵的交际检定有优势", eff: "adv", nd: /黑|暗|夜|地下|洞|墓/ },
+  { re: /灯|灯笼/, nm: "照夜", txt: "黑暗里不吃劣势；安抚灵体、亡灵的交际检定有优势", eff: "adv", nd: /黑|暗|夜|地下|洞|墓/, adv2: /灵体|亡灵|幽灵|鬼魂|亡魂|怨灵|游魂|魂灵/ },
   { re: /书|典|册/, nm: "博引", txt: "查证、辨识法术与古物的学识检定有优势", eff: "adv" },
   { re: /剑|刀|刃/, nm: "锋锐", txt: "近身攻击掷出 19 也算重击", eff: "crit19" },
   { re: /伞/, nm: "遮护", txt: "撑开挡在身前，护甲 +1", eff: "ac+1" },
@@ -7012,10 +7012,12 @@ const DND_FLAW = [   /* 战利品的瑕疵（原著 2077:43776「成色不足：
 const DND_SLOT_DOM = { wand: ["出力", "控制"], robe: ["体魄"], boots: ["体魄"], hat: ["学识", "控制"], acc1: ["交际"], acc2: ["交际"] };
 function dndItem(sk, it) {                               /* 一件装备的规则面：品质加值、伤害骰／护甲、词条（含战利品标记） */
   if (!it) return null;
-  const desc = String(it.desc || ""), nm = String(it.name || "") + " " + desc.slice(0, 20), q = DND_Q[it.q] || 0, out = { q, perks: [], flaws: [] };
+  const desc = String(it.desc || ""), q = DND_Q[it.q] || 0, out = { q, perks: [], flaws: [] };
+  const mk = desc.match(/【词条】([^【·\s]+)/), mf = desc.match(/【瑕疵】([^【·\s]+)/);
+  let base = String(it.name || ""); if (mk) { const i = base.lastIndexOf(mk[1]); if (i >= 0) base = base.slice(i + mk[1].length) || base; }   /* 战利品「某某的御帚短杖」：只拿品名去认，标记、词条名、缴自谁都不算 */
+  const nm = base + " " + desc.replace(/【(?:部位|词条|瑕疵)】[^【·]*/g, "").replace(/·?缴自[^·]*/g, "").slice(0, 20);
   if (sk === "wand") { const w = DND_WEAPON.find(x => x[0].test(nm)); out.die = w ? w[1] : "1d4"; out.kind = w ? w[2] : "法器"; }
   if (sk === "robe") { const a = DND_ARMOR.find(x => x[0].test(nm)); out.ac = a ? a[1] : 10; out.kind = a ? a[2] : "便服"; }
-  const mk = desc.match(/【词条】([^【·\s]+)/), mf = desc.match(/【瑕疵】([^【·\s]+)/);
   if (mk) { const p = DND_PERK.find(x => x.nm === mk[1]); if (p) out.perks.push(p); }
   for (const p of DND_PERK) { if (out.perks.length >= 2) break; if (p.re.test(nm) && !out.perks.includes(p)) out.perks.push(p); }
   if (mf) { const f = DND_FLAW.find(x => x.nm === mf[1]); if (f) out.flaws.push(f); }
@@ -7082,7 +7084,7 @@ const DND_FOE = [null, [11, 9, 3, "1d4+1"], [12, 14, 4, "1d6+1"], [13, 20, 5, "1
 function dndFoeArg(f) {                                  /* 裁定者给的 foe：对象或字符串都认 */
   if (!f) return null;
   if (typeof f === "string") { const s = f.trim(); if (!s || /^(null|none|无|没有|—+)$/i.test(s)) return null; return { name: s.replace(/[（(].*$/, "").trim(), lv: dndNum((s.match(/(\d+)\s*级/) || [])[1], 1), n: 1, war: 0 }; }
-  if (typeof f === "object" && f.name) return { name: String(f.name).replace(/[（(].*$/, "").trim(), lv: dndNum(f.lv, 1), n: dndNum(f.n, 1), war: f.war && f.war !== "0" ? 1 : 0 };
+  if (typeof f === "object" && f.name) return { name: String(f.name).replace(/[（(].*$/, "").trim(), lv: dndNum(f.lv, 1), n: dndNum(f.n, 1), war: f.war && f.war !== "0" ? 1 : 0, mook: f.mook && f.mook !== "0" ? 1 : 0 };
   return null;
 }
 const DND_FOE_PRE = /^(?:(?:那|这|该|其中|另|又|再)一?|一|第[二三四五六])(?:头|只|个|名|位|条|群|伙|帮|批|波)|^新(?:来|冲进来|冒出|赶来)的/;   /* 只有指示词、「一」、「另／又／再」、序数后面跟量词时才算前缀 */
@@ -7111,30 +7113,34 @@ function dndFightNew(run, f) {
   run.fight = { foes: [], round: 0, y: run.year, day: dndDay(run), idle: 0, buff: pre, war };
   return run.fight;
 }
-function dndFoe(run, f, kind) {                          /* 战场上登记／找回一名敌人：先按原名全等、再按去掉前缀的名字找站着的；同名的倒了就另起「狼人2」 */
+function dndPeerLv(run) { const L = dndLevel(run); return U.clamp(L <= 10 ? Math.round(L / 2) : 5 + Math.floor((L - 10) / 4), 1, 10); }   /* 跟她旗鼓相当的敌人等级：十级以内取一半，往上每四级加一 */
+function dndFoe(run, f, kind) {                          /* 战场上登记／找回一名敌人：先按原名全等，再按队名找站着的同伙（挑血最少的），都没有才另起 */
   f = dndFoeArg(f); if (!f || !f.name) return null;
   const raw = f.name.slice(0, 12), isNew = DND_FOE_NEW.test(f.name), nm = dndFoeName(f.name);
   if (!run.fight) dndFightNew(run, f);
-  const fl = run.fight, alive = fl.foes.filter(x => x.hp > 0 && !x.yield);
+  const fl = run.fight, alive = fl.foes.filter(x => x.hp > 0 && !x.yield), gk = x => x.grp || x.name.replace(/\d+$/, "");
+  const weak = a => a.slice().sort((a1, b1) => a1.hp - b1.hp)[0];
   let e = alive.find(x => x.name === raw) || (isNew ? null : alive.find(x => x.name === nm));
-  const fix = (a, b) => a.length >= 2 && b.length >= 2 && (a.startsWith(b) || a.endsWith(b) || b.startsWith(a) || b.endsWith(a));
-  if (!e && !isNew && (kind === "attack" || kind === "defend") && alive.length === 1 && fix(alive[0].name.replace(/\d+$/, ""), nm) && !/首领|头目|老大|队长|援兵/.test(nm.replace(alive[0].name, ""))) e = alive[0];
-  if (e) return e;
+  if (!e && !isNew) { const g = alive.filter(x => gk(x) === nm || gk(x) === raw); if (g.length) e = weak(g); }   /* 拆成几条的小队，用队名再点也是找回，不另起 */
+  const fix = (a, b) => a.length >= 2 && b.length >= 2 && (a.startsWith(b) || a.endsWith(b) || b.startsWith(a) || b.endsWith(a)), keys = [...new Set(alive.map(gk))];
+  if (!e && !isNew && (kind === "attack" || kind === "defend") && keys.length === 1 && fix(keys[0], nm) && !/首领|头目|老大|队长|援兵/.test(nm.replace(keys[0], ""))) e = weak(alive);
+  if (e) return e;                                        /* 找回的不看人数 */
   const lv = U.clamp(Math.round(f.lv || 1), 1, 10), t = DND_FOE[lv], n = U.clamp(Math.round(f.n || 1), 1, 40);
   const uniq = () => { let name = nm, k = 2; while (fl.foes.some(x => x.name === name)) name = nm.slice(0, 10) + (k++); return name; };
   const room = () => { if (fl.foes.length < 6) return true; const di = fl.foes.findIndex(x => x.hp <= 0 || x.yield); if (di >= 0) { fl.foes.splice(di, 1); return true; } return false; };
-  if (n >= 2 && (lv <= 3 || n >= 5)) {                    /* 杂鱼才合成一条：一击倒一个 */
-    if (!room()) return alive.slice().sort((a, b) => a.hp - b.hp)[0];
-    e = { name: uniq(), lv, ac: t[0] - 1, hp: n, max: n, mook: 1, atk: t[2], dmg: "1d1+" + lv }; fl.foes.push(e); return e;
+  if (n >= 2 && (f.mook || (n >= 4 && lv <= Math.max(1, dndPeerLv(run) - 2)))) {   /* 杂鱼（裁定者标了，或比她弱得多的一大群）才合成一条 */
+    if (!room()) return weak(alive);
+    e = { name: uniq(), grp: nm, lv, ac: t[0] - 1, hp: n, max: n, mook: 1, atk: t[2], dmg: "1d1+" + lv }; fl.foes.push(e); return e;
   }
-  let first = null;                                       /* 两三个像样的对手：各占一条 */
-  for (let i = 0; i < n; i++) { if (!room()) break; const x = { name: uniq(), lv, ac: t[0], hp: t[1], max: t[1], atk: t[2], dmg: t[3] }; fl.foes.push(x); if (!first) first = x; }
-  return first || alive.slice().sort((a, b) => a.hp - b.hp)[0] || null;
+  const m = Math.min(n, 4), row = DND_FOE[m >= 2 ? Math.max(1, lv - 1) : lv], hp1 = m >= 2 ? Math.max(1, Math.round(t[1] / Math.sqrt(m))) : t[1];
+  let first = null;                                       /* 两到四个像样的对手：各占一条，人多每条血薄、出手低一级；再多的挤不上前 */
+  for (let i = 0; i < m; i++) { if (!room()) break; const x = { name: uniq(), grp: nm, lv, ac: t[0], hp: hp1, max: hp1, atk: row[2], dmg: row[3] }; fl.foes.push(x); if (!first) first = x; }
+  return first || weak(alive) || null;
 }
 /* 法术分十类（P242b）：有学派按学派，没有就按名字里的字认。每类上战场各有一手 */
 const DND_SCHOOL = { "塑能": "blast", "死灵": "drain", "咒法": "summon", "防护": "ward", "预言": "foresee", "变化": "shift", "幻术": "mirage", "符文": "rune", "仪式": "ritual" };
 const DND_STYPE = {
-  blast: { nm: "轰击", d: "掷法术命中，中了按等级出伤害；名字带雨、潮、爆、风暴的波及三人；打杂兵一发倒三个" },
+  blast: { nm: "轰击", d: "掷法术命中，中了按等级出伤害；名字带雨、潮、爆、风暴的波及身边两人；打杂兵按伤害一发倒一到三个（杂兵比她弱得越多倒得越多），群体的至少三个" },
   drain: { nm: "汲取", d: "伤害稍低，打掉的血回一半给自己" },
   control: { nm: "控制", d: "压过对方的抵抗（10＋敌人等级＋2）就定身两回合：不还手，打它有优势" },
   heal: { nm: "治愈", d: "回血；代价成功回一半" },
@@ -7153,6 +7159,7 @@ function dndSpellProfile(nm, sp) {
   if (/治愈|治疗|疗伤|愈合|回复|复原|回春/.test(t)) ty = "heal";
   else if (/魅|惑|摄神|安神|催眠|定身|束缚|冻结|石化|禁锢|安魂|镇压|唤猫|让灵体安静/.test(t) && !/火|雷|爆|炮/.test(nm)) ty = "control";
   else if (c && DND_SCHOOL[c.s]) ty = DND_SCHOOL[c.s];
+  else if (/照明|照亮|点灯|明灯|光亮术/.test(nm)) ty = "ritual";   /* 照明术不是打人的（开局说明里的「圣火」不算） */
   else if (/火|雷|冰|电|爆|球|箭|弹|光束|射线|斩|刃|炮|冲击|浪|潮|风暴|龙卷|陨/.test(t)) ty = "blast";
   else if (/盾|护|屏障|结界|铠/.test(t)) ty = "ward";
   else if (/预|卜|占|透视|全知/.test(t)) ty = "foresee";
@@ -7179,6 +7186,7 @@ function dndSpellCost(run, spl) {
   const sp = ((run && run.spells) || {})[spl.name] || {}, c = typeof spellCanonOf === "function" ? spellCanonOf(spl.name) : null;
   const has = x => /\d|[一两二三四五六七八九十百千万]/.test(String(x || ""));   /* manaCost 认不出就回 80，这里先看有没有写数 */
   let cost = (typeof manaCost === "function" ? ((has(sp.cost) ? manaCost(sp.cost) : 0) || (c && has(c.c) ? manaCost(c.c) : 0)) : 0) || DND_SPCOST[U.clamp(spl.lv || 1, 1, 10)];
+  if (["blast", "drain", "control"].includes(spl.ty)) cost = Math.max(cost, Math.round(DND_SPCOST[U.clamp(spl.lv || 1, 1, 10)] / 4));   /* 上阵的法术有个底价，「一晚上不到二十魔力」的小把戏不能当炮打 */
   if (typeof easyOn === "function" && easyOn()) cost = Math.round(cost / 2);   /* 简单模式耗魔减半 */
   return Math.max(0, Math.round(cost));
 }
@@ -7199,8 +7207,8 @@ const DND_NAT = {
 function dndNatPick(run, out, spl, foe, easy) {          /* 按场合挑：没对手不出「对手」条，没杂兵不出「杂兵」条，不出伤害的法术不出「多一颗骰」 */
   if (!out.nat) return null;
   const cat = spl ? "spell" : out.kind === "attack" ? "weapon" : out.domain === "交际" ? "social" : "check";
-  const hasFoe = !!(foe && foe.hp > 0), mooks = !!(run.fight && run.fight.foes.some(f => f.mook && f.hp > 0)), dmgSpell = spl && (spl.ty === "blast" || spl.ty === "drain") && out.kind === "attack";
-  const ok = x => !((["ac", "atk", "stun", "healfoe", "disarm", "acpen"].includes(x.k) && !hasFoe) || (x.k === "mook" && !mooks) || (x.k === "die" && !dmgSpell) || (x.k === "refund" && !(out.mana && out.mana.pool > 0)));
+  const hasFoe = !!(foe && foe.hp > 0), hurt = !!(foe && !foe.mook && foe.hp > 0 && foe.hp < foe.max), mooks = !!(run.fight && run.fight.foes.some(f => f.mook && f.hp > 0)), dmgSpell = spl && (spl.ty === "blast" || spl.ty === "drain") && out.kind === "attack";
+  const ok = x => !((["ac", "atk", "stun", "healfoe", "disarm", "acpen"].includes(x.k) && !hasFoe) || (x.k === "mook" && !mooks) || (x.k === "die" && !dmgSpell) || (x.k === "refund" && !(out.mana && out.mana.pool > 0)) || (x.k === "healfoe" && !hurt) || (x.k === "self" && !(run.hp && run.hp.cur > 1)));
   let L = (out.nat === 1 && easy ? DND_NAT.soft1 : DND_NAT[cat + out.nat] || []).filter(ok);
   if (!L.length) L = out.nat === 1 && easy ? DND_NAT.soft1 : DND_NAT["check" + out.nat] || [];
   return L.length ? L[Math.floor(Math.random() * L.length)] : null;
@@ -7259,7 +7267,7 @@ function dndResolve(run, adj, text) {
     if (cost <= m0.cur) { manaSpend(run, cost); out.mana = { cost, paid: cost, pool: cost, left: manaOf(run).cur, max: m0.max, full: easy ? cost * 2 : cost }; }
     else if (/硬撑|透支|拼了|豁出去|榨干/.test(tx)) {
       const paid = manaSpend(run, m0.cur), burn = Math.max(dndDie("1d6").total, Math.ceil((cost - paid) / 150));
-      hp.cur = Math.max(1, hp.cur - (easy ? 0 : burn)); overdraw = 1;   /* 透支伤身但不至于当场倒下 */
+      if (hp.cur > 0) hp.cur = Math.max(1, hp.cur - (easy ? 0 : burn)); overdraw = 1;   /* 透支伤身但不至于当场倒下 */
       out.mana = { cost, paid, pool: paid, left: 0, max: m0.max, over: easy ? 0 : burn, full: easy ? cost * 2 : cost }; out.fx.push("魔力见底，她硬撑着把" + spl.name + "放了出来" + (easy ? "" : "，透支掉 " + burn + " 血"));
     } else if (/烧金|吞金|撒金|纯金|金条/.test(tx) && !(run.fight && run.fight.gold)) {
       const gap = cost - m0.cur, price = Math.round(gap * 1.5 * (typeof eraMult === "function" ? eraMult(run.year || 1994) : 1));
@@ -7275,7 +7283,7 @@ function dndResolve(run, adj, text) {
   const offOK = spl && ["blast", "drain", "control"].includes(spl.ty);
   /* 优劣势（灵感只在没有优势、或有劣势要抵时才用掉） */
   const adv0 = U.clamp(Math.round(dndNum(adj.adv, 0)), -1, 1);
-  const usedAdv = used.filter(p => p.eff === "adv" && !(p.dis && p.dis.test(tx)) && !(p.nd && p.nd.test(tx)));   /* 碰上劣势／不吃劣势情境的词条，被点名也不给优势 */
+  const usedAdv = used.filter(p => p.eff === "adv" && !(p.dis && p.dis.test(tx)) && !(p.nd && p.nd.test(tx) && !(p.adv2 && p.adv2.test(tx))));   /* 碰上劣势／只是不吃劣势的情境，被点名也不给优势（照夜在墓地安抚亡灵照样有） */
   const advN0 = (adv0 > 0 ? 1 : 0) + (usedAdv.length ? 1 : 0) + (autoAdv.length ? 1 : 0) + (kind === "attack" && fb && fb.foresee ? 1 : 0) + (kind === "attack" && foe && foe.stun > 0 ? 1 : 0);
   const disN = (adv0 < 0 && !noDis ? 1 : 0) + (autoDis.length ? 1 : 0) + overdraw;
   const insp = run.inspArm && (run.insp || 0) > 0 && (advN0 === 0 || disN > 0);
@@ -7358,7 +7366,7 @@ function dndResolve(run, adj, text) {
         if (hit) { const dm = dndDie(ex); dmg = dm.total; rolls = dm.rolls; }
         if (hit && fb && fb.rune && !spd) { const ru = dndDie(fb.rune).total; dmg += ru; ex += "+刻印" + fb.rune; }
         let downs = 0;
-        if (hit && foe.mook) { downs = Math.min(foe.hp, (spd && spd.area ? 3 : 1) * (crit ? 2 : 1)); foe.hp -= downs; }
+        if (hit && foe.mook) { downs = Math.min(foe.hp, 6, (Math.max(spd && spd.area ? 3 : 1, U.clamp(Math.floor(dmg / Math.ceil(DND_FOE[foe.lv][1] / 2)), 1, 3)) + U.clamp(Math.floor((dndLevel(run) - 2 * foe.lv) / 3), 0, 3)) * (crit ? 2 : 1)); foe.hp -= downs; }   /* 伤害越高、杂兵比她弱得越多，一下倒得越多；群体轰击至少三个 */
         else if (hit) foe.hp = Math.max(0, foe.hp - dmg);
         if (hit && spd && spd.area && run.fight) for (const o of run.fight.foes.filter(f => f !== foe && f.hp > 0 && !f.yield).slice(0, 2)) {
           if (o.mook) { const d3 = Math.min(o.hp, 2); o.hp -= d3; R.fx.push(spl.name + "波及「" + o.name + "」，倒下 " + d3 + " 个"); }
@@ -7378,12 +7386,11 @@ function dndResolve(run, adj, text) {
       else if (k === "stun" && foe && foe.hp > 0) foe.stun = Math.max(foe.stun || 0, 1);
       else if (k === "refund" && out.mana && out.mana.pool) { manaRest(run, out.mana.pool); out.mana.paid = Math.max(0, out.mana.paid - out.mana.pool); out.mana.left = manaOf(run).cur; out.mana.refund = out.mana.pool; }
       else if (k === "mook" && run.fight) { const mk = run.fight.foes.find(f => f.mook && f.hp > 0); if (mk) { const d4 = Math.min(mk.hp, 2); mk.hp -= d4; R.fx.push("余波又倒 " + d4 + " 个「" + mk.name + "」，还剩 " + mk.hp + " 个"); } }
-      else if (k === "healfoe" && foe && foe.hp > 0 && !foe.mook) { const h4 = Math.min(foe.max - foe.hp, dndDie("2d6").total); foe.hp += h4; R.fx.push("「" + foe.name + "」被奶回 " + h4 + " 血"); }
-      else if (k === "self") { const s4 = Math.min(hp.cur - 1, dndDie("1d6").total); hp.cur -= s4; R.fx.push("魔力回涌，她自己掉了 " + s4 + " 血"); }
+      else if (k === "healfoe" && foe && foe.hp > 0 && !foe.mook) { const h4 = Math.min(foe.max - foe.hp, dndDie("2d6").total); if (h4 > 0) { foe.hp += h4; R.fx.push("「" + foe.name + "」被奶回 " + h4 + " 血（" + foe.hp + "/" + foe.max + "）"); } }
+      else if (k === "self") { const s4 = Math.min(hp.cur - 1, dndDie("1d6").total); if (s4 > 0) { hp.cur -= s4; R.fx.push("魔力回涌，她自己掉了 " + s4 + " 血"); } }
       else if (k === "disarm" && fb) fb.disarm = 1;
       else if (k === "acpen" && fb) fb.acpen = 2;
-      R.nfx = natFx.t;
-      if (R.atk && foe && R.atk.foe === foe.name) { R.atk.foeHp = foe.hp; R.atk.down = foe.hp <= 0 ? 1 : 0; R.atk.ac = R.atk.ctl ? R.atk.ac : foe.ac; }   /* 趣味效果落地后同步快照 */
+      R.nfx = natFx.t;                                    /* 攻击行停在出手那一刻，趣味效果另起一句写清结果 */
     }
     /* 帮手出手 → 敌人回手（只在真交手时：动手、招架、逃跑、抵抗、点了名的敌人、战中施法；普通检定不推进回合） */
     const engaged = ["attack", "defend", "flee", "save"].includes(kind) || !!fArg || (spl0 && spl0.ty !== "ritual" && !!run.fight);
@@ -7434,7 +7441,7 @@ function dndResolve(run, adj, text) {
   }
   /* 收尾：第一合的字段放在顶层（旧代码照读），后几合放 rounds */
   const R0 = rounds[0];
-  Object.assign(out, { dice: R0.dice, die: R0.die, adv: R0.adv, total: R0.total, band: R0.band, nat: R0.nat, atk: R0.atk, foeHits: R0.foeHits, nfx: R0.nfx, insp: insp ? 1 : 0, parts, mod, dc });
+  Object.assign(out, { dice: R0.dice, die: R0.die, adv: R0.adv, total: R0.total, band: R0.band, nat: R0.nat, atk: R0.atk, foeHits: R0.foeHits, nfx: R0.nfx, after: R0.after, insp: insp ? 1 : 0, parts, mod, dc });
   out.fx = out.fx.concat(R0.fx);
   if (rounds.length > 1) out.rounds = rounds.slice(1);
   out.dcName = kind === "attack" && foe ? (offOK && spl.ty === "control" ? "抵抗" : "护甲") : dndDcName(dc);
@@ -7470,11 +7477,11 @@ function dndRollBlock(r) {
   const sg = n => (n >= 0 ? "+" : "") + n;
   const pt = Object.entries(r.parts || {}).filter(([, v]) => v).map(([k, v]) => k + sg(v)).join(" ");
   const miss = r.atk && !r.atk.hit, fiz = r.spell && r.spell.fizzle;
-  const gb = r.rounds && r.rounds.length ? (r.won ? Math.max(2, ...r.rounds.map(x => x.band)) : Math.max(r.band, ...r.rounds.map(x => x.band))) : r.band;   /* 连打按整场给指引 */
+  const gb = r.ko ? 0 : r.rounds && r.rounds.length ? (r.won ? Math.max(2, ...r.rounds.map(x => x.band)) : Math.min(1, Math.max(r.band, ...r.rounds.map(x => x.band)))) : r.band;   /* 连打按整场结局给指引：倒下算受挫，没打赢至多代价成功 */
   let s = "\n⟦判定结果⟧" + (r.goal ? "目标：" + r.goal + "。" : "") + "领域：" + r.domain + "。d20" + (r.adv > 0 ? "优势[" + r.dice.join("、") + "]取高" : r.adv < 0 ? "劣势[" + r.dice.join("、") + "]取低" : "") + "＝" + r.die +
-    (r.mod ? sg(r.mod) + "（" + pt + "）" : "") + "＝" + r.total + "，对" + r.dcName + " " + r.dc + " → 【" + (miss ? (r.band ? "擦过" : "落空") : BT[r.band]) + "】" + (fiz ? "" : r.nat === 20 ? "（天然 20！）" : r.nat === 1 && r.band === 0 ? "（天然 1，出了岔子）" : "") + "。" + (r.rounds && r.rounds.length ? G[gb] : miss ? (r.band ? "没伤到人，但逼退了对方或抢到了位置。" : "扑空，还露了破绽。") : G[r.band]) +
+    (r.mod ? sg(r.mod) + "（" + pt + "）" : "") + "＝" + r.total + "，对" + r.dcName + " " + r.dc + " → 【" + (miss ? (r.band ? "擦过" : "落空") : BT[r.band]) + "】" + (fiz ? "" : r.nat === 20 ? "（天然 20！）" : r.nat === 1 && r.band === 0 ? "（天然 1，出了岔子）" : "") + "。" + (r.ko || (r.rounds && r.rounds.length) ? G[gb] : miss ? (r.band ? "没伤到人，但逼退了对方或抢到了位置。" : "扑空，还露了破绽。") : G[r.band]) +
     (r.perks && r.perks.length ? "（装备词条：" + r.perks.join("、") + "，正文带一笔。）" : "") + (r.insp ? "（她用掉一枚灵感。）" : "") +
-    (gb <= 1 && !r.won && r.lose ? "代价方向：" + r.lose + "。" : "");
+    ((gb <= 1 || r.ko) && !r.won && r.lose ? "代价方向：" + r.lose + "。" : "");
   if (r.nfx) s += "（" + (r.nat === 20 ? "天然 20 趣味表" : "天然 1 趣味表") + "：" + r.nfx + "——正文必须写出这一幕，写成名场面或笑料，不写成灾难。）";
   if (r.spell) s += "所用法术「" + r.spell.name + "」属" + r.spell.nm + "类" + (r.mana && (r.mana.paid || r.mana.refund) ? "，耗魔 " + r.mana.paid + (r.mana.refund ? "（魔力回流，退回 " + r.mana.refund + "）" : "") + "，余 " + manaN(r.mana.left) + "/" + manaN(r.mana.max) + " 魔力值" + (r.mana.left < r.mana.max / 5 ? "，她施法开始吃力" : "") : "") + "。";
   if (r.init) s += r.init.won ? "开打时她抢到了先手。" : "开打时双方几乎同时出手。";
@@ -7630,12 +7637,13 @@ function mwTreaty(run, band, head) {                      /* 谈判：她的检�
   const w = run.mw, f = w.foe;
   if (band === 0) { w.score = U.clamp(w.score - 1, -10, 10); const t = "和谈谈崩（" + head + "），战局 " + w.score; mwLog(run, t); return t; }
   const V = w.score + band * 2, em = typeof eraMult === "function" ? eraMult(run.year || 1994) : 1, terms = [], str = Math.max(1, f.str || 2);
+  const Vp = Math.min(V, w.score * 2);                    /* 谈得到多少看打下来的战局：没打出优势就只能各自收兵 */
   if (V >= 0) {
     w.loot.slice(0, 3).forEach((it, i) => { const o = { name: it.slice(0, 12), q: band >= 3 && str >= 5 && i === 0 ? "传奇" : "稀", desc: "从" + f.nm + "手里缴获（和约让渡）", n: 1 }; if (typeof bagPut === "function") bagPut(run, o); else (run.bag = run.bag || []).push(o); });
     if (w.loot.length) terms.push("战利让渡 " + w.loot.length + " 件（" + w.loot.slice(0, 3).join("、") + (w.loot.length > 3 ? "等" : "") + "）");
-    const pay = Math.round(V * 600 * str * em / 100) * 100; if (pay > 0) { run.wealth = (run.wealth || 0) + pay; terms.push("赔款，她分到 " + U.fmtYuan(pay)); }
-    if (f.medal && V >= 6) { terms.push("勋章推荐名额一个"); if (typeof meritGain === "function") meritGain(run, 3, "和约·勋章推荐名额"); }   /* 只有手里真有名额的（原著有名额的馆）才谈得出来 */
-    if (V >= 6) run.fame = (run.fame || 0) + 1;
+    const pay = Math.round(Math.max(0, Vp) * 600 * str * em / 100) * 100; if (pay > 0) { run.wealth = (run.wealth || 0) + pay; terms.push("赔款，她分到 " + U.fmtYuan(pay)); } else terms.push("停战，各自收兵，谁也不赔谁");
+    if (f.medal && Vp >= 6) { terms.push("勋章推荐名额一个"); if (typeof meritGain === "function") meritGain(run, 3, "和约·勋章推荐名额"); }   /* 只有手里真有名额的（原著有名额的馆）才谈得出来 */
+    if (Vp >= 6) run.fame = (run.fame || 0) + 1;
   } else { const pay = Math.round(-V * 400 * str * em / 100) * 100; run.wealth = Math.max(0, (run.wealth || 0) - pay); terms.push("屈辱条约：她这边赔 " + U.fmtYuan(pay)); }
   terms.push("割地免谈"); if (w.cap) terms.push("交换俘虏，她被放回");
   const t = "与" + f.nm + "谈下和约（" + head + "）：" + terms.join("；") + "。战役结案，状态栏不要再写战役行";
@@ -10840,7 +10848,7 @@ function isleUp(run, name, addAnnal) {
   const cur = es.size || "小岛", i = ISLE_UP.indexOf(cur);
   if (i < 0) return { ok: 0, why: "「" + name + "」不在小/中/大三档里，扩不了" };
   if (i >= ISLE_UP.length - 1) return { ok: 0, why: "「" + name + "」已是大岛，八处营建位到顶" };
-  const to = ISLE_UP[i + 1], price = isleUpCost(cur, to, eraMult(run.year));
+  const to = ISLE_UP[i + 1], price = tPrice(run, "营建", isleUpCost(cur, to, eraMult(run.year)));
   if ((run.wealth || 0) < price) return { ok: 0, why: "把「" + name + "」扩成" + to + "要 " + U.fmtYuan(price) + "（补差价加三成工费），现有 " + U.fmtYuan(run.wealth || 0) };
   run.wealth -= price; es.size = to;
   if (addAnnal) addAnnal("「" + name + "」扩成" + to + "，营建位增至 " + ISLETAB[to].slots + " 处（工费 " + U.fmtYuan(price) + "）");
@@ -10887,7 +10895,7 @@ function dotDeadAt(id, run) {
   return !!(d2 && d2.y1 && run && run.year > d2.y1);
 }
 /* 出让回收：投入七折，账房不认口头喊价 */
-function salvageOf(basis) { return Math.floor((basis || 0) * .7); }
+function salvageOf(basis, run) { return Math.floor((basis || 0) * .7 * (run && typeof talentSellF === "function" ? talentSellF(run) : 1)); }
 
 /* ================= 市况：新闻驱动的行情乘数与地图热点 ================= */
 function marketF(run, model) {   // 型号当前行情乘数（过期视同 1，清扫在跳年做）
@@ -13621,6 +13629,15 @@ function talentPriceF(run, kind) {                // 价钱系数：置产/营�
   }
   return U.clamp(f, .6, 1.4);
 }
+function talentSellF(run) {                       // 出让回收系数：算盘精之类
+  let f = 1;
+  for (const t of talentList(run)) if (t.sell) f += t.sell * (1 + (t.lv - 1) * .5);
+  return U.clamp(f, 1, 1.3);
+}
+function tPrice(run, kind, v) {                    // P244 天赋折扣落到账房：置产（产业／空岛）、营建（起造、升级、扩岛）
+  const f = run && typeof talentPriceF === "function" ? talentPriceF(run, kind) : 1;
+  return f === 1 ? v : Math.round(v * f / 100) * 100;
+}
 function talentTroopF(run, tkind) {
   let f = 1;
   for (const t of talentList(run)) if (t.troop && t.troop[tkind]) f += t.troop[tkind] * (1 + (t.lv - 1) * .5);
@@ -14374,14 +14391,14 @@ function isleSell(run, name, kind, addAnnal) {              /* 出货：按今�
 function isleSellIsle(run, idx) {                          /* P211 岛图「出让这座岛」：与状态栏「出让：空岛｜名」同一套账——投入（岛价＋各设施已投）七折回收，挂在集市上的先撤牌 */
   const es = (run.estates || [])[idx]; if (!es || es.kind !== "空岛") return { ok: 0, why: "名下没有这座空岛" };
   const basis = (es.price || 0) + (es.fac || []).reduce((s, f) => s + (f.spent || 0), 0);
-  const px = basis > 0 ? (typeof salvageOf === "function" ? salvageOf(basis) : Math.floor(basis * .7)) : 0;
+  const px = basis > 0 ? (typeof salvageOf === "function" ? salvageOf(basis, run) : Math.floor(basis * .7)) : 0;
   if (typeof meiMarketUnlist === "function" && run.mei && run.mei.mk) { try { meiMarketUnlist(run, es.name); } catch (e) { } }
   run.estates.splice(idx, 1); run.wealth = (run.wealth || 0) + px;
   run.annals = run.annals || []; run.annals.push({ y: run.year, t: "出让空岛「" + es.name + "」（回款 " + U.fmtYuan(px) + "）" });
   return { ok: 1, px, basis, name: es.name };
 }
 /* P225 出让钮补齐：产业（pins）与全资折叠空间（xw）也能在账房与地图上直接出让——回收价与状态栏同一口径：产业＝投入七折（没记投入的只能正文议价），折叠空间＝买断价（估值×(1+0.5×开发)）七折；出让折叠空间时地产簿里同名的那条一并注销。 */
-function pinSellPrice(run, p) { return p && p.cost != null ? (typeof salvageOf === "function" ? salvageOf(p.cost) : Math.floor(p.cost * .7)) : 0; }
+function pinSellPrice(run, p) { return p && p.cost != null ? (typeof salvageOf === "function" ? salvageOf(p.cost, run) : Math.floor(p.cost * .7)) : 0; }
 function pinSell(run, name) {
   const i = (run.pins || []).findIndex(x => x.name === name); if (i < 0) return { ok: 0, why: "名下没有「" + name + "」" };
   const p = run.pins[i], px = pinSellPrice(run, p); if (!px) return { ok: 0, why: "「" + name + "」没记投入，只能正文里议价出让" };
@@ -14389,7 +14406,7 @@ function pinSell(run, name) {
   const t = "出让产业" + name + "（回款" + U.fmtYuan(px) + "）"; run.annals = (run.annals || []).concat([{ y: run.year, t }]);
   return { ok: 1, px, t };
 }
-function xwSellPrice(run, x) { return x ? (typeof salvageOf === "function" ? salvageOf(Math.round((x.val || 0) * (1 + .5 * (x.dev || 0)))) : 0) : 0; }
+function xwSellPrice(run, x) { return x ? (typeof salvageOf === "function" ? salvageOf(Math.round((x.val || 0) * (1 + .5 * (x.dev || 0))), run) : 0) : 0; }
 function xwSellOwn(run, id) {
   const x = (run.xw || []).find(x2 => x2.id === id); if (!x) return { ok: 0, why: "没有这处折叠空间" };
   if (!x.own) return { ok: 0, why: "「" + x.name + "」不在名下" };
@@ -14408,13 +14425,13 @@ function ledgerSellClick(e) {                                 /* 账房里的出
   U.toast(r.ok ? r.t : r.why); if (r.ok) { Game.autosave(); UI.openLedger(); UI.topbar(); UI.panels(); }
   return true;
 }
-function isleSellPrice(run, es) { const basis = (es.price || 0) + (es.fac || []).reduce((s, f) => s + (f.spent || 0), 0); return { basis, px: basis > 0 ? (typeof salvageOf === "function" ? salvageOf(basis) : Math.floor(basis * .7)) : 0 }; }
+function isleSellPrice(run, es) { const basis = (es.price || 0) + (es.fac || []).reduce((s, f) => s + (f.spent || 0), 0); return { basis, px: basis > 0 ? (typeof salvageOf === "function" ? salvageOf(basis, run) : Math.floor(basis * .7)) : 0 }; }
 function isleBuild(run, idx, model, alias) {                /* 图上直接营建：与状态栏「营建：」同一套账（型录价×纪元） */
   const es = (run.estates || [])[idx]; if (!es || es.kind !== "空岛") return { ok: 0, why: "名下没有这座空岛" };
   const m = facModelOf(model); if (!m) return { ok: 0, why: "型号不在型录：" + Object.keys(FACTAB).join("/") };
   isleNormalize(es);
   if (es.fac.length >= isleSlots(es)) return { ok: 0, why: (es.size || "小岛") + "只有" + isleSlots(es) + "处营建位，已用完" };
-  const em = eraMult(run.year || 1994), price = FACTAB[m].cost * em;
+  const em = eraMult(run.year || 1994), price = tPrice(run, "营建", FACTAB[m].cost * em);
   if ((run.wealth || 0) < price) return { ok: 0, why: m + "定价" + U.fmtYuan(price) + "，现有" + U.fmtYuan(run.wealth || 0) };
   run.wealth -= price;
   const disp = (alias && alias !== m ? alias : m).slice(0, 10);
@@ -14430,7 +14447,7 @@ function isleFacUp(run, idx, fi) {                          /* 升一级：型�
   const f = (es.fac || [])[fi]; if (!f) return { ok: 0, why: "岛上没有这处设施" };
   if (!f.type || !FACTAB[f.type]) return { ok: 0, why: "老设施不在型录，升不了级" };
   if ((f.lv || 1) >= 3) return { ok: 0, why: "已是顶配 3 级" };
-  const em = eraMult(run.year || 1994), nl = (f.lv || 1) + 1, price = FACTAB[f.type].cost * nl * em;
+  const em = eraMult(run.year || 1994), nl = (f.lv || 1) + 1, price = tPrice(run, "营建", FACTAB[f.type].cost * nl * em);
   if ((run.wealth || 0) < price) return { ok: 0, why: "升" + nl + "级要" + U.fmtYuan(price) + "，现有" + U.fmtYuan(run.wealth || 0) };
   run.wealth -= price; f.lv = nl; f.spent = (f.spent || 0) + price; f.inc = FACTAB[f.type].inc * nl * em;
   f.name = String(f.name || f.type).replace(/·\d级$/, "");
@@ -16972,7 +16989,7 @@ const MapM = (() => {
     const em = eraMult(run.year || 1994);
     let h = "";
     if (p2.fi != null && es.fac[p2.fi]) {
-      const f = es.fac[p2.fi], lv = f.lv || 1, canUp = FACTAB[f.type] && lv < 3, upP = canUp ? FACTAB[f.type].cost * (lv + 1) * em : 0;
+      const f = es.fac[p2.fi], lv = f.lv || 1, canUp = FACTAB[f.type] && lv < 3, upP = canUp ? tPrice(S.run, "营建", FACTAB[f.type].cost * (lv + 1) * em) : 0;
       const g = Object.keys(ISLE_GOODS).find(k => ISLE_GOODS[k].from === f.type);
       h += "<div class='hint' style='margin-top:5px'>" + (f.type || "设施") + " " + lv + "/3 级 · 年入 " + Math.round((f.inc || 0) * marketF(run, f.type)) + " 元" + (f.spent ? " · 已投 " + U.fmtYuan(f.spent) : "") +
         (g ? " · 每年出" + ISLE_GOODS[g].nm + " " + (f.bad ? 0 : ISLE_GOODS[g].per * lv) + " 份" : f.type === "工坊" ? " · 每年加工 " + (f.bad ? 0 : ISLE_WORK_PER_LV * lv) + " 份" : f.type === "货仓" ? " · 仓容 +" + ISLE_CAP_PER_LV * lv + " 份" : f.type === "港桥" ? " · 出货价 +15%" : "") +
@@ -17047,7 +17064,7 @@ const MapM = (() => {
         const TAB = p2.xwSlot ? XWFAC : FACTAB, em2 = eraMult(S.run ? S.run.year : 1994) * guardF;
         return "<div style='margin-top:5px'>" + Object.keys(TAB).map(kk => {
           const t2 = TAB[kk];
-          return "<button class='btn sm poi-fac' data-fac='" + kk + "' style='margin:2px 4px 0 0;padding:1px 7px;font-size:10.5px'>" + kk + " " + U.fmtYuan(t2.cost * em2) + "·年入" + t2.inc * em2 + "</button>";
+          return "<button class='btn sm poi-fac' data-fac='" + kk + "' style='margin:2px 4px 0 0;padding:1px 7px;font-size:10.5px'>" + kk + " " + U.fmtYuan(tPrice(S.run, "营建", t2.cost * em2)) + "·年入" + t2.inc * em2 + "</button>";
         }).join("") + "</div>";
       })() : "") +
       islePanel(cm, p2) +
@@ -17078,7 +17095,7 @@ const MapM = (() => {
       row9.innerHTML = "<div class='hint' style='margin-top:6px'>账房挂牌 · 地段 " + tt9.tier + " 档</div>" +
         Object.keys(TRADETAB).map(k9 => {
           const t9 = TRADETAB[k9], mf9 = marketF(run9, k9);
-          return "<div class='go'><button class='btn sm' data-shop='" + k9 + "'>" + k9 + " · 约 " + U.fmtYuan(Math.round(t9.cost * tt9.tier * em9)) + " · 年入约 " + Math.round(t9.inc * tt9.tier * em9 * mf9) + " 元" + (marketTxt(mf9) ? "（行情" + marketTxt(mf9) + "）" : "") + "</button></div>";
+          return "<div class='go'><button class='btn sm' data-shop='" + k9 + "'>" + k9 + " · 约 " + U.fmtYuan(tPrice(run9, "产业", Math.round(t9.cost * tt9.tier * em9))) + " · 年入约 " + Math.round(t9.inc * tt9.tier * em9 * mf9) + " 元" + (marketTxt(mf9) ? "（行情" + marketTxt(mf9) + "）" : "") + "</button></div>";
         }).join("");
       tip.appendChild(row9);
       row9.querySelectorAll("[data-shop]").forEach(b9 => b9.onclick = () => prefill("在" + cm.title + "的" + p2.n + "旁盘一间" + b9.dataset.shop + "，照行情价来。"));
@@ -20080,14 +20097,14 @@ MVU.proto(),
         if (run.pins.some(x => x.name === b.name)) continue;
         if (run.pins.length >= 16) { deny.push(b.name + "（产业已满16处，先出让些再买）"); continue; }
         const tt = tradeTier(b.region, run);
-        const price = TRADETAB[model].cost * tt.tier * em;
+        const price = tPrice(run, "产业", TRADETAB[model].cost * tt.tier * em);
         if ((run.wealth || 0) < price) { deny.push(b.name + "（" + model + "·" + (tt.at || "此地") + "档" + tt.tier + "定价" + U.fmtYuan(price) + "，现有" + U.fmtYuan(run.wealth || 0) + "）"); continue; }
         run.wealth -= price;
         run.pins.push({ region: tt.rid || run.place, name: b.name.slice(0, 10), trade: model, tier: tt.tier, lv: 1, dot: tt.dot || undefined, cost: price, inc: TRADETAB[model].inc * tt.tier * em });
         addAnnal("在" + (tt.at || "此地") + "购下" + model + "「" + b.name + "」（" + U.fmtYuan(price) + "·年入" + TRADETAB[model].inc * tt.tier * em + "元）");
       } else if (b.kind === "空岛") {                               // 空岛按规格定价
         const size = isleSizeOf(b.extra) || isleSizeOf(b.name) || "小岛";
-        const price = ISLETAB[size].cost * em;
+        const price = tPrice(run, "空岛", ISLETAB[size].cost * em);
         if (run.estates.some(x => x.name === b.name)) continue;
         if ((run.wealth || 0) < price) { deny.push(b.name + "（" + size + "定价" + U.fmtYuan(price) + "，现有" + U.fmtYuan(run.wealth || 0) + "）"); continue; }
         run.wealth -= price;
@@ -20169,7 +20186,7 @@ MVU.proto(),
         xwT.fac = xwT.fac || [];
         if (xwT.fac.length >= xwSlots(xwT)) { deny.push("界内营建·" + modelX + "（" + xwT.name + "只有" + xwSlots(xwT) + "处营建位，已用完）"); continue; }
         const em2 = eraMult(run.year);
-        const costX = XWFAC[modelX].cost * em2, incX = XWFAC[modelX].inc * em2;
+        const costX = tPrice(run, "营建", XWFAC[modelX].cost * em2), incX = XWFAC[modelX].inc * em2;
         if ((run.wealth || 0) < costX) { deny.push("界内营建·" + modelX + "（造价" + U.fmtYuan(costX) + "，现有" + U.fmtYuan(run.wealth || 0) + "）"); continue; }
         run.wealth -= costX;
         xwT.fac.push({ name: (bd.alias || modelX).slice(0, 10), type: modelX, lv: 1, inc: incX, desc: (bd.desc || "").slice(0, 40) });
@@ -20182,7 +20199,7 @@ MVU.proto(),
       if (!model) { deny.push("营建·" + bd.name + "（型号不在型录：" + Object.keys(FACTAB).join("/") + "）"); continue; }
       es.fac = es.fac || [];
       if (es.fac.length >= isleSlots(es)) { deny.push("营建·" + bd.name + "（" + (es.size || "小岛") + "只有" + isleSlots(es) + "处营建位，已用完）"); continue; }
-      const em = eraMult(run.year), price = FACTAB[model].cost * em;
+      const em = eraMult(run.year), price = tPrice(run, "营建", FACTAB[model].cost * em);
       if ((run.wealth || 0) < price) { deny.push("营建·" + bd.name + "（" + model + "定价" + U.fmtYuan(price) + "，现有" + U.fmtYuan(run.wealth || 0) + "）"); continue; }
       run.wealth -= price;
       const disp = (bd.alias && bd.alias !== model ? bd.alias : bd.name).slice(0, 10);
@@ -20198,7 +20215,7 @@ MVU.proto(),
         if (!f) { deny.push("升级·" + ug.b + "（" + ug.a + "上没有这处设施）"); continue; }
         if (!f.type || !FACTAB[f.type]) { deny.push("升级·" + ug.b + "（老设施不在型录，升不了级）"); continue; }
         if ((f.lv || 1) >= 3) { deny.push("升级·" + ug.b + "（已是顶配3级）"); continue; }
-        const nl = (f.lv || 1) + 1, price = FACTAB[f.type].cost * nl * em;
+        const nl = (f.lv || 1) + 1, price = tPrice(run, "营建", FACTAB[f.type].cost * nl * em);
         if ((run.wealth || 0) < price) { deny.push("升级·" + ug.b + "（升" + nl + "级要" + U.fmtYuan(price) + "，现有" + U.fmtYuan(run.wealth || 0) + "）"); continue; }
         run.wealth -= price; f.lv = nl; f.spent = (f.spent || 0) + price; f.inc = FACTAB[f.type].inc * nl * em;
         if (typeof isleLog === "function") isleLog(run, es, f.name + "升到" + nl + "级（" + U.fmtYuan(price) + "）");
@@ -20211,7 +20228,7 @@ MVU.proto(),
         if (!p) { deny.push("升级·" + ug.a + "（名下没有这处产业或空岛）"); continue; }
         if (!p.trade || !TRADETAB[p.trade]) { deny.push("升级·" + ug.a + "（老产业不在型录，升不了级）"); continue; }
         if ((p.lv || 1) >= 3) { deny.push("升级·" + ug.a + "（已是顶配3级）"); continue; }
-        const nl = (p.lv || 1) + 1, price = TRADETAB[p.trade].cost * nl * (p.tier || 2) * em;
+        const nl = (p.lv || 1) + 1, price = tPrice(run, "营建", TRADETAB[p.trade].cost * nl * (p.tier || 2) * em);
         if ((run.wealth || 0) < price) { deny.push("升级·" + ug.a + "（升" + nl + "级要" + U.fmtYuan(price) + "，现有" + U.fmtYuan(run.wealth || 0) + "）"); continue; }
         run.wealth -= price; p.lv = nl; p.cost = (p.cost || 0) + price; p.inc = TRADETAB[p.trade].inc * nl * (p.tier || 2) * em;
         addAnnal(p.name + "升到" + nl + "级（年入" + p.inc + "元）");
@@ -20224,7 +20241,7 @@ MVU.proto(),
       if (sl.kind === "产业") {
         const i3 = run.pins.findIndex(x => x.name === sl.name);
         if (i3 >= 0) {
-          const px = run.pins[i3].cost != null ? salvageOf(run.pins[i3].cost) : (sl.price || 0);
+          const px = run.pins[i3].cost != null ? salvageOf(run.pins[i3].cost, run) : (sl.price || 0);
           run.pins.splice(i3, 1); run.wealth = (run.wealth || 0) + px;
           addAnnal("出让产业" + sl.name + "（回款" + U.fmtYuan(px) + "）");
         }
@@ -20233,7 +20250,7 @@ MVU.proto(),
         if (i3 >= 0) {
           const es2 = run.estates[i3];
           const basis = (es2.price || 0) + (es2.fac || []).reduce((s2, f) => s2 + (f.spent || 0), 0);
-          const px = basis > 0 ? salvageOf(basis) : (sl.price || 0);
+          const px = basis > 0 ? salvageOf(basis, run) : (sl.price || 0);
           run.estates.splice(i3, 1); run.wealth = (run.wealth || 0) + px;
           addAnnal("出让" + sl.kind + "「" + sl.name + "」（回款" + U.fmtYuan(px) + "）");
         }
@@ -21057,8 +21074,8 @@ const Sim = (() => {
     const mw9 = typeof mwOn === "function" && mwOn(run) ? "眼下有一场战役：" + run.mw.me + "对" + run.mw.foe.nm + "。带队冲阵、指挥或加入两军会战判 battle；跟对方谈停战条件判 parley；跟对方的人动手时 foe 里加 \"war\":1，跟战役无关的斗殴不加。" + (run.mw.cap ? "她已被俘，冲阵、截击都不判 battle。" : "") : "";
     const lv9 = typeof dndLevel === "function" ? dndLevel(run) : 1;
     const sys = "你是 D&D 式跑团的裁定者（只裁定，不创造任务、不写剧情、不改点数）。判断玩家这次行动要不要检定：仅当『结果不确定』且『失败有实际代价』才要；聊天、购物、观察、日常赶路一律不要。" + fl9 + mw9 +
-      "只输出一行JSON，不要输出其他任何文字：{\"need\":0或1,\"kind\":\"check/attack/defend/flee/save/battle/parley 其中之一（check一般检定；attack动手攻击某个敌人；defend招架、躲闪、护住别人；flee逃跑脱身；save抵抗法术、毒、诅咒、魅惑；battle有战役时带队冲阵；parley有战役时谈停战条件）\",\"domain\":\"出力/控制/学识/体魄/交际 其中之一\",\"dc\":数字（简单8、寻常10、要点本事13、困难15、很难18、极难20、近乎不可能25；攻击时可省）,\"adv\":1优势/0/-1劣势（情境明显有利或不利才给）,\"perks\":[本次情境用得上的装备词条名，没有就空],\"foe\":{\"name\":\"敌人名\",\"lv\":数字1到10,\"n\":人数（一群杂兵就写人数，单个对手写1）} 或 null（只在打斗里给）,\"goal\":\"玩家想达成什么（一句）\",\"lose\":\"失败的代价（一句）\"}" +
-      "\n敌人等级对照：1 街头混混，3 受过训练，5 同行好手，7 精英，10 传奇。她现在约 " + lv9 + " 级，跟她旗鼓相当的对手给 " + U.clamp(Math.round(lv9 / 2), 1, 10) + " 级左右。成群的杂鱼（士兵、保安、喽啰）合成一条写人数；两三个像样的对手写真实等级和人数，引擎会各记一条。" +
+      "只输出一行JSON，不要输出其他任何文字：{\"need\":0或1,\"kind\":\"check/attack/defend/flee/save/battle/parley 其中之一（check一般检定；attack动手攻击某个敌人；defend招架、躲闪、护住别人；flee逃跑脱身；save抵抗法术、毒、诅咒、魅惑；battle有战役时带队冲阵；parley有战役时谈停战条件）\",\"domain\":\"出力/控制/学识/体魄/交际 其中之一\",\"dc\":数字（简单8、寻常10、要点本事13、困难15、很难18、极难20、近乎不可能25；攻击时可省）,\"adv\":1优势/0/-1劣势（情境明显有利或不利才给）,\"perks\":[本次情境用得上的装备词条名，没有就空],\"foe\":{\"name\":\"敌人名\",\"lv\":数字1到10,\"n\":人数（单个对手写1）,\"mook\":1（只有一大群比她弱得多的杂鱼才加）} 或 null（只在打斗里给）,\"goal\":\"玩家想达成什么（一句）\",\"lose\":\"失败的代价（一句）\"}" +
+      "\n敌人等级对照：1 街头混混，3 受过训练，5 同行好手，7 精英，10 传奇。她现在约 " + lv9 + " 级，跟她旗鼓相当的对手给 " + (typeof dndPeerLv === "function" ? dndPeerLv(run) : U.clamp(Math.round(lv9 / 2), 1, 10)) + " 级左右。一大群比她弱得多的杂鱼（士兵、保安、喽啰）写人数并加 \"mook\":1，引擎合成一条、一下倒几个；两到四个像样的对手写真实等级和人数，引擎各记一条（人多每条血薄些），再多也只有四个挤得上前。" +
       (pk9 ? "\n她身上的装备词条：" + pk9 : "");
     const out = await Prov.chat({ system: sys, messages: [{ role: "user", content: stateDigest(run) + "\n玩家行动：" + String(text).slice(0, 300) }], maxtok: 240, temp: 0, aux: true, role: "judge", signal: sigT(45000) });
     const body = PromptM.splitThink ? PromptM.splitThink(String(out || "")).rest : String(out || "");
@@ -23015,6 +23032,7 @@ const Game = (() => {
         if (t.mana) eff.push("魔力上限 +" + Math.round(t.mana * 100) + "%");
         if (t.price) eff.push("置产 " + Math.round(t.price * 100) + "%");
         if (t.build) eff.push("营建 " + Math.round(t.build * 100) + "%");
+        if (t.sell) eff.push("出让 +" + Math.round(t.sell * 100) + "%");
         if (t.up) eff.push("军饷 " + Math.round(t.up * 100) + "%");
         if (t.troop) eff.push(Object.keys(t.troop).map(k => k + "类兵源 " + Math.round(t.troop[k] * 100) + "%").join("／"));
         if (t.xw) eff.push("勘探 +" + t.xw);
@@ -23163,7 +23181,7 @@ const Game = (() => {
         const i3 = ISLE_UP.indexOf(es.size || "小岛"), sl = isleSlots(es), fc = (es.fac || []).length;
         rows2.push(line("空岛 · " + U.esc(es.name), (es.size || "空岛") + "　营建位 " + fc + " / " + sl,
           fc < sl ? "还空 " + (sl - fc) + " 位，闲着不生钱"
-            : (i3 >= 0 && i3 < 2 ? "位子满了——扩成" + ISLE_UP[i3 + 1] + "要 " + U.fmtYuan(isleUpCost(es.size, ISLE_UP[i3 + 1], eraMult(run.year))) + "（走「升级：" + U.esc(es.name) + "」）" : "八位满员，这岛榨不出更多了"),
+            : (i3 >= 0 && i3 < 2 ? "位子满了——扩成" + ISLE_UP[i3 + 1] + "要 " + U.fmtYuan(tPrice(run, "营建", isleUpCost(es.size, ISLE_UP[i3 + 1], eraMult(run.year)))) + "（走「升级：" + U.esc(es.name) + "」）" : "八位满员，这岛榨不出更多了"),
           fc, sl, "linear-gradient(90deg,#7aa6c9,#a2d4ff)"));
       }
       // 界
