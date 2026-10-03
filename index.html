@@ -741,6 +741,7 @@ html[data-theme="light"] #graph-wrap{background:radial-gradient(80% 70% at 50% 4
 #boot-tip{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:var(--paper);z-index:99;color:var(--mut);letter-spacing:.32em;font-size:13.5px}
 #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--line2);color:var(--ink);padding:11px 24px;border-radius:999px;font-size:13.5px;opacity:0;pointer-events:none;transition:.3s;z-index:60;max-width:86vw;text-align:center;backdrop-filter:blur(12px);box-shadow:0 10px 34px rgba(0,0,0,.4)}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast{width:max-content;max-width:min(86vw,520px)}#toast.long{border-radius:14px}
 
 /* ============ v0.3 · 三栏面板 / 装备 / 空岛 ============ */
 #game-cols{flex:1;display:flex;gap:12px;padding:0 12px;overflow:hidden;min-height:0}
@@ -784,7 +785,7 @@ html[data-theme="light"] #graph-wrap{background:radial-gradient(80% 70% at 50% 4
 .mw-bar{position:relative;height:6px;border-radius:3px;margin:5px 0;background:linear-gradient(90deg,color-mix(in srgb,var(--bad) 55%,transparent),color-mix(in srgb,var(--mut) 30%,transparent) 50%,color-mix(in srgb,var(--ok) 55%,transparent))}.mw-bar i{position:absolute;top:-3px;width:3px;height:12px;background:var(--jin2);border-radius:2px;transform:translateX(-50%)}
 .mw-st{color:var(--mut);margin-bottom:5px;display:flex;align-items:center;justify-content:space-between;gap:8px}.mw-log{margin-top:5px;font-size:11px;color:var(--mut);display:flex;flex-direction:column;gap:2px}
 .dn-sheet{margin-top:8px;display:flex;flex-direction:column;gap:6px;font-size:12px}
-.dn-top{display:flex;align-items:center;gap:6px}
+.dn-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.dn-top>.dn-hp{flex:1 1 100%}
 .dn-hp{flex:1;display:flex;align-items:center;gap:5px;min-width:0}.dn-hp span{color:var(--mut)}
 .dn-bar{flex:1;height:7px;border-radius:4px;background:color-mix(in srgb,var(--mut) 25%,transparent);overflow:hidden}.dn-bar b{display:block;height:100%;background:var(--bad);border-radius:4px}
 .dn-bar.me b{background:var(--ok)}.dn-bar.mp b{background:var(--zhu2)}.dn-mp{flex:none}.dn-hp em,.dn-foe em{font-style:normal;font-variant-numeric:tabular-nums;min-width:42px;text-align:right}
@@ -801,7 +802,7 @@ html[data-pal="win"] .dn-insp.on{background:#000080;color:#fff;border-color:#000
 .dice-chip.d20{flex-wrap:wrap;row-gap:2px}.dice-chip.d20 .seg{white-space:nowrap}
 .dice-chip.d20 .dd i,.dice-chip.d20 .dd1{display:inline-block;min-width:18px;text-align:center;font-style:normal;border:1px solid currentColor;border-radius:4px;margin:0 2px;padding:0 2px;opacity:.55}.dice-chip.d20 .dd i.on,.dice-chip.d20 .dd1{opacity:1;font-weight:600}
 .dice-chip.d20 .dd1.n20{color:var(--jin2);box-shadow:0 0 6px color-mix(in srgb,var(--jin2) 60%,transparent)}.dice-chip.d20 .dd1.n1{color:var(--bad)}.dice-chip .adv{font-size:11px;margin:0 4px;opacity:.8}
-.dice-chip.fx{margin-top:3px;opacity:.95;color:var(--ink2)}.dice-chip.fx.foe{color:var(--bad)}.dice-chip.fx.hp,.dice-chip.fx.ok{color:var(--ok)}.dice-chip.fx.sp{color:var(--zhu2)}.dice-chip.fx.mw,.dice-chip.fx.nat.n20{color:var(--jin2)}.dice-chip.fx.nat.n1{color:var(--bad)}.dice-chip.fx.rd{color:var(--mut);border-style:dotted}
+.dice-chip.fx{margin-top:3px;opacity:.95;color:var(--ink2);flex-wrap:wrap}.dice-chip.fx>span{display:inline}.dice-chip.fx.foe{color:var(--bad)}.dice-chip.fx.hp,.dice-chip.fx.ok{color:var(--ok)}.dice-chip.fx.sp{color:var(--zhu2)}.dice-chip.fx.mw,.dice-chip.fx.nat.n20{color:var(--jin2)}.dice-chip.fx.nat.n1{color:var(--bad)}.dice-chip.fx.rd{color:var(--mut);border-style:dotted}
 .dice-chip.fx.loot{border-style:solid;color:var(--ink)}.dice-chip.fx.loot.q-liang{border-color:var(--ok)}.dice-chip.fx.loot.q-xi{border-color:var(--zhu2)}.dice-chip.fx.loot.q-chuan,.dice-chip.fx.loot.q-weida{border-color:var(--jin2);box-shadow:0 0 6px color-mix(in srgb,var(--jin2) 45%,transparent)}
 html[data-theme="light"] .dice-chip.b0,html[data-pal="win"] .dice-chip.b0{color:var(--bad);border-color:var(--bad)}
 html[data-theme="light"] .dice-chip.b1,html[data-pal="win"] .dice-chip.b1{color:var(--jin2);border-color:var(--jin2)}
@@ -823,6 +824,7 @@ html[data-theme="light"] .dice-chip.b3,html[data-pal="win"] .dice-chip.b3{color:
 .dslot.q-liang{border-color:rgba(143,178,110,.6)}.dslot.q-liang b{color:#adc98f}
 .dslot.q-xi{border-color:rgba(171,144,240,.65)}.dslot.q-xi b{color:#c4aef5}
 .dslot.q-chuan{border-color:rgba(232,205,143,.7)}.dslot.q-chuan b{color:#e8cd8f}
+html[data-theme="light"] :is(.dslot,.gslot,.bag-item).q-liang b{color:var(--ok)}html[data-theme="light"] :is(.dslot,.gslot,.bag-item).q-xi b{color:var(--zhu2)}html[data-theme="light"] :is(.dslot,.gslot,.bag-item).q-chuan b,html[data-theme="light"] :is(.dslot,.gslot,.bag-item).q-weida b{color:var(--jin2)}
 .dslot.q-chuan{animation:relic 2.8s ease-in-out infinite}
 .dslot.q-weida{border-color:rgba(239,159,192,.7);animation:relic2 2.3s ease-in-out infinite}
 .dslot.q-weida b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -3014,6 +3016,7 @@ function normalizeRun(r) { // 旧档兼容
   r.talents = r.talents || {}; r.hardUse = r.hardUse || {}; r.manaBack = r.manaBack || [];   // P76 天赋
   npcMergeDup(r);                                                                     // P81 关系网重名合并
   r.profs = r.profs || {}; r.profX = r.profX || {}; r.certs = r.certs || ["A1"]; r.talentX = r.talentX || {};   // P82 职业与资格
+  if (r.mw && r.mw.done && !r.mw.endKey && r.mw.foe && typeof mwSideOf === "function") { const OLD9 = { shicun: "石村号", laiye: "拉莱耶", yinsi: "印斯茅斯", liangpian: "亮片", hagen: "哈根菲尔德", shuijing: "水晶湖", yushu: "榆树街博物馆", huanxiong: "浣熊", siji: "死寂" }; r.mw.endKey = mwSideOf(typeof r.mw.foe === "string" ? OLD9[r.mw.foe] || r.mw.foe : r.mw.foe.nm).nm; r.mw.endY = r.year; r.mw.mute = 1; }   /* P244 旧档已结案的战役也挡照抄 */
   for (const t9 of Object.values(r.talentX)) { if (!t9) continue; if (t9.up > .5) t9.up = +(t9.up - 1).toFixed(2); if (t9.price && typeof t9.price === "object") t9.price = -.07; if (t9.xw && t9.xw < 1) t9.xw = 1; }   /* P244 旧档里剧情专长的乘数口径改回增量 */
   if (r.profSplit == null) r.profSplit = 0;
   if (r.black == null) r.black = 0; r.smug = r.smug || { n: 0, caught: 0 };            // P84 偷渡黑档
@@ -7082,11 +7085,17 @@ function dndFoeArg(f) {                                  /* 裁定者给的 foe�
   if (typeof f === "object" && f.name) return { name: String(f.name).replace(/[（(].*$/, "").trim(), lv: dndNum(f.lv, 1), n: dndNum(f.n, 1), war: f.war && f.war !== "0" ? 1 : 0 };
   return null;
 }
-function dndFoeName(s) { return String(s || "").replace(/^(那|这|该|其中)?(一)?(头|只|个|名|位|条|群|伙|帮|批)?/, "").replace(/[（(].*$/, "").trim().slice(0, 12); }
+const DND_FOE_PRE = /^(?:(?:那|这|该|其中|另|又|再)一?|一|第[二三四五六])(?:头|只|个|名|位|条|群|伙|帮|批|波)|^新(?:来|冲进来|冒出|赶来)的/;   /* 只有指示词、「一」、「另／又／再」、序数后面跟量词时才算前缀 */
+const DND_FOE_NEW = /^(?:另|又|再)一?(?:头|只|个|名|位|条|群|伙|批)|^新(?:来|冲进来|冒出|赶来)的|^第[二三四五六](?:头|只|个|名|位|条|批|波)/;
+function dndFoeName(s) { const t = String(s || "").replace(/[（(].*$/, "").trim(); return (t.replace(DND_FOE_PRE, "").trim() || t).slice(0, 12); }
 function dndFightEnd(run, res) { const fl = run.fight; if (!fl) return ""; run.fight = null; return fl.war && typeof mwAfterFight === "function" ? mwAfterFight(run, fl, res) : ""; }
 function dndFightLive(run) {                             /* 战况过期：换了日子、或连着两幕没交手，就当散场 */
   const fl = run && run.fight; if (!fl) return null;
-  if (!fl.day) fl.day = dndDay(run);
+  if (!fl.day) {                                          /* beta16/17 的旧战况：不是今年开的就收掉，今年的最多再挂一幕 */
+    if (fl.y != null && fl.y !== run.year) { dndFightEnd(run, "fled"); return null; }
+    fl.day = dndDay(run); fl.idle = Math.max(fl.idle || 0, 1);
+    if (fl.buff && fl.buff.ally && !(fl.buff.ally.left > 0)) fl.buff.ally.left = 1;
+  }
   if (fl.day !== dndDay(run) || (fl.idle || 0) >= 2 || !(fl.foes || []).some(f => f.hp > 0 && !f.yield)) { dndFightEnd(run, "fled"); return null; }
   return fl;
 }
@@ -7102,21 +7111,25 @@ function dndFightNew(run, f) {
   run.fight = { foes: [], round: 0, y: run.year, day: dndDay(run), idle: 0, buff: pre, war };
   return run.fight;
 }
-function dndFoe(run, f, kind) {                          /* 战场上登记／找回一名敌人（先找站着的；同名的倒了就另起「狼人2」） */
+function dndFoe(run, f, kind) {                          /* 战场上登记／找回一名敌人：先按原名全等、再按去掉前缀的名字找站着的；同名的倒了就另起「狼人2」 */
   f = dndFoeArg(f); if (!f || !f.name) return null;
-  const raw = f.name, isNew = /^(另|又|再|新|第[二三四五六])/.test(raw), nm = dndFoeName(raw.replace(/^(另|又|再|新)(一)?(头|只|个|名|位|条|群|伙|批)?/, "")) || raw.slice(0, 12);
+  const raw = f.name.slice(0, 12), isNew = DND_FOE_NEW.test(f.name), nm = dndFoeName(f.name);
   if (!run.fight) dndFightNew(run, f);
   const fl = run.fight, alive = fl.foes.filter(x => x.hp > 0 && !x.yield);
-  let e = isNew ? null : alive.find(x => x.name === nm);
-  if (!e && !isNew && (kind === "attack" || kind === "defend") && alive.length === 1 && (alive[0].name.includes(nm) || nm.includes(alive[0].name)) && !/首领|头目|老大|队长|援兵/.test(nm.replace(alive[0].name, ""))) e = alive[0];
-  if (!e) {
-    let name = nm, k = 2; while (fl.foes.some(x => x.name === name)) name = nm.slice(0, 10) + (k++);
-    const lv = U.clamp(Math.round(f.lv || 1), 1, 10), t = DND_FOE[lv], n = U.clamp(Math.round(f.n || 1), 1, 40);
-    e = n >= 2 ? { name, lv, ac: t[0] - 1, hp: n, max: n, mook: 1, atk: t[2], dmg: "1d1+" + lv } : { name, lv, ac: t[0], hp: t[1], max: t[1], atk: t[2], dmg: t[3] };
-    if (fl.foes.length >= 6) { const di = fl.foes.findIndex(x => x.hp <= 0 || x.yield); if (di >= 0) fl.foes.splice(di, 1); else return alive.slice().sort((a, b) => a.hp - b.hp)[0]; }
-    fl.foes.push(e);
+  let e = alive.find(x => x.name === raw) || (isNew ? null : alive.find(x => x.name === nm));
+  const fix = (a, b) => a.length >= 2 && b.length >= 2 && (a.startsWith(b) || a.endsWith(b) || b.startsWith(a) || b.endsWith(a));
+  if (!e && !isNew && (kind === "attack" || kind === "defend") && alive.length === 1 && fix(alive[0].name.replace(/\d+$/, ""), nm) && !/首领|头目|老大|队长|援兵/.test(nm.replace(alive[0].name, ""))) e = alive[0];
+  if (e) return e;
+  const lv = U.clamp(Math.round(f.lv || 1), 1, 10), t = DND_FOE[lv], n = U.clamp(Math.round(f.n || 1), 1, 40);
+  const uniq = () => { let name = nm, k = 2; while (fl.foes.some(x => x.name === name)) name = nm.slice(0, 10) + (k++); return name; };
+  const room = () => { if (fl.foes.length < 6) return true; const di = fl.foes.findIndex(x => x.hp <= 0 || x.yield); if (di >= 0) { fl.foes.splice(di, 1); return true; } return false; };
+  if (n >= 2 && (lv <= 3 || n >= 5)) {                    /* 杂鱼才合成一条：一击倒一个 */
+    if (!room()) return alive.slice().sort((a, b) => a.hp - b.hp)[0];
+    e = { name: uniq(), lv, ac: t[0] - 1, hp: n, max: n, mook: 1, atk: t[2], dmg: "1d1+" + lv }; fl.foes.push(e); return e;
   }
-  return e;
+  let first = null;                                       /* 两三个像样的对手：各占一条 */
+  for (let i = 0; i < n; i++) { if (!room()) break; const x = { name: uniq(), lv, ac: t[0], hp: t[1], max: t[1], atk: t[2], dmg: t[3] }; fl.foes.push(x); if (!first) first = x; }
+  return first || alive.slice().sort((a, b) => a.hp - b.hp)[0] || null;
 }
 /* 法术分十类（P242b）：有学派按学派，没有就按名字里的字认。每类上战场各有一手 */
 const DND_SCHOOL = { "塑能": "blast", "死灵": "drain", "咒法": "summon", "防护": "ward", "预言": "foresee", "变化": "shift", "幻术": "mirage", "符文": "rune", "仪式": "ritual" };
@@ -7183,14 +7196,17 @@ const DND_NAT = {
   check1: [{ t: "出了个洋相", k: "" }, { t: "弄出了好大的动静", k: "" }],
   soft1: [{ t: "帽尖冒烟（有惊无险）", k: "" }, { t: "惊动了路过的猫灯", k: "" }, { t: "打了个大喷嚏", k: "" }]
 };
-function dndNatPick(run, out, spl, foe, easy) {
+function dndNatPick(run, out, spl, foe, easy) {          /* 按场合挑：没对手不出「对手」条，没杂兵不出「杂兵」条，不出伤害的法术不出「多一颗骰」 */
   if (!out.nat) return null;
   const cat = spl ? "spell" : out.kind === "attack" ? "weapon" : out.domain === "交际" ? "social" : "check";
-  const L = out.nat === 1 && easy ? DND_NAT.soft1 : DND_NAT[cat + out.nat] || [];
+  const hasFoe = !!(foe && foe.hp > 0), mooks = !!(run.fight && run.fight.foes.some(f => f.mook && f.hp > 0)), dmgSpell = spl && (spl.ty === "blast" || spl.ty === "drain") && out.kind === "attack";
+  const ok = x => !((["ac", "atk", "stun", "healfoe", "disarm", "acpen"].includes(x.k) && !hasFoe) || (x.k === "mook" && !mooks) || (x.k === "die" && !dmgSpell) || (x.k === "refund" && !(out.mana && out.mana.pool > 0)));
+  let L = (out.nat === 1 && easy ? DND_NAT.soft1 : DND_NAT[cat + out.nat] || []).filter(ok);
+  if (!L.length) L = out.nat === 1 && easy ? DND_NAT.soft1 : DND_NAT["check" + out.nat] || [];
   return L.length ? L[Math.floor(Math.random() * L.length)] : null;
 }
 /* 战利品卡（原著 2077:43768 收藏家之眼口径：类别、评分、特性、成色）。打赢了按倒下的敌人掷，一仗至多两件 */
-const DND_LOOT_NOUN = { hat: ["尖帽", "贝雷帽", "发箍"], wand: ["短杖", "法杖", "短剑"], robe: ["斗篷", "外套", "法袍"], boots: ["短靴", "长靴"], acc1: ["护符", "吊坠", "手镯", "指环"] };
+const DND_LOOT_NOUN = { hat: ["尖帽", "贝雷帽", "发冠"], wand: ["短杖", "法杖", "短剑"], robe: ["斗篷", "风衣", "法袍"], boots: ["短靴", "长靴"], acc1: ["护符", "吊坠", "手镯", "指环"] };
 function dndLoot(run, foes, out) {
   const got = [];
   for (const f of foes) {
@@ -7203,7 +7219,8 @@ function dndLoot(run, foes, out) {
     const flaw = Math.random() < .3 ? DND_FLAW[Math.floor(Math.random() * DND_FLAW.length)] : null;
     const stem = dndFoeName(f.name).replace(/\d+$/, "").slice(0, 4);
     const score = U.clamp(Math.round(((DND_Q[q] + 1) * .16 + .1 - (flaw ? .12 : 0) + (Math.random() - .5) * .1) * 100) / 100, .05, .99);
-    const it = { name: (stem + "的" + perk.nm + noun).slice(0, 12), n: 1, q, desc: ("【词条】" + perk.nm + (flaw ? "【瑕疵】" + flaw.nm : "") + "·缴自" + stem + "·评分" + score.toFixed(2)).slice(0, 60) };
+    const slotZh = { hat: "帽", wand: "杖帚", robe: "袍", boots: "靴", acc1: "饰" }[sk];
+    const it = { name: (stem + "的" + perk.nm + noun).slice(0, 12), n: 1, q, desc: ("【部位】" + slotZh + "【词条】" + perk.nm + (flaw ? "【瑕疵】" + flaw.nm : "") + "·缴自" + stem + "·评分" + score.toFixed(2)).slice(0, 60) };
     if (typeof bagPut === "function") bagPut(run, it); else (run.bag = run.bag || []).push(it);
     got.push({ name: it.name, q, perk: perk.nm, flaw: flaw ? flaw.nm : "", score, slot: { hat: "帽", wand: "杖帚", robe: "袍", boots: "靴", acc1: "饰" }[sk] });
   }
@@ -7239,17 +7256,17 @@ function dndResolve(run, adj, text) {
   let fizzle = 0, overdraw = 0, goldBonus = 0;
   if (spl && typeof manaOf === "function") {
     const cost = dndSpellCost(run, spl), m0 = manaOf(run);
-    if (cost <= m0.cur) { manaSpend(run, cost); out.mana = { cost, paid: cost, left: manaOf(run).cur, max: m0.max }; }
+    if (cost <= m0.cur) { manaSpend(run, cost); out.mana = { cost, paid: cost, pool: cost, left: manaOf(run).cur, max: m0.max, full: easy ? cost * 2 : cost }; }
     else if (/硬撑|透支|拼了|豁出去|榨干/.test(tx)) {
       const paid = manaSpend(run, m0.cur), burn = Math.max(dndDie("1d6").total, Math.ceil((cost - paid) / 150));
-      hp.cur = Math.max(easy ? 1 : 0, hp.cur - (easy ? 0 : burn)); overdraw = 1;
-      out.mana = { cost, paid, left: 0, max: m0.max, over: easy ? 0 : burn }; out.fx.push("魔力见底，她硬撑着把" + spl.name + "放了出来" + (easy ? "" : "，透支掉 " + burn + " 血"));
+      hp.cur = Math.max(1, hp.cur - (easy ? 0 : burn)); overdraw = 1;   /* 透支伤身但不至于当场倒下 */
+      out.mana = { cost, paid, pool: paid, left: 0, max: m0.max, over: easy ? 0 : burn, full: easy ? cost * 2 : cost }; out.fx.push("魔力见底，她硬撑着把" + spl.name + "放了出来" + (easy ? "" : "，透支掉 " + burn + " 血"));
     } else if (/烧金|吞金|撒金|纯金|金条/.test(tx) && !(run.fight && run.fight.gold)) {
       const gap = cost - m0.cur, price = Math.round(gap * 1.5 * (typeof eraMult === "function" ? eraMult(run.year || 1994) : 1));
       if ((run.wealth || 0) >= price) {
         run.wealth -= price; manaSpend(run, m0.cur); if (run.fight) run.fight.gold = 1;
         goldBonus = price >= 50000 ? 6 : price >= 5000 ? 4 : 2;
-        out.mana = { cost, paid: cost, left: 0, max: m0.max, gold: price }; out.fx.push("她当场烧了价值 " + U.fmtYuan(price) + " 的纯金补魔，金光一闪");
+        out.mana = { cost, paid: cost, pool: m0.cur, left: 0, max: m0.max, gold: price, full: easy ? cost * 2 : cost }; out.fx.push("她当场烧了价值 " + U.fmtYuan(price) + " 的纯金补魔，金光一闪");
       } else { fizzle = 1; out.mana = { cost, paid: 0, left: m0.cur, max: m0.max, short: 1 }; out.fx.push("想烧金补魔，存款不够 " + U.fmtYuan(price)); }
     } else { fizzle = 1; out.mana = { cost, paid: 0, left: m0.cur, max: m0.max, short: 1 }; out.fx.push("魔力不够（要 " + cost + "，只剩 " + m0.cur + "），" + spl.name + "没成形"); }
   }
@@ -7258,12 +7275,13 @@ function dndResolve(run, adj, text) {
   const offOK = spl && ["blast", "drain", "control"].includes(spl.ty);
   /* 优劣势（灵感只在没有优势、或有劣势要抵时才用掉） */
   const adv0 = U.clamp(Math.round(dndNum(adj.adv, 0)), -1, 1);
-  const advN0 = (adv0 > 0 ? 1 : 0) + (used.some(p => p.eff === "adv") ? 1 : 0) + (autoAdv.length ? 1 : 0) + (kind === "attack" && fb && fb.foresee ? 1 : 0) + (kind === "attack" && foe && foe.stun > 0 ? 1 : 0);
+  const usedAdv = used.filter(p => p.eff === "adv" && !(p.dis && p.dis.test(tx)) && !(p.nd && p.nd.test(tx)));   /* 碰上劣势／不吃劣势情境的词条，被点名也不给优势 */
+  const advN0 = (adv0 > 0 ? 1 : 0) + (usedAdv.length ? 1 : 0) + (autoAdv.length ? 1 : 0) + (kind === "attack" && fb && fb.foresee ? 1 : 0) + (kind === "attack" && foe && foe.stun > 0 ? 1 : 0);
   const disN = (adv0 < 0 && !noDis ? 1 : 0) + (autoDis.length ? 1 : 0) + overdraw;
   const insp = run.inspArm && (run.insp || 0) > 0 && (advN0 === 0 || disN > 0);
   if (insp) { run.insp--; run.inspArm = 0; }
   const advN = advN0 + (insp ? 1 : 0), netAdv = advN && disN ? 0 : advN ? 1 : disN ? -1 : 0;
-  out.perks = [...new Set(used.concat(autoAdv).filter(p => p.eff !== "nodis").map(p => p.nm).concat(autoDis.map(p => p.nm + "（劣势）")))];
+  out.perks = [...new Set(usedAdv.concat(autoAdv).filter(p => !autoDis.includes(p)).map(p => p.nm).concat(autoDis.map(p => p.nm + "（劣势）")))];
   /* 调整值 */
   const parts = dndModBase(run, dom, !!spl);
   const smx = typeof spellModOf === "function" ? spellModOf(run, text) : 0;
@@ -7295,8 +7313,9 @@ function dndResolve(run, adj, text) {
     const a2 = (fb && fb.foresee) || (foe && foe.stun > 0) ? 1 : 0, d2 = autoDis.length ? 1 : 0;
     const advR = ri === 0 ? netAdv : a2 && d2 ? 0 : a2 ? 1 : d2 ? -1 : 0;
     const r = dndD20(advR), R = { dice: r.dice, die: r.die, adv: advR, total: r.die + mod, fx: [] };
-    if (ri > 0 && kind === "attack" && foe) dc = offOK && spl.ty === "control" ? 10 + foe.lv + 2 : foe.ac;
-    let band = R.total >= dc + 10 ? 3 : R.total >= dc ? 2 : R.total >= dc - 5 ? 1 : 0;
+    const dcR = ri > 0 && kind === "attack" && foe ? (offOK && spl.ty === "control" ? 10 + foe.lv + 2 : foe.ac) : dc;   /* 后几合按当下目标，不改顶层 dc */
+    R.dc = dcR;
+    let band = R.total >= dcR + 10 ? 3 : R.total >= dcR ? 2 : R.total >= dcR - 5 ? 1 : 0;
     if (r.die === 20) band = 3;
     if (r.die === 1 && !easy) band = 0;
     if (easy && band === 0 && r.die !== 1) band = 1;     /* 简单模式（P219）：只有天然 1 还会受挫 */
@@ -7304,7 +7323,7 @@ function dndResolve(run, adj, text) {
     R.band = band; R.nat = r.die === 20 ? 20 : r.die === 1 ? 1 : 0;
     if (ri === 0) {
       if (R.nat) run.insp = Math.min(3, (run.insp || 0) + 1);   /* 天然 20 喜得灵感；天然 1 也补一枚，倒霉有偿 */
-      natFx = dndNatPick(run, Object.assign({}, out, R), spl, foe, easy);
+      natFx = fizzle ? null : dndNatPick(run, Object.assign({}, out, R), spl, foe, easy);   /* 法术没成形就没有趣味表 */
       /* 自身法术先落地（受挫算失手，代价成功打半折），这样刻印、变身、预读在当回合就生效 */
       if (spl && !offOK && spl.ty !== "ritual") {
         const tgt = fb || (run.dndPre = run.dndPre && run.dndPre.day === dndDay(run) ? run.dndPre : { day: dndDay(run) });
@@ -7321,11 +7340,11 @@ function dndResolve(run, adj, text) {
     }
     /* 攻击：武器或轰击、汲取、控制法术（法术没成形就白耗一合） */
     if (kind === "attack" && foe && !fizzle) {
-      const hit = r.die === 20 || (r.die !== 1 && R.total >= dc);
+      const hit = r.die === 20 || (r.die !== 1 && R.total >= dcR);
       if (offOK && spl.ty === "control") {
         if (hit) { foe.stun = band >= 3 ? 3 : 2; R.fx.push(spl.name + "压住了「" + foe.name + "」：定身 " + foe.stun + " 回合"); }
-        R.atk = { foe: foe.name, ac: dc, hit: hit ? 1 : 0, crit: 0, ex: "", dmg: 0, rolls: [], via: "法术·" + spl.name, foeHp: foe.hp, foeMax: foe.max, down: 0, ctl: 1 };
-        R.band = hit ? (r.die === 20 ? 3 : 2) : ((r.die === 1 && !easy) ? 0 : R.total >= dc - 3 ? 1 : 0);
+        R.atk = { foe: foe.name, ac: dcR, hit: hit ? 1 : 0, crit: 0, ex: "", dmg: 0, rolls: [], via: "法术·" + spl.name, foeHp: foe.hp, foeMax: foe.max, down: 0, ctl: 1 };
+        R.band = hit ? (r.die === 20 ? 3 : 2) : ((r.die === 1 && !easy) ? 0 : R.total >= dcR - 3 ? 1 : 0);
       } else {
         const w = dndItem("wand", run.gear && run.gear.wand), spd = offOK ? spl : null, disarm = fb && fb.disarm;
         const crit19 = perksAll.some(p => p.eff === "crit19") && !spd && !disarm;
@@ -7347,7 +7366,7 @@ function dndResolve(run, adj, text) {
         }
         if (hit && spd && spd.ty === "drain") { const back = Math.ceil(dmg / 2); hp.cur = Math.min(hp.max, hp.cur + back); R.fx.push("汲取回血 +" + back); }
         R.atk = { foe: foe.name, ac: foe.ac, hit: hit ? 1 : 0, crit: crit ? 1 : 0, ex: hit ? ex : "", dmg: foe.mook ? 0 : dmg, rolls, via: spd ? "法术·" + spl.name + "（" + spl.el + "）" : (disarm ? "徒手" : run.gear && run.gear.wand ? run.gear.wand.name : "徒手"), foeHp: foe.hp, foeMax: foe.max, down: foe.hp <= 0 ? 1 : 0, mook: foe.mook ? downs : undefined };
-        R.band = !hit ? ((r.die === 1 && !easy) ? 0 : R.total >= dc - 3 ? 1 : 0) : crit ? 3 : 2;   /* 打倒不算大成：命中 2、重击 3 */
+        R.band = !hit ? ((r.die === 1 && !easy) ? 0 : R.total >= dcR - 3 ? 1 : 0) : crit ? 3 : 2;   /* 打倒不算大成：命中 2、重击 3 */
       }
       if (easy && R.band === 0 && r.die !== 1) R.band = 1;
     }
@@ -7357,13 +7376,14 @@ function dndResolve(run, adj, text) {
       if (k === "ac" && foe) foe.ac = Math.max(8, foe.ac - 2);
       else if (k === "atk" && foe) foe.atk -= 2;
       else if (k === "stun" && foe && foe.hp > 0) foe.stun = Math.max(foe.stun || 0, 1);
-      else if (k === "refund" && out.mana && out.mana.paid) { manaRest(run, out.mana.paid); out.mana.left = manaOf(run).cur; out.mana.refund = 1; }
-      else if (k === "mook" && run.fight) { const mk = run.fight.foes.find(f => f.mook && f.hp > 0); if (mk) mk.hp = Math.max(0, mk.hp - 2); }
-      else if (k === "healfoe" && foe && foe.hp > 0 && !foe.mook) foe.hp = Math.min(foe.max, foe.hp + dndDie("2d6").total);
-      else if (k === "self") hp.cur = Math.max(1, hp.cur - dndDie("1d6").total);
+      else if (k === "refund" && out.mana && out.mana.pool) { manaRest(run, out.mana.pool); out.mana.paid = Math.max(0, out.mana.paid - out.mana.pool); out.mana.left = manaOf(run).cur; out.mana.refund = out.mana.pool; }
+      else if (k === "mook" && run.fight) { const mk = run.fight.foes.find(f => f.mook && f.hp > 0); if (mk) { const d4 = Math.min(mk.hp, 2); mk.hp -= d4; R.fx.push("余波又倒 " + d4 + " 个「" + mk.name + "」，还剩 " + mk.hp + " 个"); } }
+      else if (k === "healfoe" && foe && foe.hp > 0 && !foe.mook) { const h4 = Math.min(foe.max - foe.hp, dndDie("2d6").total); foe.hp += h4; R.fx.push("「" + foe.name + "」被奶回 " + h4 + " 血"); }
+      else if (k === "self") { const s4 = Math.min(hp.cur - 1, dndDie("1d6").total); hp.cur -= s4; R.fx.push("魔力回涌，她自己掉了 " + s4 + " 血"); }
       else if (k === "disarm" && fb) fb.disarm = 1;
       else if (k === "acpen" && fb) fb.acpen = 2;
       R.nfx = natFx.t;
+      if (R.atk && foe && R.atk.foe === foe.name) { R.atk.foeHp = foe.hp; R.atk.down = foe.hp <= 0 ? 1 : 0; R.atk.ac = R.atk.ctl ? R.atk.ac : foe.ac; }   /* 趣味效果落地后同步快照 */
     }
     /* 帮手出手 → 敌人回手（只在真交手时：动手、招架、逃跑、抵抗、点了名的敌人、战中施法；普通检定不推进回合） */
     const engaged = ["attack", "defend", "flee", "save"].includes(kind) || !!fArg || (spl0 && spl0.ty !== "ritual" && !!run.fight);
@@ -7374,7 +7394,7 @@ function dndResolve(run, adj, text) {
       if (!fled && fb && fb.ally) {
         const t2 = (fl.foes || []).find(f => f.hp > 0 && !f.yield);
         if (t2) { const a = dndD20(0), hit = a.die === 20 || (a.die !== 1 && a.die + fb.ally.hit >= t2.ac), d = hit ? dndDie(fb.ally.dice).total : 0; if (hit) { if (t2.mook) t2.hp -= 1; else t2.hp = Math.max(0, t2.hp - d); } R.fx.push(fb.ally.nm + "的帮手" + (hit ? "打中「" + t2.name + "」" + (t2.mook ? "，倒下 1 个" : "−" + d + (t2.hp <= 0 ? "，倒下" : "")) : "扑了个空")); }
-        if (--fb.ally.left <= 0) { R.fx.push(fb.ally.nm + "的帮手散去了"); delete fb.ally; }
+        if (!(--fb.ally.left > 0)) { R.fx.push(fb.ally.nm + "的帮手散去了"); delete fb.ally; }
       }
       const up = (fl.foes || []).filter(f => f.hp > 0 && !f.yield);
       if (ri === 0 && fl.first) { R.foeHits.push({ init: 1 }); fl.first = 0; }
@@ -7401,11 +7421,12 @@ function dndResolve(run, adj, text) {
         if (fb && fb.mirage > 0) fb.mirage--;
         if (fb && fb.acpen) delete fb.acpen;
       }
-      /* 残血的会投降或逃跑；杂兵折了三分之二就一哄而散 */
+      /* 残血的会投降或逃跑；杂兵折了三分之二就一哄而散（这几句排在回手之后） */
+      R.after = [];
       if (!fled && hp.cur > 0) for (const f of (fl.foes || [])) {
         if (f.hp <= 0 || f.yield) continue;
-        if (f.mook) { if (f.max >= 3 && f.hp <= f.max / 3 && Math.random() < .5) { f.yield = 1; R.fx.push("剩下的「" + f.name + "」一哄而散"); } continue; }
-        if (f.hp <= f.max / 4 && f.lv <= dndLevel(run) && 1 + Math.floor(Math.random() * 20) + f.lv < 8 + dndProf(run) + (hp.cur >= hp.max / 2 ? 2 : 0)) { f.yield = 1; R.fx.push("「" + f.name + "」" + (Math.random() < .5 ? "举手投降" : "掉头逃了")); }
+        if (f.mook) { if (f.max >= 3 && f.hp <= f.max / 3 && Math.random() < .5) { f.yield = "fled"; R.after.push("剩下的「" + f.name + "」一哄而散"); } continue; }
+        if (f.hp <= f.max / 4 && f.lv <= dndLevel(run) && 1 + Math.floor(Math.random() * 20) + f.lv < 8 + dndProf(run) + (hp.cur >= hp.max / 2 ? 2 : 0)) { f.yield = Math.random() < .5 ? "surr" : "fled"; R.after.push("「" + f.name + "」" + (f.yield === "surr" ? "举手投降" : "掉头逃了")); }
       }
     }
     rounds.push(R);
@@ -7427,7 +7448,7 @@ function dndResolve(run, adj, text) {
       out.ko = 1; run.conds = run.conds || [];
       if (!run.conds.some(c => c.name === "重伤倒地")) run.conds.push({ name: "重伤倒地", note: "战斗中被打倒，须昏迷、被俘或被人救下；好转用状态行更新", y: run.year });
     } else if (res === "fled") out.fled = 1; else if (res === "won") out.won = 1;
-    if (res === "won" && !fl.war) { const lt = dndLoot(run, fl.foes.filter(f => f.hp <= 0 || f.yield), out); if (lt.length) out.loot = lt; }
+    if (res === "won" && !fl.war) { const lt = dndLoot(run, fl.foes.filter(f => f.hp <= 0 || f.yield === "surr"), out); if (lt.length) out.loot = lt; }   /* 逃了的身上搜不到东西 */
     if (res) { const t = dndFightEnd(run, res); if (t) out.mw = t; }
   } else if (spl && (spl.ty === "heal" || overdraw)) out.hp = { cur: hp.cur, max: hp.max };
   if (kind === "battle" || kind === "parley") mwResolve(run, kind, out, text);   /* P243 */
@@ -7437,26 +7458,28 @@ function dndResolve(run, adj, text) {
 function dndRoundText(R) {
   let s = "";
   if (R.atk && R.atk.ctl) s += "对「" + R.atk.foe + "」施控（抵抗" + R.atk.ac + "）：" + (R.atk.hit ? "压住了" : "被扛住了") + "。";
-  else if (R.atk) s += "攻击「" + R.atk.foe + "」（护甲" + R.atk.ac + "）用" + R.atk.via + "：" + (R.atk.hit ? (R.atk.crit ? "重击命中" : "命中") + (R.atk.mook != null ? "，打倒 " + R.atk.mook + " 个，还剩 " + R.atk.foeHp + " 个" : "，伤害" + R.atk.ex + "＝" + R.atk.dmg + "，对方剩 " + R.atk.foeHp + "/" + R.atk.foeMax + " 生命") + (R.atk.down ? "——倒下了" : !R.atk.mook && R.atk.foeHp <= R.atk.foeMax / 3 ? "，已是强弩之末" : "") : "落空") + "。";
+  else if (R.atk) s += "攻击「" + R.atk.foe + "」（护甲" + R.atk.ac + "）用" + R.atk.via + "：" + (!R.atk.hit && R.band ? "擦过" : R.atk.hit ? (R.atk.crit ? "重击命中" : "命中") + (R.atk.mook != null ? "，打倒 " + R.atk.mook + " 个，还剩 " + R.atk.foeHp + " 个" : "，伤害" + R.atk.ex + "＝" + R.atk.dmg + "，对方剩 " + R.atk.foeHp + "/" + R.atk.foeMax + " 生命") + (R.atk.down ? "——倒下了" : !R.atk.mook && R.atk.foeHp <= R.atk.foeMax / 3 ? "，已是强弩之末" : "") : "落空") + "。";
   if (R.fx && R.fx.length) s += R.fx.join("；") + "。";
+  const tail = (R.after || []).length ? R.after.join("；") + "。" : "";
   for (const h of (R.foeHits || [])) s += h.init ? "她抢到了先手，对方这一回合没来得及还手。" : h.stun ? "「" + h.foe + "」被定住，这回合动不了。" : "「" + h.foe + "」回手 d20=" + h.die + "→" + h.total + " 对她的护甲" + h.ac + "：" + (h.parried ? "本该命中，被传奇装备挡开" : h.hit ? "命中" + (h.soak ? "，临时生命挡掉 " + h.soak : "") + "，她掉 " + (h.dmg - (h.soak || 0)) + " 点血" : "落空") + "。";
-  return s;
+  return s + tail;
 }
 function dndRollBlock(r) {
   const BT = ["受挫", "代价成功", "成功", "大成"], G = [
     "行动受挫并引出新麻烦——必须落实代价，但要开出新局面，不许写成死胡同。", "只成功一部分，并且要付出明确代价。", "完整成功，干净利落。", "成功且有额外收获（人脉、情报、余裕或小彩头）。"];
   const sg = n => (n >= 0 ? "+" : "") + n;
   const pt = Object.entries(r.parts || {}).filter(([, v]) => v).map(([k, v]) => k + sg(v)).join(" ");
-  const miss = r.atk && !r.atk.hit;
+  const miss = r.atk && !r.atk.hit, fiz = r.spell && r.spell.fizzle;
+  const gb = r.rounds && r.rounds.length ? (r.won ? Math.max(2, ...r.rounds.map(x => x.band)) : Math.max(r.band, ...r.rounds.map(x => x.band))) : r.band;   /* 连打按整场给指引 */
   let s = "\n⟦判定结果⟧" + (r.goal ? "目标：" + r.goal + "。" : "") + "领域：" + r.domain + "。d20" + (r.adv > 0 ? "优势[" + r.dice.join("、") + "]取高" : r.adv < 0 ? "劣势[" + r.dice.join("、") + "]取低" : "") + "＝" + r.die +
-    (r.mod ? sg(r.mod) + "（" + pt + "）" : "") + "＝" + r.total + "，对" + r.dcName + " " + r.dc + " → 【" + (miss ? (r.band ? "擦过" : "落空") : BT[r.band]) + "】" + (r.nat === 20 ? "（天然 20！）" : r.nat === 1 && r.band === 0 ? "（天然 1，出了岔子）" : "") + "。" + (miss ? (r.band ? "没伤到人，但逼退了对方或抢到了位置。" : "扑空，还露了破绽。") : G[r.band]) +
+    (r.mod ? sg(r.mod) + "（" + pt + "）" : "") + "＝" + r.total + "，对" + r.dcName + " " + r.dc + " → 【" + (miss ? (r.band ? "擦过" : "落空") : BT[r.band]) + "】" + (fiz ? "" : r.nat === 20 ? "（天然 20！）" : r.nat === 1 && r.band === 0 ? "（天然 1，出了岔子）" : "") + "。" + (r.rounds && r.rounds.length ? G[gb] : miss ? (r.band ? "没伤到人，但逼退了对方或抢到了位置。" : "扑空，还露了破绽。") : G[r.band]) +
     (r.perks && r.perks.length ? "（装备词条：" + r.perks.join("、") + "，正文带一笔。）" : "") + (r.insp ? "（她用掉一枚灵感。）" : "") +
-    (r.band <= 1 && r.lose ? "代价方向：" + r.lose + "。" : "");
+    (gb <= 1 && !r.won && r.lose ? "代价方向：" + r.lose + "。" : "");
   if (r.nfx) s += "（" + (r.nat === 20 ? "天然 20 趣味表" : "天然 1 趣味表") + "：" + r.nfx + "——正文必须写出这一幕，写成名场面或笑料，不写成灾难。）";
-  if (r.spell) s += "所用法术「" + r.spell.name + "」属" + r.spell.nm + "类" + (r.mana && r.mana.paid ? "，耗魔 " + r.mana.paid + (r.mana.refund ? "（魔力回流，这一发不耗）" : "") + "，余 " + manaN(r.mana.left) + "/" + manaN(r.mana.max) + " 魔力值" + (r.mana.left < r.mana.max / 5 ? "，她施法开始吃力" : "") : "") + "。";
-  if (r.init) s += r.init.won ? "开打时她抢到了先手。" : "开打时对方先动了手。";
+  if (r.spell) s += "所用法术「" + r.spell.name + "」属" + r.spell.nm + "类" + (r.mana && (r.mana.paid || r.mana.refund) ? "，耗魔 " + r.mana.paid + (r.mana.refund ? "（魔力回流，退回 " + r.mana.refund + "）" : "") + "，余 " + manaN(r.mana.left) + "/" + manaN(r.mana.max) + " 魔力值" + (r.mana.left < r.mana.max / 5 ? "，她施法开始吃力" : "") : "") + "。";
+  if (r.init) s += r.init.won ? "开打时她抢到了先手。" : "开打时双方几乎同时出手。";
   s += dndRoundText(r);
-  (r.rounds || []).forEach((R, i) => { s += "第 " + (i + 2) + " 合：d20=" + R.die + "→" + R.total + "。" + dndRoundText(R); });
+  (r.rounds || []).forEach((R, i) => { s += "第 " + (i + 2) + " 合：d20=" + R.die + "→" + R.total + " 对 " + R.dc + "。" + dndRoundText(R); });
   if (r.rounds && r.rounds.length) s += "（她一口气连打了 " + (r.rounds.length + 1) + " 合，正文一段带过，不要拆成几幕。）";
   if (r.hp) s += "她现在 " + r.hp.cur + "/" + r.hp.max + " 生命" + (r.ko ? "——倒下了：写她昏迷、被俘或被人救下，不许写死" : r.hp.cur <= r.hp.max / 3 ? "，伤得不轻" : "") + "。";
   if (r.won) s += "敌人全倒（或投降、逃散），这一仗打完了。"; if (r.fled) s += "她脱身了，战斗结束。";
@@ -7464,28 +7487,30 @@ function dndRollBlock(r) {
   if (r.mw) s += "【战役】" + r.mw + "。";
   return s + "严格按此叙述，数字不得改。⟦/判定结果⟧";
 }
+function dndFx(cls, html) { return '<div class="dice-chip fx' + (cls ? " " + cls : "") + '"><span>' + html + "</span></div>"; }   /* 整行当一段文字流，手机上不拆列 */
 function dndChipRound(R) {
   let h = "";
-  if (R.atk && R.atk.ctl) h += '<div class="dice-chip fx">' + (R.atk.hit ? "压住 " : "被扛住 · ") + U.esc(R.atk.foe) + "</div>";
-  else if (R.atk) h += '<div class="dice-chip fx">' + (R.atk.hit ? (R.atk.crit ? "重击 " : "命中 ") + U.esc(R.atk.foe) + (R.atk.mook != null ? " · 倒下 <b>" + R.atk.mook + "</b> 个 · 剩 " + R.atk.foeHp : " · " + U.esc(R.atk.ex) + "＝<b>" + R.atk.dmg + "</b> · 剩 " + R.atk.foeHp + "/" + R.atk.foeMax) + (R.atk.down ? " · 倒下" : "") : "落空 · " + U.esc(R.atk.foe)) + "</div>";
-  for (const t of (R.fx || [])) h += '<div class="dice-chip fx sp">' + U.esc(t) + "</div>";
-  for (const x of (R.foeHits || [])) h += x.init ? '<div class="dice-chip fx ok">抢到先手 · 对方没来得及还手</div>' : x.stun ? '<div class="dice-chip fx foe">' + U.esc(x.foe) + " 定身中</div>" : '<div class="dice-chip fx foe">' + U.esc(x.foe) + " 回手 " + x.die + "→" + x.total + " 对护甲 " + x.ac + " · " + (x.parried ? "被挡开" : x.hit ? "−" + (x.dmg - (x.soak || 0)) + " 血" + (x.soak ? "（挡 " + x.soak + "）" : "") : "落空") + "</div>";
+  if (R.atk && R.atk.ctl) h += dndFx("", (R.atk.hit ? "压住 " : "被扛住 · ") + U.esc(R.atk.foe));
+  else if (R.atk) h += dndFx("", R.atk.hit ? (R.atk.crit ? "重击 " : "命中 ") + U.esc(R.atk.foe) + (R.atk.mook != null ? " · 倒下 <b>" + R.atk.mook + "</b> 个 · 剩 " + R.atk.foeHp : " · " + U.esc(R.atk.ex) + "＝<b>" + R.atk.dmg + "</b> · 剩 " + R.atk.foeHp + "/" + R.atk.foeMax) + (R.atk.down ? " · 倒下" : "") : (R.band ? "擦过 · " : "落空 · ") + U.esc(R.atk.foe));
+  for (const t of (R.fx || [])) h += dndFx("sp", U.esc(t));
+  for (const x of (R.foeHits || [])) h += x.init ? dndFx("ok", "抢到先手 · 对方没来得及还手") : x.stun ? dndFx("foe", U.esc(x.foe) + " 定身中") : dndFx("foe", U.esc(x.foe) + " 回手 " + x.die + "→" + x.total + " 对护甲 " + x.ac + " · " + (x.parried ? "被挡开" : x.hit ? "−" + (x.dmg - (x.soak || 0)) + " 血" + (x.soak ? "（挡 " + x.soak + "）" : "") : "落空"));
+  for (const t of (R.after || [])) h += dndFx("ok", U.esc(t));
   return h;
 }
 function dndChipHTML(R) {                               /* 正文楼层下的骰子条 */
   const BT = ["受挫", "代价成功", "成功", "大成"], sg = n => (n >= 0 ? "＋" : "－") + Math.abs(n), miss = R.atk && !R.atk.hit;
   const dice = R.dice.length > 1 ? '<span class="dd">' + R.dice.map(d => '<i class="' + (d === R.die ? "on" : "") + '">' + d + "</i>").join("") + "</span>" : '<i class="dd1' + (R.nat ? " n" + R.nat : "") + '">' + R.die + "</i>";
   let h = '<div class="dice-chip d20 b' + R.band + '"><span class="seg">' + (R.kind === "attack" ? "⚔ " : "⚄ ") + U.esc(R.domain) + " · d20 " + dice + (R.adv ? '<span class="adv">' + (R.adv > 0 ? "优势" : "劣势") + "</span>" : "") + "</span>" +
-    '<span class="seg">' + (R.mod ? sg(R.mod) : "") + "＝<b>" + R.total + "</b></span>" + '<span class="seg">对 ' + U.esc(R.dcName) + " " + R.dc + " · " + (miss ? (R.band ? "擦过" : "落空") : BT[R.band]) + (R.nat === 20 ? " ✦" : "") + "</span>" +
+    '<span class="seg">' + (R.mod ? sg(R.mod) : "") + "＝<b>" + R.total + "</b></span>" + '<span class="seg">对 ' + U.esc(R.dcName) + " " + R.dc + " · " + (miss ? (R.band ? "擦过" : "落空") : BT[R.band]) + (R.nat === 20 && !(R.spell && R.spell.fizzle) ? " ✦" : "") + "</span>" +
     (R.perks && R.perks.length ? '<span class="dg">' + U.esc(R.perks.join("·")) + "</span>" : "") + (R.goal ? '<span class="dg">' + U.esc(R.goal) + "</span>" : "") + "</div>";
-  if (R.nfx) h += '<div class="dice-chip fx nat n' + R.nat + '">' + (R.nat === 20 ? "✦ " : "✗ ") + U.esc(R.nfx) + "</div>";
-  if (R.spell) h += '<div class="dice-chip fx sp">✧ ' + U.esc(R.spell.name) + " · " + U.esc(R.spell.nm) + (R.mana && R.mana.paid ? " · −" + R.mana.paid + " 魔力 · 余 " + manaN(R.mana.left) : "") + "</div>";
-  if (R.init) h += '<div class="dice-chip fx">先攻 ' + R.init.me + " 对 " + R.init.them + " · " + (R.init.won ? "她先手" : "对方先动") + "</div>";
+  if (R.nfx) h += dndFx("nat n" + R.nat, (R.nat === 20 ? "✦ " : "✗ ") + U.esc(R.nfx));
+  if (R.spell) h += dndFx("sp", "✧ " + U.esc(R.spell.name) + " · " + U.esc(R.spell.nm) + (R.spell.fizzle ? " · 没成形" : R.mana && R.mana.refund && !R.mana.paid ? " · 魔力回流，不耗魔 · 余 " + manaN(R.mana.left) : R.mana && R.mana.paid ? " · −" + R.mana.paid + " 魔力 · 余 " + manaN(R.mana.left) : ""));
+  if (R.init) h += dndFx("", "先攻 " + R.init.me + " 对 " + R.init.them + " · " + (R.init.won ? "她先手" : "没抢到先手"));
   h += dndChipRound(R);
-  (R.rounds || []).forEach((X, i) => { h += '<div class="dice-chip fx rd">第 ' + (i + 2) + " 合 · d20 " + X.die + "＝" + X.total + "</div>" + dndChipRound(X); });
-  if (R.hp) h += '<div class="dice-chip fx hp">生命 ' + R.hp.cur + "/" + R.hp.max + (R.ko ? " · 倒下" : R.won ? " · 战斗结束（胜）" : R.fled ? " · 脱身" : "") + "</div>";
-  for (const l of (R.loot || [])) h += '<div class="dice-chip fx loot q-' + ({ "凡": "fan", "良": "liang", "稀": "xi", "传奇": "chuan", "伟大": "weida" }[l.q] || "fan") + '">⟡ 战利品「' + U.esc(l.name) + "」" + U.esc(l.q + " · " + l.slot + " · 【" + l.perk + "】" + (l.flaw ? " 瑕疵【" + l.flaw + "】" : "") + " · 评分 " + l.score.toFixed(2)) + "</div>";
-  if (R.mw) h += '<div class="dice-chip fx mw">⚑ ' + U.esc(R.mw) + "</div>";
+  (R.rounds || []).forEach((X, i) => { h += dndFx("rd", "第 " + (i + 2) + " 合 · d20 " + X.die + "＝" + X.total + " 对 " + X.dc) + dndChipRound(X); });
+  if (R.hp) h += dndFx("hp", "生命 " + R.hp.cur + "/" + R.hp.max + (R.ko ? " · 倒下" : R.won ? " · 战斗结束（胜）" : R.fled ? " · 脱身" : ""));
+  for (const l of (R.loot || [])) h += dndFx("loot q-" + ({ "凡": "fan", "良": "liang", "稀": "xi", "传奇": "chuan", "伟大": "weida" }[l.q] || "fan"), "⟡ 战利品「" + U.esc(l.name) + "」" + U.esc(l.q + " · " + l.slot + " · 【" + l.perk + "】" + (l.flaw ? " 瑕疵【" + l.flaw + "】" : "") + " · 评分 " + l.score.toFixed(2)));
+  if (R.mw) h += dndFx("mw", "⚑ " + U.esc(R.mw));
   return h;
 }
 /* 侧栏角色卡：生命、魔力、护甲、先攻、灵感、五域调整值、词条、法术、战况 */
@@ -7497,7 +7522,7 @@ function dndSheetHTML(run) {
     return '<div class="dn-dom" data-tip="' + U.esc(d + " " + sg(v) + "：" + Object.entries(pr).filter(([, x]) => x).map(([k, x]) => k + sg(x)).join(" ") + "。攻击另加熟练 +" + dndProf(run) + "，施法另加魔力档") + '"><span>' + d + "</span><b>" + sg(v) + "</b></div>";
   }).join("");
   const perks = dndPerks(run);
-  const fl = run.fight, bf = fl && fl.buff ? fl.buff : (run.dndPre && run.dndPre.day === dndDay(run) ? run.dndPre : {}), bfs = [bf.ac ? "护甲+" + bf.ac : "", bf.foresee ? "预读" : "", bf.temp ? "临时生命" + bf.temp : "", bf.mirage ? "幻惑" + bf.mirage + "回合" : "", bf.ally ? "帮手" + bf.ally.left + "回合" : "", bf.rune ? "刻印" : ""].filter(Boolean).join(" · ");
+  const fl = run.fight && run.fight.day === dndDay(run) && (run.fight.idle || 0) < 2 ? run.fight : null, bf = fl && fl.buff ? fl.buff : (run.dndPre && run.dndPre.day === dndDay(run) ? run.dndPre : {}), bfs = [bf.ac ? "护甲+" + bf.ac : "", bf.foresee ? "预读" : "", bf.temp ? "临时生命" + bf.temp : "", bf.mirage ? "幻惑" + bf.mirage + "回合" : "", bf.ally ? "帮手" + (bf.ally.left > 0 ? bf.ally.left + "回合" : "") : "", bf.rune ? "刻印" : ""].filter(Boolean).join(" · ");
   const f = fl && (fl.foes || []).length ? '<div class="dn-fight"><div class="dn-ft"><span class="ttl">⚔ ' + (fl.war ? "战役·" : "") + "交战中 · 第 " + (fl.round || 0) + " 回合</span>" + '<button data-fightend="1" title="剧情里已经打完或脱离了，把战况收掉">收兵</button>' + (bfs ? '<i class="dn-bf">' + U.esc(bfs) + "</i>" : "") + "</div>" +
     fl.foes.map(e => '<div class="dn-foe' + (e.hp <= 0 || e.yield ? " down" : "") + '"><span>' + U.esc(e.name) + "<i>" + e.lv + "级 · 护甲" + e.ac + (e.mook ? " · 杂兵" : "") + (e.stun > 0 ? " · 定身" : "") + (e.yield ? " · 已降／逃" : "") + "</i></span>" + '<div class="dn-bar"><b style="width:' + Math.round(100 * Math.max(0, e.hp) / e.max) + '%"></b></div><em>' + (e.mook ? "×" + Math.max(0, e.hp) : e.hp + "/" + e.max) + "</em></div>").join("") + "</div>" : "";
   return '<div class="dn-sheet"><div class="dn-top"><div class="dn-hp"><span>生命</span><div class="dn-bar me"><b style="width:' + Math.round(100 * hp.cur / hp.max) + '%"></b></div><em>' + hp.cur + "/" + hp.max + "</em></div>" +
@@ -7513,7 +7538,7 @@ function dndSheetHTML(run) {
 document.addEventListener("click", ev => {               /* 角色卡上的钮与说明 */
   const t = ev.target && ev.target.closest ? ev.target.closest("[data-insp],[data-fightend],.dn-sheet [data-tip]") : null;
   if (!t || typeof S === "undefined" || !S.run) return;
-  if (t.dataset.tip != null && !t.dataset.insp && !t.dataset.fightend) { U.toast(t.dataset.tip); return; }
+  if (t.dataset.tip != null && !t.dataset.insp && !t.dataset.fightend) { const tp = t.dataset.tip, el9 = U.$("#toast"); if (el9) el9.classList.toggle("long", tp.length > 24); U.toast(tp, Math.max(2600, tp.length * 110)); return; }
   ev.stopPropagation();
   if (t.dataset.insp) { if ((S.run.insp || 0) > 0) { S.run.inspArm = S.run.inspArm ? 0 : 1; U.toast(S.run.inspArm ? "下一次判定用灵感：掷两枚取高（已有优势就不扣）" : "收起灵感"); } else U.toast("还没有灵感：掷出天然 20 或天然 1 时得一枚"); }
   if (t.dataset.fightend) { if (!confirm("收兵？敌人的血量和本场的增益都会清掉。")) return; const m9 = dndFightEnd(S.run, "fled"); U.toast("战况已清" + (m9 ? "：" + m9 : "")); }
@@ -7561,14 +7586,19 @@ function mwLog(run, t) { const w = run.mw; w.log = (w.log || []).concat([{ y: ru
 function mwClose(run, why) { const w = run.mw; if (!w || w.done) return; w.done = 1; w.cap = 0; w.endKey = w.foe.nm; w.endY = run.year; w.mute = 1; if (why) mwLog(run, why); }
 const MW_PLACEHOLDER = /^(无|暂无|没有|未|不适用|—+|-+|－+|我方|对方|缘由|敌方|某某|N\/?A|null|none)$/i;
 function mwStatWar(run, war) {                            /* 状态栏的「战役：」行：过滤占位、照抄的旧行不重开 */
-  const me = String(war.me || "").replace(/[（(].*$/, "").trim(), foe = String(war.foe || "").replace(/[（(].*$/, "").trim();
-  if (!me || !foe || MW_PLACEHOLDER.test(me) || MW_PLACEHOLDER.test(foe)) return null;
+  let me = String(war.me || "").replace(/[（(].*$/, "").trim(); const foe = String(war.foe || "").replace(/[（(].*$/, "").trim();
+  if (!foe || MW_PLACEHOLDER.test(foe) || (me === "我方" && foe === "对方")) return null;           /* 对方是占位才丢；我方写「我方」按默认 */
+  if (/结束|收兵|停战|罢兵|和约|讲和|议和/.test(me + foe)) return null;                            /* 结束类字眼不开战 */
+  if (/^(我方|我|我们|己方)$/.test(me)) me = "";
   const w = run.mw, fnm = mwSideOf(foe).nm;
   if (w && w.done && w.endKey === fnm && (w.mute || w.endY === run.year)) { w.mute = 1; return null; }
   return mwStart(run, me, foe, war.why);
 }
 function mwStart(run, me, foe, why) {
   if (mwOn(run)) return null;
+  if (run.mwYear !== run.year) { run.mwYear = run.year; run.mwYearN = 0; }
+  if ((run.mwYearN || 0) >= 2) return null;                /* 一年至多开两场战役 */
+  run.mwYearN = (run.mwYearN || 0) + 1;
   const a = mwSideOf(me || "我方", 1), b = mwSideOf(foe);
   if (!MW_KNOWN.some(x => x.re.test(me || "")) && typeof armyStat === "function") { const s = armyStat(run); if (s && s.n) a.str = Math.max(a.str, 2 + armyTier(run)); }   /* 自己的兵 */
   run.mw = { me: a.nm, meStr: a.str, foe: b, score: 0, loot: [], cap: 0, beat: [], kuhua: 0, mer: 0, y: run.year, why: String(why || "").slice(0, 30), log: [], n: 0 };
@@ -7604,7 +7634,7 @@ function mwTreaty(run, band, head) {                      /* 谈判：她的检�
     w.loot.slice(0, 3).forEach((it, i) => { const o = { name: it.slice(0, 12), q: band >= 3 && str >= 5 && i === 0 ? "传奇" : "稀", desc: "从" + f.nm + "手里缴获（和约让渡）", n: 1 }; if (typeof bagPut === "function") bagPut(run, o); else (run.bag = run.bag || []).push(o); });
     if (w.loot.length) terms.push("战利让渡 " + w.loot.length + " 件（" + w.loot.slice(0, 3).join("、") + (w.loot.length > 3 ? "等" : "") + "）");
     const pay = Math.round(V * 600 * str * em / 100) * 100; if (pay > 0) { run.wealth = (run.wealth || 0) + pay; terms.push("赔款，她分到 " + U.fmtYuan(pay)); }
-    if ((f.medal && V >= 6) || V >= 10) { terms.push("勋章推荐名额一个"); if (typeof meritGain === "function") meritGain(run, 3, "和约·勋章推荐名额"); }
+    if (f.medal && V >= 6) { terms.push("勋章推荐名额一个"); if (typeof meritGain === "function") meritGain(run, 3, "和约·勋章推荐名额"); }   /* 只有手里真有名额的（原著有名额的馆）才谈得出来 */
     if (V >= 6) run.fame = (run.fame || 0) + 1;
   } else { const pay = Math.round(-V * 400 * str * em / 100) * 100; run.wealth = Math.max(0, (run.wealth || 0) - pay); terms.push("屈辱条约：她这边赔 " + U.fmtYuan(pay)); }
   terms.push("割地免谈"); if (w.cap) terms.push("交换俘虏，她被放回");
@@ -9922,6 +9952,8 @@ function meiMarketBuy(run, id, addAnnal) {               /* 成交：钱走存�
   const x = mkIsle(run, id); if (!x) return { ok: 0, why: "这条挂牌已经不在了" };
   if (!x.seen && !x.visit) return { ok: 0, why: "先约看岛" };
   if ((run.estates || []).some(e => e.name === x.name)) return { ok: 0, why: "名下已有同名空岛" };
+  const ask9 = typeof talentPriceF === "function" ? Math.round(x.ask * talentPriceF(run, "空岛") / 100) * 100 : x.ask;   /* P244 算盘精、讲价、门路的置产折扣真的生效 */
+  if (!x.tdisc) { x.ask = ask9; x.tdisc = 1; }               /* 折扣只打一次 */
   if ((run.wealth || 0) < x.ask) return { ok: 0, why: "存款不够：要价" + U.fmtYuan(x.ask) + "，现有" + U.fmtYuan(run.wealth || 0) };
   const em = eraMult(run.year || 1994);
   run.wealth -= x.ask;
@@ -13557,7 +13589,7 @@ function talentAdd(run, id, lv) {
   const t = talentOf(id, run); if (!t) return null;
   run.talents = run.talents || {};
   const cur = run.talents[id];
-  if (cur) { cur.lv = U.clamp((cur.lv || 1) + (lv || 1), 1, 3); return Object.assign({}, t, { lv: cur.lv, up: 1 }); }
+  if (cur) { cur.lv = U.clamp((cur.lv || 1) + (lv || 1), 1, 3); return Object.assign({}, t, { lv: cur.lv, upg: 1 }); }
   run.talents[id] = { lv: U.clamp(lv || 1, 1, 3), y: run.year };
   return Object.assign({}, t, { lv: run.talents[id].lv });
 }
@@ -14201,9 +14233,9 @@ function bagPut(run, o9) {                                       /* P175 进包�
 }
 function slotFromWord(w, gear) {                                 /* P155 词典扩编：AI 报的大多数行头都能认位 */
   w = String(w || "");
-  if (/[帽盔冠笠巾]/.test(w)) return "hat";
+  if (/[帽盔冠笠巾箍]/.test(w)) return "hat";
   if (/[杖帚弓剑刀枪刃铳]/.test(w)) return "wand";
-  if (/[袍衣裙氅甲铠]|斗篷|披风/.test(w)) return "robe";
+  if (/[袍衣裙氅甲铠]|斗篷|披风|外套/.test(w)) return "robe";
   if (/[靴鞋履屐袜]/.test(w)) return "boots";
   if (/[饰坠镯铃环戒链佩符簪珠牌徽]|耳[环钉坠]|项链/.test(w)) return !gear.acc1 ? "acc1" : (!gear.acc2 ? "acc2" : "acc1");
   return null;
@@ -18884,7 +18916,7 @@ const PromptM = (() => {
 "魔女名：" + run.alias,
 "魔力：（主角魔力近况一句，可带公仑数，如 四十二公仑，微涨／耗去三成）",
 "魔力量：（可选，只在顿悟、服药、奇遇、进阶这类实打实的成长时写：魔力量：+N，单位公仑，如 +800。引擎按一年至多涨两成五封顶；平时的自然增长与发育期由引擎按岁月结算，你不必写）",
-"魔力增减：（可选，本幕魔力真实变化写 -N 或 +N，单位魔力值，如 -1200。魔力值是能烧的池子，与魔力量（公仑）不是一回事；施法、透支、静养都记这，不写则由引擎按所用法术自动结算）",
+"魔力增减：（可选，本幕魔力真实变化写 -N 或 +N，单位魔力值，如 -1200。魔力值是能烧的池子，与魔力量（公仑）不是一回事；施法、透支、静养都记这；经过判定的那一发引擎已按型录扣过，不必再写，判定之外的施法与消耗要写）",
 "随身：（随身财物一句白描）",
 "存款：（只写本幕账房指令之外的现金增减，**必须带正负号**，写 +数字 或 -数字，单位元；无变化写 +0。写成余额（如「存款：12万」）引擎一律驳回，因为分不清那是增减还是结余。工资、奖金、餐费、路费等记在这；购置/营建/升级/征募/股权/竞拍/勘定由引擎自行划账，绝不可再写进存款行；可写1.3万，引擎会折算为13000元）",
 "在场：（人物名（好感0-100·两字态度），用｜分隔；无人则写 无。人物名必须与已在册的名字**一字不差**——情绪、伤势、衣着、职务一律不写进名字（「疲惫的梅姐」「警务魔女梅姐」都是错的，就写「梅姐」，状态放态度或近况里）；真要改名换身份走 关系：/身份： 行）",
@@ -19274,10 +19306,11 @@ MVU.proto(),
       }
       else if (k === "战役") {                                  /* P243 战役：我方｜对方｜缘由 ／ 结束｜一句 */
         const seg = v.split(/[｜|]/).map(s => s.trim());
-        if (/^(结束|收兵|停战|完结|完了|罢兵|和约|讲和)$/.test((seg[0] || "").replace(/[（(].*$/, ""))) stat.warEnd = seg[1] || seg[0]; else if (seg[0] && seg[1]) stat.war = { me: seg[0], foe: seg[1], why: seg[2] || "" };
+        const s09 = (seg[0] || "").replace(/[（(].*$/, "").split(/[—–\-，,。！!；;：:\s]/)[0];
+        if (/^(已经?|宣告)?(结束|收兵|停战|完结|罢兵|和约|讲和|议和)(了|啦)?$/.test(s09) || /^完了$/.test(s09)) stat.warEnd = seg[1] || seg[0]; else if (seg[0] && seg[1]) stat.war = { me: seg[0], foe: seg[1], why: seg[2] || "" };
       }
       else if (k === "战斗") {                                  /* P244 战斗：结束｜一句——剧情里敌人投降、跑了、被带走 */
-        if (/^(结束|收兵|散了|完|打完)/.test(v.trim())) stat.fightEnd = 1;
+        if (/^(已经?)?(结束|收兵|收场|散了|完|打完)/.test(v.replace(/^[（(]/, "").trim())) stat.fightEnd = 1;
       }
       else if (k === "换装") {                                  /* P241 换装：名字｜便服 */
         const seg = v.split(/[｜|]/).map(s => s.trim());
@@ -19677,12 +19710,7 @@ MVU.proto(),
       const lr9 = typeof lastRollOf === "function" ? lastRollOf(run) : null, paid9 = lr9 && lr9.mana && lr9.mana.paid ? lr9 : null;   /* P244 裁定时引擎已经替这一发扣过魔 */
       if (stat.manaD) {
         const md = String(stat.manaD).match(/([+\-＋－])?\s*(\d+)/);
-        if (md) { const v = parseInt(md[2], 10); if (md[1] === "-" || md[1] === "－") { if (!paid9) manaSpend(run, v); } else manaRest(run, v); handled = true; }
-      }
-      if (!handled && stat.spells) for (const sp of stat.spells) {                    // AI 写了施法就按型录耗扣
-        const def = (run.spells || {})[sp.name] || {};
-        if (paid9 && paid9.spell && paid9.spell.name === sp.name) continue;
-        if (sp.op !== "-" && sp.used) manaSpend(run, manaCost(sp.used));          // 只认写明了耗费的施法行；学会、升级不扣
+        if (md) { const v = parseInt(md[2], 10); if (md[1] === "-" || md[1] === "－") { const full9 = paid9 ? Math.max(paid9.mana.full || 0, paid9.mana.cost || 0, paid9.mana.paid || 0) : 0; if (v > full9) manaSpend(run, v - full9); } else manaRest(run, v); handled = true; }   /* 引擎扣过的那一发不重扣，多写的照扣 */
       }
       if (run.manaCur === before && !paid9) manaRest(run, Math.max(20, Math.round(manaVal(run.manaCap) * (.05 + manaTierIdx(run.manaCap, run.year) * .01))));   // 没耗就回气
       if (stat.manaMaxD) {                                             // 顿悟/服药/奇遇：涨魔力量，一年至多两成五
@@ -19783,7 +19811,7 @@ MVU.proto(),
       else npcOf(lk.name).look = lk.t.slice(0, 40);
     }
     if (stat.war && typeof mwStatWar === "function" && !mwOn(run)) mwStatWar(run, stat.war);   /* P243 占位与照抄的旧行不开战 */
-    if (!stat.war && run.mw && run.mw.mute) run.mw.mute = 0;                                     /* 状态栏不再带这一行了，下次才算新开 */
+    if (!stat.war && stat._story && run.mw && run.mw.mute) run.mw.mute = 0;                     /* 主回合的状态栏不再带这一行了，下次才算新开（新闻层的局部结算不算） */
     if (stat.warEnd && typeof mwOn === "function" && mwOn(run)) mwClose(run, "收兵：" + String(stat.warEnd).slice(0, 30));
     if (stat.fightEnd && run.fight && typeof dndFightEnd === "function") dndFightEnd(run, "fled");   /* P244 */
     if (stat.dress) for (const dr of stat.dress.slice(0, 4)) {       /* P241 只认立绘里有的那几套 */
@@ -19906,7 +19934,7 @@ MVU.proto(),
       }
       if (!add && (run.talents || {})[t0.id]) continue;
       const got = talentAdd(run, t0.id, 1);
-      if (got) addAnnal((got.up ? "天赋精进：" : "得了天赋：") + got.nm + "（" + got.cat + "·" + got.lv + "级）");
+      if (got) addAnnal((got.upg ? "天赋精进：" : "得了天赋：") + got.nm + "（" + got.cat + "·" + got.lv + "级）");
     }
     /* 职业：转职一幕至多一次，等级一年至多一级 */
     if (stat.prof) {
@@ -21024,13 +21052,13 @@ const Sim = (() => {
   async function adjudicate(run, text) {
     if (!Prov.ready()) return null;
     const live9 = typeof dndFightLive === "function" ? dndFightLive(run) : run.fight;   /* P244 过期的战况先收掉 */
-    const pk9 = typeof dndPerks === "function" ? dndPerks(run).filter(p => p.eff === "adv" || p.eff === "nodis").map(p => p.nm + "（" + p.txt + "）").join("；") : "";
+    const pk9 = typeof dndPerks === "function" ? dndPerks(run).filter(p => p.eff === "adv").map(p => p.nm + "（" + String(p.txt).split("；").filter(x => !/劣势/.test(x)).join("；") + "）").join("；") : "";
     const fl9 = live9 && (live9.foes || []).some(f => f.hp > 0 && !f.yield) ? "正在交战：" + live9.foes.filter(f => f.hp > 0 && !f.yield).map(f => "「" + f.name + "」（" + f.lv + "级，" + (f.mook ? "杂兵还剩" + f.hp + "个" : "剩" + f.hp + "/" + f.max + "血") + "）").join("、") + "。打的还是这些人时，foe.name 必须一字不差照抄上面的名字；真有新敌人冲进来才另起名。交战中冲着敌人、躲闪、逃跑、施法的行动都要检定。" : "";
     const mw9 = typeof mwOn === "function" && mwOn(run) ? "眼下有一场战役：" + run.mw.me + "对" + run.mw.foe.nm + "。带队冲阵、指挥或加入两军会战判 battle；跟对方谈停战条件判 parley；跟对方的人动手时 foe 里加 \"war\":1，跟战役无关的斗殴不加。" + (run.mw.cap ? "她已被俘，冲阵、截击都不判 battle。" : "") : "";
     const lv9 = typeof dndLevel === "function" ? dndLevel(run) : 1;
     const sys = "你是 D&D 式跑团的裁定者（只裁定，不创造任务、不写剧情、不改点数）。判断玩家这次行动要不要检定：仅当『结果不确定』且『失败有实际代价』才要；聊天、购物、观察、日常赶路一律不要。" + fl9 + mw9 +
       "只输出一行JSON，不要输出其他任何文字：{\"need\":0或1,\"kind\":\"check/attack/defend/flee/save/battle/parley 其中之一（check一般检定；attack动手攻击某个敌人；defend招架、躲闪、护住别人；flee逃跑脱身；save抵抗法术、毒、诅咒、魅惑；battle有战役时带队冲阵；parley有战役时谈停战条件）\",\"domain\":\"出力/控制/学识/体魄/交际 其中之一\",\"dc\":数字（简单8、寻常10、要点本事13、困难15、很难18、极难20、近乎不可能25；攻击时可省）,\"adv\":1优势/0/-1劣势（情境明显有利或不利才给）,\"perks\":[本次情境用得上的装备词条名，没有就空],\"foe\":{\"name\":\"敌人名\",\"lv\":数字1到10,\"n\":人数（一群杂兵就写人数，单个对手写1）} 或 null（只在打斗里给）,\"goal\":\"玩家想达成什么（一句）\",\"lose\":\"失败的代价（一句）\"}" +
-      "\n敌人等级对照：1 街头混混，3 受过训练，5 同行好手，7 精英，10 传奇。她现在约 " + lv9 + " 级，跟她旗鼓相当的对手给 " + U.clamp(Math.round(lv9 / 2), 1, 10) + " 级左右；成群的士兵、保安、杂鱼合成一条写人数。" +
+      "\n敌人等级对照：1 街头混混，3 受过训练，5 同行好手，7 精英，10 传奇。她现在约 " + lv9 + " 级，跟她旗鼓相当的对手给 " + U.clamp(Math.round(lv9 / 2), 1, 10) + " 级左右。成群的杂鱼（士兵、保安、喽啰）合成一条写人数；两三个像样的对手写真实等级和人数，引擎会各记一条。" +
       (pk9 ? "\n她身上的装备词条：" + pk9 : "");
     const out = await Prov.chat({ system: sys, messages: [{ role: "user", content: stateDigest(run) + "\n玩家行动：" + String(text).slice(0, 300) }], maxtok: 240, temp: 0, aux: true, role: "judge", signal: sigT(45000) });
     const body = PromptM.splitThink ? PromptM.splitThink(String(out || "")).rest : String(out || "");
@@ -21780,6 +21808,7 @@ const Game = (() => {
             if (typeof dndTick === "function") dndTick(run, lastPl.roll || null);   /* P244 两幕没交手就收兵 */
           } catch (eAdj) { delete lastPl.roll; }
         }
+        if (lastPl && /^【跳过岁月】/.test(lastPl.text) && run.fight && typeof dndFightEnd === "function") dndFightEnd(run, "fled");   /* P244 跳岁月不带着仗走 */
         run.lastFound = null; run.lastXwNote = "";
         if (lastPl && isExplore(PromptM.stripStat(lastPl.text).clean)) {
           const lxAll = run.xw || [], lx0 = lxAll[lxAll.length - 1];
@@ -21858,7 +21887,9 @@ const Game = (() => {
         meiFrame.feed = new Set(run.mei.feed.map(p=>p.id)); meiFrame.posts = new Set(run.mei.posts.map(p=>p.id));
         meiFrame.mail = new Set((run.mail||[]).map(l=>l.id));
       }
+      stat._story = 1;                                                /* P244 主回合标记 */
       PromptM.applyStat(run, stat);
+      if (typeof dndFightLive === "function") dndFightLive(run);      /* P244 换了日子就把过期战况收掉，侧栏马上刷新 */
       MVU.commit(run, stateModel.cmds, turnId);
       meiCommitStory(run, stat, parsedState.clean, turnId, meiFrame);
       if (typeof imgCommitStory === "function") imgCommitStory(run, turnId);   /* P185 正文插图：异步出图回填 */
@@ -23018,7 +23049,8 @@ const Game = (() => {
   function bagWear(i9, slot9) {
     const run = S.run; if (!run) return;
     const b9 = (run.bag || [])[i9]; if (!b9) return;
-    const k9 = slot9 === "auto" ? (slotFromWord(b9.name, run.gear || {}) || slotFromWord(b9.desc || "", run.gear || {})) : slot9;
+    const tg9 = String(b9.desc || "").match(/【部位】(帽|杖帚|袍|靴|饰)/), g9 = run.gear || {};
+    const k9 = slot9 === "auto" ? (tg9 ? ({ 帽: "hat", 杖帚: "wand", 袍: "robe", 靴: "boots", 饰: !g9.acc1 ? "acc1" : !g9.acc2 ? "acc2" : "acc1" })[tg9[1]] : (slotFromWord(b9.name, g9) || slotFromWord(b9.desc || "", g9))) : slot9;
     if (!k9 || !SLOTS.some(s2 => s2[0] === k9)) { U.toast("认不出「" + b9.name + "」该装哪儿——左边下拉手选一个部位"); return; }
     run.gear = run.gear || {};
     if (run.gear[k9]) {
@@ -23653,7 +23685,7 @@ const Game = (() => {
   function equipFromBag(i) {
     const run = S.run; if (!run) return;
     const b = (run.bag || [])[i]; if (!b) return;
-    const slot = slotFromWord(b.name, run.gear) || slotFromWord(b.desc || "", run.gear);
+    const tg9 = String(b.desc || "").match(/【部位】(帽|杖帚|袍|靴|饰)/), slot = tg9 ? ({ 帽: "hat", 杖帚: "wand", 袍: "robe", 靴: "boots", 饰: !run.gear.acc1 ? "acc1" : !run.gear.acc2 ? "acc2" : "acc1" })[tg9[1]] : (slotFromWord(b.name, run.gear) || slotFromWord(b.desc || "", run.gear));   /* P244 战利品带部位标记 */
     if (!slot) { U.toast("看不出「" + b.name + "」该穿戴在哪个部位（帽/杖帚/袍/靴/饰）"); return; }
     if (run.gear[slot]) {
       const old = run.gear[slot];
