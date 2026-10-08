@@ -14951,8 +14951,8 @@ function bagCost9(x) {                                           /* P249d 挤谁
 }
 function bagTrim(run, keep9, slack9, hard9) {                    /* P249 压回封顶：keep9＝这一下（这一幕）刚进包/刚卸下的那几件，不挤；位面货不挤；宁可超额也不吞新来的。挤掉的记进 run._drop9，穿脱提示与本幕收尾当场说；
                                                                     P249c/P249d 按 bagCost9 挑最便宜的挤，同分挤最旧的（进包往后排：越靠前越旧；卸下的放包首：越靠后越旧）；
-                                                                    hard9＝本幕收尾（Set＝护着的：本幕前就在包里的、花钱买的）：本幕一口气新进来超过四十件，只挤本幕新进来的、没记原槽的那些，
-                                                                    挤的件数＝超出四十的件数（绝不为负，绝不多挤）；只剩护着的就宁可超额 */
+                                                                    hard9＝本幕收尾（Set＝护着的：本幕前就在包里的、花钱买的）：本幕自己一口气进来超过四十件时，只挤本幕新进来的、没记原槽的那些，
+                                                                    挤的件数＝min(包超出四十的件数, 本幕进来的件数−40)，绝不为负、绝不多挤；只剩护着的就宁可超额 */
   const bag9 = (run && run.bag) || [], cap9 = BAG_CAP + (slack9 || 0), out9 = [];
   const ks9 = keep9 instanceof Set ? keep9 : new Set(keep9 ? [].concat(keep9) : []);
   const ok9 = x => x && typeof x === "object" && !x.ps && !ks9.has(x);
@@ -14963,7 +14963,8 @@ function bagTrim(run, keep9, slack9, hard9) {                    /* P249 压回�
     const x9 = bag9.splice(j9, 1)[0];
     if (x9 && typeof x9 === "object") out9.push(x9);
   }
-  let k9 = Math.max(0, bag9.length - cap9);
+  const kk9 = hard9 ? bag9.filter(x => x && typeof x === "object" && !x.ps && ks9.has(x)) : [];   // 本幕进来/卸下、还在包里的
+  let k9 = Math.max(0, Math.min(bag9.length - cap9, kk9.length - BAG_CAP));                     // 本幕自己就超过四十件才挤，挤的件数绝不为负、绝不超过超额
   if (hard9 && k9 > 0) {
     const pr9 = hard9 instanceof Set ? hard9 : new Set();
     const cd9 = bag9.map((x, i9) => [x, i9]).filter(([x]) => x && typeof x === "object" && !x.ps && !x.slot && ks9.has(x) && !pr9.has(x))
