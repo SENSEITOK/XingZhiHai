@@ -14942,16 +14942,17 @@ const RELCLR = { "恋人":"#ef9fc0","家人":"#e8cd8f","挚友":"#7fd0c8","师�
   "信众":"#d9b96e","生意":"#8fb8d8","房东":"#b8a08a","考官":"#a890d8","教官":"#e0917a","贵人":"#d9a2e8","经纪人":"#8fd0a8" };
 function qNorm(q) { return QUALITY.includes(q) ? q : ({ 珍: "稀", 绝: "传奇" })[q] || "凡"; }   /* P249 旧协议的珍/绝折成稀/传奇，不再一律打成凡 */
 const BAG_CAP = 40, BAG_OFF_SLACK = 6;                         /* P249 封顶四十；手卸（身上至多六件）可暂超，下一次进包或本幕收尾再压回四十 */
-const BAG_KEY9 = /邀请函|请柬|请帖|契|钥匙|证|信物|遗物|传家|录取|通知书|推荐信|介绍信|票根|船票|车票|门票|报名表|报销单|地图|令牌|手令|印信|家书|遗书/;
-function bagCost9(x) {                                           /* P249c 挤谁先看这个分：越小越先挤——稀/传奇/伟大、信函钥匙契证这类开局要件最后才挤；成叠的只在没有更便宜的时才挤；
-                                                                    卸下的旧物（记着原槽）晚于带【部位】的、再晚于寻常杂物；同档里品质低的先挤 */
-  const q9 = Math.max(0, QUALITY.indexOf(qNorm(x.q)));
-  const dear9 = q9 >= 2 || BAG_KEY9.test(String(x.name) + "|" + String(x.desc || "").replace(/【[^】]*】/g, ""));
-  return (dear9 ? 1000 : 0) + ((x.n || 1) > 1 ? 100 : 0) + (x.slot ? 20 : /【部位】/.test(String(x.desc || "")) ? 10 : 0) + q9;
+const BAG_KEY9 = /邀请函|请柬|请帖|契|钥匙|证|执照|信物|遗物|传家|录取|通知书|推荐信|介绍信|票根|船票|车票|门票|报名表|报销单|地图|令牌|手令|印信|家书|遗书/;
+function bagCost9(x) {                                           /* P249d 挤谁先看这个分（越小越先挤）：寻常凡品单件 < 寻常良品单件 < 成叠的杂物 < 带【部位】、没穿着的 < 稀/传奇/伟大与信函钥匙契证票根执照 <
+                                                                    玩家卸下、记着原槽的（最后才挤）；同档里品质低的先挤 */
+  const q9 = Math.max(0, QUALITY.indexOf(qNorm(x.q))), d9 = String(x.desc || "");
+  const t9 = x.slot ? 6 : q9 >= 2 || BAG_KEY9.test(String(x.name) + "|" + d9.replace(/【[^】]*】/g, "")) ? 5 : /【部位】/.test(d9) ? 4 : (x.n || 1) > 1 ? 3 : q9 >= 1 ? 2 : 1;
+  return t9 * 10 + q9;
 }
-function bagTrim(run, keep9, slack9, hard9) {                    /* P249 压回封顶：keep9＝刚进包/刚卸下的那几件，不挤；位面货不挤；宁可超额也不吞新来的。挤掉的记进 run._drop9，穿脱提示与本幕收尾当场说；
-                                                                    P249c 按 bagCost9 挑最便宜的挤，同分挤最旧的（进包往后排：越靠前越旧；卸下的放包首：越靠后越旧）；
-                                                                    hard9＝本幕收尾：本幕一口气进来超过四十件，只留最新的四十件 */
+function bagTrim(run, keep9, slack9, hard9) {                    /* P249 压回封顶：keep9＝这一下（这一幕）刚进包/刚卸下的那几件，不挤；位面货不挤；宁可超额也不吞新来的。挤掉的记进 run._drop9，穿脱提示与本幕收尾当场说；
+                                                                    P249c/P249d 按 bagCost9 挑最便宜的挤，同分挤最旧的（进包往后排：越靠前越旧；卸下的放包首：越靠后越旧）；
+                                                                    hard9＝本幕收尾（Set＝护着的：本幕前就在包里的、花钱买的）：本幕一口气新进来超过四十件，只挤本幕新进来的、没记原槽的那些，
+                                                                    挤的件数＝超出四十的件数（绝不为负，绝不多挤）；只剩护着的就宁可超额 */
   const bag9 = (run && run.bag) || [], cap9 = BAG_CAP + (slack9 || 0), out9 = [];
   const ks9 = keep9 instanceof Set ? keep9 : new Set(keep9 ? [].concat(keep9) : []);
   const ok9 = x => x && typeof x === "object" && !x.ps && !ks9.has(x);
@@ -14962,9 +14963,12 @@ function bagTrim(run, keep9, slack9, hard9) {                    /* P249 压回�
     const x9 = bag9.splice(j9, 1)[0];
     if (x9 && typeof x9 === "object") out9.push(x9);
   }
-  if (hard9 && bag9.length > cap9) {                             // hard9 是 Set＝本幕花钱买下的，这一步也不挤
-    const kk9 = [...ks9].filter(x => x && typeof x === "object" && !x.ps && bag9.includes(x)), cd9 = kk9.filter(x => !(hard9 instanceof Set && hard9.has(x)));
-    for (const x9 of cd9.slice(0, Math.min(bag9.length - cap9, kk9.length - BAG_CAP))) out9.push(bag9.splice(bag9.indexOf(x9), 1)[0]);
+  let k9 = Math.max(0, bag9.length - cap9);
+  if (hard9 && k9 > 0) {
+    const pr9 = hard9 instanceof Set ? hard9 : new Set();
+    const cd9 = bag9.map((x, i9) => [x, i9]).filter(([x]) => x && typeof x === "object" && !x.ps && !x.slot && ks9.has(x) && !pr9.has(x))
+      .sort((a, b) => bagCost9(a[0]) - bagCost9(b[0]) || a[1] - b[1]).map(a => a[0]);   // 便宜的先、同分旧的先
+    for (const x9 of cd9) { if (k9 <= 0) break; bag9.splice(bag9.indexOf(x9), 1); out9.push(x9); k9--; }
   }
   if (out9.length) run._drop9 = (run._drop9 || []).concat(out9.map(x => String(x.name) + ((x.n || 1) > 1 ? "×" + x.n : "")));
   return out9;
@@ -14981,7 +14985,7 @@ function tapTwice9(e) {                                          /* P249 「装�
 function bagDropTxt(run) {                                       /* P249 挤掉了什么，一句话说清（说完即清） */
   const d9 = run && run._drop9; if (!d9 || !d9.length) return "";
   delete run._drop9;
-  return "背包满四十件，挤掉了" + d9.slice(0, 4).map(x => "「" + x + "」").join("") + (d9.length > 4 ? "等 " + d9.length + " 件" : "");
+  return "背包满四十件，挤掉了" + d9.slice(0, 6).map(x => "「" + x + "」").join("") + (d9.length > 6 ? "等 " + d9.length + " 件" : "");   /* P249d 点名到六件 */
 }
 function bagSane(run) {                                          /* P249 旧档/手改档：空行、裸字串、坏装备格不再让侧栏与资料库整栏崩 */
   if (!run) return;
@@ -14990,9 +14994,9 @@ function bagSane(run) {                                          /* P249 旧档/
     : typeof x === "object" && !Array.isArray(x) && nm9(x.name) ? x : null;   // 空的丢掉，裸字串扶正成一件凡品，别的怪东西丢掉
   if (!Array.isArray(run.bag)) run.bag = [];
   else if (run.bag.some(x => !x || it9(x) !== x)) run.bag = run.bag.map(it9).filter(Boolean);
-  for (const b9 of run.bag) {                                    /* P249c 数量扶成正整数（"2"→2，0/负数→1），名字/说明扶成字串，品质折回五档 */
+  for (const b9 of run.bag) {                                    /* P249c 数量扶成正整数（"2"→2，0/负数→1），名字/说明扶成字串，品质折回五档；P249d 不设上限（位面货成千件也不砍） */
     if (typeof b9.name !== "string") b9.name = nm9(b9.name);
-    const n9 = Math.round(Number(b9.n)); if (b9.n !== n9 || !(n9 >= 1)) b9.n = n9 >= 1 ? Math.min(n9, 999) : 1;
+    const n9 = Math.round(Number(b9.n)); if (b9.n !== n9 || !(n9 >= 1)) b9.n = n9 >= 1 ? n9 : 1;
     if (b9.desc != null && typeof b9.desc !== "string") b9.desc = String(b9.desc);
     if (b9.q !== qNorm(b9.q)) b9.q = qNorm(b9.q);
   }
@@ -15056,9 +15060,8 @@ function gearToBag(run, k9, slack9, keep9) {                     /* 卸下：槽
   bagBack(run, it9, k9, slack9, keep9);
   return it9;
 }
-function bagFind9(bag9, nm9, ps9) {                              /* P249c 列表过期按名字重找：同名的位面货与自家东西分开认，先找同类那一行 */
-  bag9 = bag9 || []; const j9 = bag9.findIndex(x => x && x.name === nm9 && !!x.ps === !!ps9);
-  return j9 >= 0 ? j9 : bag9.findIndex(x => x && x.name === nm9);
+function bagFind9(bag9, nm9, ps9) {                              /* P249c 列表过期按名字重找：同名的位面货与自家东西分开认；P249d 只找同类那一行，找不到就是找不到，不跨类改道 */
+  return (bag9 || []).findIndex(x => x && x.name === nm9 && !!x.ps === !!ps9);
 }
 function gearWear(run, i9, slot9) {                              /* 穿上：包第 i9 件→槽；slot9 缺省/auto＝自动认位，acc＝哪个饰位空去哪个 */
   const b9 = ((run && run.bag) || [])[i9]; if (!b9) return { why: "gone" };
@@ -15075,33 +15078,75 @@ function gearWear(run, i9, slot9) {                              /* 穿上：包
   if (old9) bagBack(run, old9, k9);
   return { k: k9, it: it9, old: old9 || null };
 }
-/* P249 状态栏「装备：-名」：光写 -名＝脱下收进背包。括号里只有部位/品质字样当没写。
-   P249c 错删玩家的东西比留着一件丢了的更糟：-名（原因）默认也收进背包；原因里有明确的丢失/转手/毁掉字眼才算没了（被偷、卖给、交给某人保管、押在当铺、换了一碗面、戴到别人头上、被老师收走……），
-   字眼前头是「怕/以免/免得/不是/没/差点/防止/小心」这类否定或担心的不算；丢/扔 后头跟着 包/袋/箱/柜/囊/行李/口袋/储物 是收起来；只是坏了＝收包、说明记【瑕疵】破损 */
-const GEAR_GONE = /被(?!我|她|自己|主角|本人)[^，。；,;]{0,6}?(?:偷|抢|夺|劫|扒|顺|收|拿走|没收|扣下|扣走|叼|吹|冲|卷|烧|毁|撕|骗|讹|拐|带走|缴|征|借走|要走)|偷走|抢走|顺走|叼走|拿走|收走|没收|充公|罚没|查封|[丢扔](?![^，。；,;]{0,6}?(?:包|袋|箱|柜|囊|行李|口袋|储物|兜|抽屉|盒|一边|一旁|床|桌|椅|沙发|架|宿舍|寝室|房间|家里|屋里))|垃圾|弄丢|遗失|遗落|落在|忘在|卖|当掉|当了|典当|当铺|抵押|押在|押给|抵(?:了|掉|作|成|给|债|账)|顶账|换钱|交换|易物|捐|[给帮替](?!自己|她自己)[^，。；,;]{1,6}(?:戴|穿|披|套|系|围)上|(?:交|递|扔|送|借|还|赠|让|转|塞|留|托|寄|分|丢)给|[托请让][^，。；,;]{1,6}保管|给了|送人|送了|赠|借出|献|祭|毁|烧(?:了|掉|没|穿|成|焦|光|尽)|碎|撕|融化|化了|化成|化为|熔|折断|断成|报废|作废|没了|不见了|找不到|消失|沉了|沉入|沉进|掉进|掉入|掉到|掉下(?!来)|落水|吹走|冲走|卷走|漂走|飘走|弄没|喂了|吃了|(?:戴|披|穿|套|系|围|挂|别)(?:到|在|上)(?![^，。；,;]{0,2}自己)[^，。；,;]{1,8}(?:头上|身上|脖子上|手上|肩上|脚上|腕上|胸前)|换(?:成|了|得|来|作|回|取)了?(?:[一两二三四五六七八九十百千万几半数\d]+(?![次遍回趟下])|钱|现|金|银|币|饭|面|吃|喝|食|粮|酒|糖|顿|碗|杯|票)(?![^，。；,;]*新)/;
-const GEAR_DMG = /坏|破损|损坏|裂|开线|脱线|磨破|豁口|缺口|变形|瘪|断了/;
-const GEAR_NEG = /(?:怕|以免|免得|不是|没有?|未曾?|差点儿?|险些|几乎|防止|防着|(?<!不)小心|避免|担心|生怕|唯恐|省得|别|不会|不能|不让|不想|不愿|不肯|舍不得|不舍得|不至于|不再|不必|不要)[它他她其人被给弄会再又就也都还要得]{0,2}$/;
-function gearHit9(re, s) {                                         /* 逐小句找：命中的字眼前头没有否定/担心才算 */
-  for (const c9 of String(s || "").split(/[，。；,;！!？?、\s]+/)) {
+/* P249 状态栏「装备：-名」：光写 -名＝脱下收进背包。括号里只有部位/品质字样当没写。P249c 坏了＝收包记【瑕疵】破损。P249d 见下：分类器整个换成闭合清单 */
+/* P249d 分类器 */
+/* P249d 「装备：-名（原因）」与 UNEQUIP_ITEM / LOSE_EQUIPMENT 的 why：默认＝收进背包。只有原因里写着下面这张闭合清单里的「没了」字眼（全是两个字以上）才算没了；
+   同一小句（按 ，。；、！？ 切）里字眼前头有「怕/以免/免得/防止/小心/差点/险些/没有/没被/未/不是/不会…」这类否定、担心、假设的不算（「不小心」不算否定）；
+   紧挨着字眼的「没/不/没能/舍不得…」也不算；找回、捡回、追回、拿回、捞回、赎回、要回…＝还在（前头是 没能/未能/没有 的不算）；
+   只是坏了（坏了、摔坏、裂了、破了个洞、烧焦、缺了、碎了一角、掉了一颗、折了…）＝收包、说明末尾记【瑕疵】破损；
+   换了一顶、换成新的、换下＝换装，收包。括号里整个只写一个「丢/毁/卖/送/没收」也算没了 */
+const GEAR_GONE = /被偷|偷走|被抢|抢走|被夺|夺走|被[^，。；、！？]{1,4}?[偷抢夺](?!回)|顺走|扒走|劫走|骗走|拐走|叼走|牵走|吹走|冲走|卷走|飘走|漂走|丢了|丢掉|丢失|丢弃|弄丢|丢哪|丢到哪|遗失|遗落|掉了|掉进|掉下(?:悬崖|山崖|深渊|海|河|楼)|落入|落进|沉入|沉进|找不[到着](?![^，。；、！？]{0,2}(?:地方|位置|机会|空|理由|时间|合适|挂|放|收|别的|其他))|不见了|不知去向|下落不明|没了|扔了|扔掉|[扔丢抛](?:进|入|到|下|出)了?(?:火|河|海|湖|江|井|深渊|悬崖|山崖|山谷|垃圾|下水道|熔炉|炉|岩浆|窗)|卖了|卖掉|卖给|出售|售出|变卖|转让|转手|换钱|换了钱|换成钱|换成了钱|当掉|典当|抵押|押在|押给|抵给|抵债|易物|送给|送人|送了(?![你我个])|赠给|赠予|赠送|转赠|捐了|捐给|捐出|捐赠|给了(?![你我个])|给[她他](?![看瞧瞅试摸闻])|借给|借走|借去|还给|归还|交还|上交|献给|献祭|祭掉|祭品|没收(?![起进好下拾到回着入])|扣押|收缴|充公|罚没|查封|烧毁|烧没|烧成|烧光|烧尽|烧掉|化作|化为|灰飞|灰烬|粉碎|碎了|碎成|碎掉|摔碎|打碎|砸碎|击碎|震碎|踩碎|压碎|炸碎|炸毁|毁了|毁掉|被毁|损毁|摧毁|报废|折断|断成|折成两|撕碎|溶掉|溶解|熔掉|熔化|熔成|腐蚀|吞了(?![一口])|吃了(?![一个点些几饭顿口惊亏苦])|成了?(?:灰|渣|碎片|焦炭|齑粉)|赌输|输掉|输给|赢走|用掉|用完|用光|耗尽|燃尽|消散|失效/;
+const GEAR_DMG = /(?<![热累气饿渴冻晒急乐吓忙困美馋闷乏])坏了|坏掉|摔坏|弄坏|磕坏|碰坏|压坏|撞坏|损坏|破损|裂了|裂开|裂缝|裂纹|破了|破洞|个[小大]?洞|口子|刮破|磨破|划破|撕破|扯破|烧焦|焦了|烧穿|缺了|缺口|豁口|碎了[一个点块]|掉了[一个点块颗粒]|掉漆|掉了漆|折了|断了[一个点块根条]|开线|脱线|变形|瘪了|腐蚀了[一个点块]/;
+const GEAR_BACK = /找回|捡回|追回|拿回|捞回|赎回|要回|夺回|抢回|买回|换回|取回|领回|还回(?!去)|还给了?[你我]|还了回来|捞起|捞了起来|捞上|捡起|捡了起来|找到(?!买家|买主|下家|新主人|主顾|人)|失而复得|物归原主|又回到|婉拒|拒收|没要|没收下|(?<!被)[她他]没收(?![起进好下拾了])/;
+const GEAR_SOFT = /(?:魔力|灵力|法力|电量|能量|效果|附魔|光芒|灵光|咒力|魔法|法术|兴致|用处|心情|力气|胃口|精神|耐心|兴趣|光泽|温度|香气|味道)[^，。；、！？]{0,3}?(?:耗尽|燃尽|消散|失效|用完|用光|用掉|没了)|没了(?=兴致|用处|心情|力气|胃口|精神|耐心|兴趣|魔力|灵光|光泽|光彩|效果)/g;   /* 没了的是魔力、效果、兴致，不是这件东西 */
+const GEAR_NEG_FAR = /怕|以免|免得|防止|(?<!不)小心|差点|差一点|险些|没有|没被|未|不是|不会|担心|唯恐|以防|为免|避免|防着|省得|万一|要是|如果|假如|若是|倘若|以为|打算|准备|本想|本来想|几乎|不然|否则/;
+const GEAR_NEG_NEAR = /(?:没能|未能|没|(?<!不得)不(?!得不)|别|舍不得|不舍得|想|无法|难以|拒绝)[它他她其人被给弄会再又就也都还要得把这那件过能去拿]{0,2}$/;
+const GEAR_IF = /^[^，。；、！？]{0,3}?(?:的话|就麻烦|就糟|就惨|就完|可就|就亏|可不得了|怎么办)/;   /* 「丢了可就惨了」＝假设 */
+const GEAR_TAG = /^(?:丢|毁|卖|送|没收|扔|弃|偷|抢|捐|赠)了?$/;
+function gearWhy9(why) { return String(why || "").split(/[·・]/).map(x => x.trim()).filter(x => x && !/^(帽|杖|帚|杖帚|袍|衣|裙|靴|鞋|饰|饰品|凡|良|稀|传奇|伟大|珍|绝)$/.test(x)).join("·"); }
+function gearHit9(re, s, near9) {                                  /* 逐小句找：命中的字眼前头（同一小句）没有否定/担心/假设，后头不是「…的话/可就惨了」才算 */
+  for (const c9 of String(s || "").split(/[，。；、！？,;!?·・\s]+/)) {
     const g9 = new RegExp(re.source, "g"); let m9;
-    while ((m9 = g9.exec(c9))) { if (!GEAR_NEG.test(c9.slice(0, m9.index))) return true; if (!m9[0]) g9.lastIndex++; }
+    while ((m9 = g9.exec(c9))) {
+      const pre9 = c9.slice(0, m9.index);
+      if (!GEAR_NEG_FAR.test(pre9) && !(near9 || GEAR_NEG_NEAR).test(pre9) && !GEAR_IF.test(c9.slice(m9.index + m9[0].length))) return true;
+      if (!m9[0]) g9.lastIndex++;
+    }
   }
   return false;
 }
-function gearWhy9(why) { return String(why || "").split(/[·・]/).map(x => x.trim()).filter(x => x && !/^(帽|杖|帚|杖帚|袍|衣|裙|靴|鞋|饰|饰品|凡|良|稀|传奇|伟大|珍|绝)$/.test(x)).join("·"); }
-const GEAR_BACK = /捞上来|(?:捞|捡|找|拿|要|追|赎|夺|抢|取)了?回(?!去)/;   /* 又找回来了＝还在 */
-function gearLost9(r9) { return !!r9 && gearHit9(GEAR_GONE, r9) && !gearHit9(GEAR_BACK, r9); }
-function gearDelOp(why) { return gearLost9(gearWhy9(why)) ? "-" : "off"; }
-function gearDmg(why) { const r9 = gearWhy9(why); return !!r9 && !gearLost9(r9) && gearHit9(GEAR_DMG, r9); }
-function gearFlaw9(d9) { d9 = String(d9 || ""); return /【瑕疵】破损/.test(d9) ? d9 : capDesc("【瑕疵】破损" + (d9 ? "·" + d9 : ""), d9); }   /* P249c 坏了还留着：说明前头记一笔，不和完好的那叠并 */
-function segParse9(s) {                                           /* P249c 装备/背包行的一段「±名×n（…）」：全角半角括号都认、括号没收口也认、×n 在括号前后都认；名字里绝不留括号 */
-  const m9 = String(s || "").trim().match(/^([+＋\-－])\s*(.+?)\s*(?:(?:[×*]|(?<![A-Za-z0-9])[xX])\s*(\d+))?\s*(?:[（(]([^）)]*)[）)]?)?\s*(?:(?:[×*]|(?<![A-Za-z0-9])[xX])\s*(\d+))?\s*$/);
-  if (!m9) return null;
-  let nm9 = m9[2], in9 = m9[4] || "";
-  const k9 = nm9.search(/[（(]/);
-  if (k9 >= 0) { in9 = [nm9.slice(k9 + 1).replace(/[（()）]+/g, "·"), in9].join("·"); nm9 = nm9.slice(0, k9); }
-  nm9 = nm9.replace(/[）)]/g, "").trim(); if (!nm9) return null;
-  return { op: /[+＋]/.test(m9[1]) ? "+" : "-", name: nm9, n: U.clamp(parseInt(m9[3] || m9[5] || "1", 10) || 1, 1, 999), inner: in9.replace(/^[·\s]+|[·\s]+$/g, "").replace(/·{2,}/g, "·") };
+function gearCls9(why) {                                           /* → "lost" | "dmg" | "bag" */
+  const r9 = gearWhy9(why); if (!r9) return "bag";
+  if (GEAR_TAG.test(r9.replace(/[\s。！!～~]+/g, ""))) return "lost";
+  const m9 = r9.replace(GEAR_SOFT, x => "□".repeat(x.length)).replace(new RegExp(GEAR_DMG.source, "g"), x => "□".repeat(x.length));   // 局部损坏、魔力耗尽这些字面先盖掉，免得「碎了一角」「魔力耗没了」被当成整件没了
+  const back9 = gearHit9(GEAR_BACK, r9, /(?:没能|未能|没有|没|未|不曾)[它他她其又再也都还就]{0,2}$/);
+  if (gearHit9(GEAR_GONE, m9) && !back9) return "lost";
+  return gearHit9(GEAR_DMG, r9) ? "dmg" : "bag";
+}
+function gearDelOp(why) { return gearCls9(why) === "lost" ? "-" : "off"; }
+function gearDmg(why) { return gearCls9(why) === "dmg"; }
+/* /P249d 分类器 */
+function gearFlaw9(d9) {                                          /* P249d 坏了还留着：【瑕疵】破损 记在说明末尾（不往前插——战利品原带的【瑕疵】仍是 dndItem 认的那一条）；说明里已有【瑕疵】就不再记；不和完好的那叠并 */
+  d9 = String(d9 || ""); if (/【瑕疵】/.test(d9)) return d9;
+  const t9 = "【瑕疵】破损", lim9 = 60 - t9.length, tg9 = d9.match(/【部位】(?:帽|杖帚|袍|靴|饰)/);
+  let s9 = d9.slice(0, lim9);
+  if (tg9 && s9.indexOf(tg9[0]) < 0) s9 = (tg9[0] + d9.replace(tg9[0], "")).slice(0, lim9);   // 说明太长：截前头的字，【部位】照旧不丢
+  return s9 + t9;
+}
+const GEAR_SLOTQ9 = /^(帽|杖|帚|杖帚|袍|衣|裙|靴|鞋|饰|饰品|凡|良|稀|传奇|伟大|珍|绝)$/;
+function segParse9(s, kind9, run9) {                              /* P249c 装备/背包行的一段「±名×n（…）」：全角括号没收口也认、×n 在括号前后都认。
+                                                                    P249d 装备行只认全角「×」、只认末尾的 ×N（名字里的拉丁 x/X 是名字）；半角括号不再从名字里剥：末尾的半角 (…) 只在
+                                                                    「-」且括号前那段正是身上/包里的东西、或「+」且括号里写着部位/品质字样时才当括号，否则整段就是名字 */
+  const m0 = String(s || "").trim().match(/^([+＋\-－])\s*([\s\S]*)$/); if (!m0) return null;
+  const op9 = /[+＋]/.test(m0[1]) ? "+" : "-";
+  const MUL9 = kind9 === "gear" ? /\s*×\s*(\d+)\s*$/ : /\s*(?:[×*]|(?<![A-Za-z0-9])[xX])\s*(\d+)\s*$/;
+  let body9 = m0[2].trim(), n9 = 0, in9 = "";
+  const mul9 = t9 => { const m9 = t9.match(MUL9); if (m9 && !n9) { n9 = parseInt(m9[1], 10) || 1; return t9.slice(0, m9.index).trim(); } return t9; };
+  body9 = mul9(body9);                                             // 括号后头的 ×n
+  const kf9 = body9.indexOf("（");
+  if (kf9 >= 0) { in9 = body9.slice(kf9 + 1).replace(/[（()）]+/g, "·"); body9 = body9.slice(0, kf9).trim(); }   // 全角括号：第一个「（」起都是括号里的话
+  else {
+    const kh9 = body9.lastIndexOf("(");
+    if (kh9 > 0 && /^\([^()]*\)?\s*$/.test(body9.slice(kh9))) {    // 末尾的半角 (…)：认得出才当括号
+      const pre9 = body9.slice(0, kh9).trim(), ins9 = body9.slice(kh9 + 1).replace(/\)\s*$/, "").trim();
+      const nm14 = x => String(x || "").slice(0, 14), has9 = nm => { const k9 = nm14(nm); return !!k9 && (Object.values((run9 && run9.gear) || {}).some(g => g && nm14(g.name) === k9) || ((run9 && run9.bag) || []).some(b => b && nm14(b.name) === k9)); };
+      const br9 = op9 === "-" ? !has9(body9) && has9(pre9.replace(MUL9, "")) : ins9.split(/[·・]/).some(x => GEAR_SLOTQ9.test(x.trim()));
+      if (br9) { in9 = ins9; body9 = pre9; }
+    }
+  }
+  body9 = mul9(body9);                                             // 括号前头的 ×n
+  const nm9 = body9.replace(/）/g, "").trim(); if (!nm9) return null;
+  return { op: op9, name: nm9, n: U.clamp(n9 || 1, 1, 999), inner: in9.replace(/^[·\s]+|[·\s]+$/g, "").replace(/·{2,}/g, "·") };
 }
 function slotFromWord(w, gear) {                                 /* P155 词典扩编：AI 报的大多数行头都能认位；P249 复合词先认（围巾≠帽、戒指≠冠、连帽衫≠帽、挂坠≠剑） */
   w = String(w || ""); gear = gear || {};
@@ -27727,7 +27772,7 @@ const PromptM = (() => {
 "我方：（可选，主角的人脉产业声望真实扎根或撤出某星域时写：我方：+南城 或 我方：-雪楠湖。产业所在自动计入）",
 "人口：（可选，某星域人口因灾祸魔潮剧变时写：人口：盖亚-三成 或 人口：南城+一成，可多处用｜分隔）",
 "地标：（可选，剧情真实改变城市面貌时写：地标：南城｜+夜航灯桥（港·一句介绍） 或 地标：南城｜-老茶摊。类限 塔/港/市/坊/馆/署/校/宅/桥/站，改动会真实画上地域图，城市会随岁月长出新去处）",
-"装备：（可选，穿脱得失：装备：+星纹尖帽（帽·稀·一句）｜-旧尖帽。光写 -名＝脱下收进背包；-名（原因）＝这件没了，原因照实写：-名（被偷）／-名（掉进海里）／-名（送给某人）／-名（卖给某人）。只是脱下收好就别加括号；坏了但还留着写 -名（坏了），引擎收进背包、记上瑕疵。脱下、换下、顶下来的旧物引擎自动收进背包，从背包里拿出来穿的引擎自动从背包扣——都别再在背包行另写 +名／-名。部位限 帽/杖帚/袍/靴/饰，品质限 凡/良/稀/传奇/伟大；品质是真加成（稀+1档/传奇+2档入判定）；白得的至多稀、当幕大成可得传奇，更高须购置：购置：装备｜名｜部位｜品质（账房定价：凡200/良1000/稀8000/传奇10万，×纪元；伟大有市无价））",
+"装备：（可选，穿脱得失：装备：+星纹尖帽（帽·稀·一句）｜-旧尖帽。-名 = 脱下收进背包；东西没了（丢了、卖了、送人、被偷被抢、毁了、用完）才写 -名（丢了/卖了/…，照实写）；坏了但还留着写 -名（坏了），引擎收进背包、记上瑕疵。脱下、换下、顶下来的旧物引擎自动收进背包，从背包里拿出来穿的引擎自动从背包扣——都别再在背包行另写 +名／-名。部位限 帽/杖帚/袍/靴/饰，品质限 凡/良/稀/传奇/伟大；品质是真加成（稀+1档/传奇+2档入判定）；白得的至多稀、当幕大成可得传奇，更高须购置：购置：装备｜名｜部位｜品质（账房定价：凡200/良1000/稀8000/传奇10万，×纪元；伟大有市无价））",
 "背包：（可选，随身物品得失时写：背包：+魔力电池×3（良·一句描述）｜-传单×1）",
 "名下：（可选，主角购置或失去空岛、折叠空间、开垦地时写：名下：+听雨空岛（雪楠湖·空岛·一句描述） 或 -名称。剧情确认主角已有而档上没有的资产，必须当幕用此行补录——不入档＝不存在，地图与账房都不认）",
 "日期：（每幕必写，按剧情推进合理时长：日期：5月12日·暮。时段限 晨/午/暮/夜；跨日跨月照实写）",
@@ -28036,7 +28081,7 @@ MVU.proto(),
       else if (k === "装备") {
         stat.gear = stat.gear || [];
         for (const seg of v.split(/[｜|]/)) {
-          const sp9 = segParse9(seg); if (!sp9) continue;         /* P249 +名 不带括号也认；P249c 半角括号、-名×1 也认，名字里不留括号 */
+          const sp9 = segParse9(seg, "gear", typeof S !== "undefined" ? S.run : null); if (!sp9) continue;   /* P249 +名 不带括号也认；P249c -名×1 也认；P249d 半角括号认得出才当括号，名字里的 x/X 不当数量 */
           if (sp9.op === "+") {
             const parts = sp9.inner.split(/[·・]/).map(x => x.trim()).filter(Boolean);
             let slotW = "", q = "良", desc = [];
@@ -28046,8 +28091,8 @@ MVU.proto(),
               desc.push(pt);
             }
             stat.gear.push({ op:"+", name: sp9.name, slotW, q, desc: desc.join("·") });
-          } else {                                                 /* P249c -名／-名（原因）默认收包；写明丢了、卖了、送人、毁了才算没了；坏了＝收包记瑕疵；-名×2＝两件 */
-            const op9 = gearDelOp(sp9.inner), dm9 = op9 === "off" && gearDmg(sp9.inner) ? 1 : 0;
+          } else {                                                 /* P249c -名／-名（原因）默认收包；写明丢了、卖了、送人、毁了才算没了；坏了＝收包记瑕疵；-名×2＝两件；P249d 闭合清单分类器 */
+            const k9 = gearCls9(sp9.inner), op9 = k9 === "lost" ? "-" : "off", dm9 = k9 === "dmg" ? 1 : 0;
             for (let i9 = 0; i9 < Math.min(sp9.n, 6); i9++) stat.gear.push({ op: op9, name: sp9.name, dmg: dm9 });
           }
         }
@@ -28055,7 +28100,7 @@ MVU.proto(),
       else if (k === "行囊" || k === "背包") {
         stat.bag = stat.bag || [];
         for (const seg of v.split(/[｜|]/)) {
-          const sp9 = segParse9(seg); if (!sp9) continue;           /* P249c 与装备行同一套拆法 */
+          const sp9 = segParse9(seg, "bag", typeof S !== "undefined" ? S.run : null); if (!sp9) continue;   /* P249c 与装备行同一套拆法（背包行仍认 x3） */
           let q = "凡", desc = "";
           if (sp9.inner) {
             const parts = sp9.inner.split(/[·・]/).map(x => x.trim());
@@ -28557,6 +28602,7 @@ MVU.proto(),
     const cnt9 = (o, k, n) => { if (!o[k]) return n; const u9 = Math.min(o[k], n); o[k] -= u9; return n - u9; };
     const add9 = (o, k) => { o[k] = (o[k] || 0) + 1; };
     if (stat.gear || stat.bag || stat.buys) bagSane(run);
+    const pre9 = new Set(run.bag || []);                            /* P249d 本幕前就在包里的行（含本幕往里加量的那叠）：收尾硬压也不挤 */
     if (stat.buys) for (const b of stat.buys) {                     /* P249c 购置装备先落账：收钱、上身（顶下的旧物收包），同幕装备行/背包行再报同名只当重申，不再多出一件 */
       if (b.kind !== "装备") continue;
       const em = eraMult(run.year), nc9 = nameCap9(b.full || b.name);
@@ -28608,8 +28654,8 @@ MVU.proto(),
           if (j9 >= 0) { if ((run.bag[j9].n || 1) > 1) run.bag[j9].n -= 1; else run.bag.splice(j9, 1); add9(gone9, gn9); }
         }
         else if (g.dmg) {                                         /* P249c 先手卸进了包、AI 这幕才说坏了：包里那件记瑕疵（成叠的分出一件） */
-          const j9 = run.bag.findIndex(x => x && !x.ps && nmIs9(x.name, gn9) && !/【瑕疵】破损/.test(x.desc || ""));
-          if (j9 >= 0) { const x9 = run.bag[j9]; if ((x9.n || 1) > 1) { x9.n -= 1; const y9 = Object.assign({}, x9, { n: 1, desc: gearFlaw9(x9.desc) }); run.bag.splice(j9, 0, y9); keep9.add(y9); } else x9.desc = gearFlaw9(x9.desc); }
+          const j9 = run.bag.findIndex(x => x && !x.ps && nmIs9(x.name, gn9) && !/【瑕疵】/.test(x.desc || ""));   // P249d 已带【瑕疵】的不再记
+          if (j9 >= 0) { const x9 = run.bag[j9]; if ((x9.n || 1) > 1) { x9.n -= 1; const y9 = Object.assign({}, x9, { n: 1, desc: gearFlaw9(x9.desc) }); run.bag.splice(j9, 0, y9); keep9.add(y9); pre9.add(y9); } else x9.desc = gearFlaw9(x9.desc); }   // 分出来的那件是玩家原有的：收尾硬压不挤
         }
       }
     } }
@@ -29229,8 +29275,9 @@ MVU.proto(),
       const fk = Object.keys(run.factions);
       if (fk.length > 12) fk.slice(0, fk.length - 12).forEach(k2 => delete run.factions[k2]);
     }
-    if (stat._story || stat.bag || stat.gear || stat.buys) {      /* P249 本幕收尾：背包压回四十件（本幕进包、卸下的不挤），挤掉了什么当场说；玩家手卸的那张单子用过即弃 */
-      bagTrim(run, keep9, 0, bought9);                              /* P249c 本幕一口气进来超过四十件：只留最新的四十件（花钱买下的不算在内），也当场说 */
+    if (stat._story || stat.bag || stat.gear || stat.buys || (run._drop9 && run._drop9.length)) {   /* P249 本幕收尾：背包压回四十件（本幕进包、卸下的不挤），挤掉了什么当场说；玩家手卸的那张单子用过即弃 */
+      for (const x9 of bought9) pre9.add(x9);
+      bagTrim(run, keep9, 0, pre9);                                 /* P249c 本幕一口气进来超过四十件：只挤本幕新进来的；P249d 卸下的、花钱买的、本幕前就在包里的、位面货都不挤，挤的件数＝超出四十的件数，只剩护着的就宁可超额 */
       const dt9 = bagDropTxt(run); if (dt9 && typeof U !== "undefined" && U.toast) U.toast(dt9, 4200);
       delete run._offT;
     }
@@ -29314,8 +29361,8 @@ const MVU = (() => {
     ADD_ITEM:         { req: ["name"], f: { name: ["str", 14], n: ["int"], quality: ["str", 4], desc: ["str", 50] } },
     REMOVE_ITEM:      { req: ["name"], f: { name: ["str", 14], n: ["int"] } },
     EQUIP_ITEM:       { req: ["name"], f: { name: ["str", 14], slot: ["str", 6], quality: ["str", 4], desc: ["str", 50] } },
-    UNEQUIP_ITEM:     { req: ["name"], f: { name: ["str", 14], why: ["str", 16] } },   /* P249c why＝坏了：收包并记瑕疵 */
-    LOSE_EQUIPMENT:   { req: ["name"], f: { name: ["str", 14] } },
+    UNEQUIP_ITEM:     { req: ["name"], f: { name: ["str", 14], why: ["str", 40] } },   /* P249c why＝坏了：收包并记瑕疵；P249d why 与状态栏括号走同一个分类器 */
+    LOSE_EQUIPMENT:   { req: ["name"], f: { name: ["str", 14], why: ["str", 40] } },   /* P249d 不带 why＝没了；带 why 照分类器：写明没了才没了，否则收包 */
     ADD_CONDITION:    { req: ["name"], f: { name: ["str", 8], desc: ["str", 30] } },
     REMOVE_CONDITION: { req: ["name"], f: { name: ["str", 8] } }
   };
@@ -29515,8 +29562,10 @@ const MVU = (() => {
       else if (c.cmd === "ADD_ITEM") stat.bag.push({ op: "+", name: c.name, n: c.n || 1, q: qNorm(c.quality || "凡"), desc: c.desc || "" });
       else if (c.cmd === "REMOVE_ITEM") stat.bag.push({ op: "-", name: c.name, n: c.n || 1 });
       else if (c.cmd === "EQUIP_ITEM") stat.gear.push({ op: "+", name: c.name, slotW: c.slot || "", q: qNorm(c.quality || "良"), desc: c.desc || "" });
-      else if (c.cmd === "UNEQUIP_ITEM") stat.gear.push({ op: "off", name: c.name, dmg: c.why && gearHit9(GEAR_DMG, c.why) ? 1 : 0 });   /* P249 卸下＝收进背包，不再与丢失同删；P249c why 说坏了＝记瑕疵 */
-      else if (c.cmd === "LOSE_EQUIPMENT") stat.gear.push({ op: "-", name: c.name });
+      else if (c.cmd === "UNEQUIP_ITEM" || c.cmd === "LOSE_EQUIPMENT") {   /* P249 卸下＝收进背包，不再与丢失同删；P249c why 说坏了＝记瑕疵；P249d why 走闭合清单分类器（默认收包），LOSE 不带 why 才直接算没了 */
+        const k9 = c.why ? gearCls9(c.why) : c.cmd === "LOSE_EQUIPMENT" ? "lost" : "bag";
+        stat.gear.push(k9 === "lost" ? { op: "-", name: c.name } : { op: "off", name: c.name, dmg: k9 === "dmg" ? 1 : 0 });
+      }
       else if (c.cmd === "ADD_CONDITION") stat.conds.push({ op: "+", name: c.name, note: c.desc || "" });
       else if (c.cmd === "REMOVE_CONDITION") stat.conds.push({ op: "-", name: c.name });
     }
@@ -29558,8 +29607,8 @@ const MVU = (() => {
       ADD_ITEM: "进背包。n 默认1，quality 限 凡/良/稀/传奇/伟大",
       REMOVE_ITEM: "出背包（拿去穿的不算：EQUIP_ITEM 已自动从背包扣）",
       EQUIP_ITEM: "上身。slot 限 帽/袍/鞋/杖/坠/戒/佩。从背包里拿出来穿，引擎自动从背包扣、顶下的旧物自动收进背包（别再另写 REMOVE_ITEM／ADD_ITEM）",   /* P249 */
-      UNEQUIP_ITEM: "卸下，引擎自动收进背包（别再另写 ADD_ITEM）；坏了但东西还在，也用这条，why 写「坏了」，引擎记上瑕疵",   /* P249c */
-      LOSE_EQUIPMENT: "丢了、毁了、被偷、被没收、卖掉、送人、借出、交给别人保管（直接没了，不进背包；同名穿着两件、两件都没了就写两条）",
+      UNEQUIP_ITEM: "脱下收进背包，引擎自动收（别再另写 ADD_ITEM）；坏了但还留着也用这条，why 写「坏了」，引擎记上瑕疵",   /* P249c；P249d */
+      LOSE_EQUIPMENT: "东西没了（丢了、卖了、送人、被偷被抢、毁了、用完）才用这条，why 照实写（丢了/卖了/…）；只是脱下收好用 UNEQUIP_ITEM。同名穿着两件、两件都没了就写两条",   /* P249d 与状态栏装备行同一口径 */
       ADD_CONDITION: "伤病与异常",
       REMOVE_CONDITION: "痊愈"
     };
@@ -30217,7 +30266,7 @@ const UI = (() => {
         : '<div class="dslot empty" data-slotk="' + k + '"><span class="sl">' + lb + '</span><b>—</b></div>';
     }).join("");
     const bagRows = ((run.bag || []).map((b, bi) =>             /* P249 整包都画（封顶四十，多了自带滚动），刚卸下的在包首——不再有第 21 件点不着 */
-      '<div class="bag-item ' + (QCLS[b.q] || "") + '" draggable="true" data-bagi="' + bi + '" data-bagn="' + U.esc(b.name) + '" data-gdesc="' + U.esc(b.name + (b.desc ? "：" + b.desc : "") + (b.slot && SLOTLB[b.slot] ? "　〔原在" + SLOTLB[/^acc/.test(b.slot) ? "acc" : b.slot] + "位〕" : "")) + '"><b>' + U.esc(b.name) + '</b><span class="n">×' + (b.n || 1) + "</span></div>").join("") || '<p class="hint">空的。</p>');
+      '<div class="bag-item ' + (QCLS[b.q] || "") + '" draggable="true" data-bagi="' + bi + '" data-bagn="' + U.esc(b.name) + (b.ps ? '" data-bagps="1' : "") + '" data-gdesc="' + U.esc(b.name + (b.desc ? "：" + b.desc : "") + (b.slot && SLOTLB[b.slot] ? "　〔原在" + SLOTLB[/^acc/.test(b.slot) ? "acc" : b.slot] + "位〕" : "")) + '"><b>' + U.esc(b.name) + '</b><span class="n">×' + (b.n || 1) + "</span></div>").join("") || '<p class="hint">空的。</p>');
     const estRows = (run.estates || []).map(e2 =>
       '<div class="estate-item" data-gdesc="' + U.esc(((e2.desc || "").slice(0, 40) || "私产") + ((e2.fac || []).length ? "　设施：" + e2.fac.map(f => f.name + ((f.lv || 1) > 1 ? f.lv + "级" : "") + (f.inc ? "·年入" + f.inc + "元" : "")).join("、") : "")) + '"><b>' + U.esc(e2.name) + '</b><span class="k">' + U.esc((RNAME[e2.region] || "") + "·" + (e2.size || e2.kind) + (e2.size ? "·" + (e2.fac || []).length + "/" + isleSlots(e2) + "位" : ((e2.fac || []).length ? "·设施" + e2.fac.length : ""))) + "</span></div>").join("");
     const kin = Object.keys(run.npcs || {}).filter(n => run.npcs[n].rel === "使魔·宠物").slice(0, 3);
@@ -31917,11 +31966,12 @@ const Game = (() => {
     autosave(); renderDB(); UI.panels();
     U.toast("「" + a9.name + "」挪到「" + (SLOTLB[k2] || k2) + "」槽" + (b9 ? "，与「" + b9.name + "」互换" : ""));
   }
-  function bagWear(i9, slot9, nm9) {                             /* P151 行囊归置；P249 侧栏装上/资料库/拖拽同走 gearWear；nm9＝点的那件名字，列表过期就按名字重找 */
+  function bagWear(i9, slot9, nm9, ps9) {                        /* P151 行囊归置；P249 侧栏装上/资料库/拖拽同走 gearWear；nm9＝点的那件名字，列表过期就按名字重找；
+                                                                    P249d ps9＝点的/拖的那行是不是位面货：位面货与自家东西各找各的，不跨类改道——拖位面货上身只给拒绝提示 */
     const run = S.run; if (!run) return false;
-    const bag9 = run.bag || [];
-    if (nm9 != null && nm9 !== "" && ((bag9[i9] || {}).name !== nm9 || (bag9[i9].ps && bag9.some(x => x && !x.ps && x.name === nm9)))) {   /* P249c 位面货不给穿：指到同名位面货那行多半是列表过期，改找自家那件 */
-      i9 = bagFind9(bag9, nm9, false);
+    const bag9 = run.bag || [], kd9 = ps9 == null ? null : !!ps9;
+    if (nm9 != null && nm9 !== "" && !(bag9[i9] && bag9[i9].name === nm9 && (kd9 == null || !!bag9[i9].ps === kd9))) {
+      i9 = kd9 != null ? bagFind9(bag9, nm9, kd9) : bagFind9(bag9, nm9, false) >= 0 ? bagFind9(bag9, nm9, false) : bagFind9(bag9, nm9, true);   // 不知是哪类（旧调用）：先认自家那件
       if (i9 < 0) { renderDB(); UI.panels(); U.toast("背包刚变过，「" + nm9 + "」已不在包里——列表已刷新"); return false; }
     }
     const r9 = gearWear(run, i9, slot9 || "auto");
@@ -32575,7 +32625,7 @@ const Game = (() => {
     UI.open("ov-char");
   });
   function unequipSlot(k) { return Game.gearOff(k); }            /* P249 与资料库/拖拽同一支公器，不再各写一份 */
-  function equipFromBag(i, k, nm) { return Game.bagWear(i, k || "auto", nm); }
+  function equipFromBag(i, k, nm) { return Game.bagWear(i, k || "auto", nm, false); }   /* P249d 「装上」只给自家东西画 */
   function gdescToggle(e) {
     const uq = e.target.closest("[data-unequip]");
     if (uq) { if (!tapTwice9(e)) unequipSlot(uq.dataset.unequip); return false; }   /* P249 连点只算一下 */
@@ -32923,7 +32973,7 @@ const Game = (() => {
     const mark9 = el => { clear9(); if (el) el.classList.add("dropok"); clearTimeout(unT9); unT9 = setTimeout(clear9, 300); };
     document.addEventListener("dragstart", e => {
       const bi = e.target.closest ? e.target.closest(".bag-item[draggable]") : null;
-      if (bi && bi.dataset.bagi != null) { e.dataTransfer.setData("text/plain", "bagi:" + bi.dataset.bagi + "|" + (bi.dataset.bagn || "")); e.dataTransfer.effectAllowed = "move"; return; }   /* P249 带上名字，列表过期也认得准 */
+      if (bi && bi.dataset.bagi != null) { e.dataTransfer.setData("text/plain", "bagi:" + bi.dataset.bagi + "|" + (bi.dataset.bagps === "1" ? "1" : "0") + "|" + (bi.dataset.bagn || "")); e.dataTransfer.effectAllowed = "move"; return; }   /* P249 带上名字，列表过期也认得准；P249d 带上是不是位面货：拖位面货上身只给拒绝提示，不改道去穿同名的自家那件 */
       const ds = e.target.closest ? e.target.closest(".dslot[draggable]") : null;
       if (ds && ds.dataset.slot) { e.dataTransfer.setData("text/plain", "slot:" + ds.dataset.slot); e.dataTransfer.effectAllowed = "move"; }
     });
@@ -32946,9 +32996,9 @@ const Game = (() => {
       if (!slotEl && !bagEl && !dollEl) return;
       e.preventDefault(); clear9();
       if (pay9.indexOf("bagi:") === 0) {
-        const i9 = parseInt(pay9.slice(5), 10), nm9 = pay9.indexOf("|") > 0 ? pay9.slice(pay9.indexOf("|") + 1) : null;
-        if (slotEl && slotEl.dataset.slotk) Game.bagWear(i9, slotEl.dataset.slotk, nm9);
-        else if (dollEl) Game.bagWear(i9, "auto", nm9);
+        const pt9 = pay9.slice(5).split("|"), i9 = parseInt(pt9[0], 10), ps9 = pt9.length > 2 ? pt9[1] === "1" : undefined, nm9 = pt9.length > 2 ? pt9.slice(2).join("|") : pt9.length > 1 ? pt9[1] : null;
+        if (slotEl && slotEl.dataset.slotk) Game.bagWear(i9, slotEl.dataset.slotk, nm9, ps9);
+        else if (dollEl) Game.bagWear(i9, "auto", nm9, ps9);
       } else {
         const k9 = pay9.slice(5);
         if (bagEl) Game.gearOff(k9);
@@ -33511,8 +33561,8 @@ const Game = (() => {
   U.$("#ov-db").addEventListener("click", e => {                       /* P215 勋章兑换 */
     if (typeof polFollowClick === "function" && polFollowClick(e)) return;   /* P224 请动异种族效力 */
     const b = e.target.closest("[data-mdrd]"); if (!b || !S.run) return;
-    const r9 = medalRedeem(S.run, b.dataset.mdrd, b.dataset.mdopt, null);
-    U.toast(r9.ok ? r9.t : r9.why); if (r9.ok) { Game.autosave(); UI.panels(); Game.setDbTab("up"); }
+    const r9 = medalRedeem(S.run, b.dataset.mdrd, b.dataset.mdopt, null), dt9 = r9.ok && typeof bagDropTxt === "function" ? bagDropTxt(S.run) : "";
+    U.toast(r9.ok ? r9.t + (dt9 ? "；" + dt9 : "") : r9.why, dt9 ? 4200 : undefined);   /* P249d 顶下的旧物挤掉了什么也当场说 */ if (r9.ok) { Game.autosave(); UI.panels(); Game.setDbTab("up"); }
   });
   U.$("#turn-bar").addEventListener("click", e => { if (e.target.closest("#turn-end")) Game.turnEndUI(); });
   U.$("#db-body").addEventListener("change", e => { if (e.target && e.target.id === "db-txt") return; if (typeof mtabEdit === "function" && mtabEdit(e.target)) return; Game.dbEdit(e.target); });   /* P145 · P226 */
@@ -33530,7 +33580,7 @@ const Game = (() => {
       return;
     }
     const bw9 = e.target.closest("[data-bwear]");               /* P151 行囊归置 */
-    if (bw9) { if (tapTwice9(e)) return; const sel9 = bw9.parentElement.querySelector("[data-bslot]"), rw9 = bw9.closest(".db-row"), sv9 = sel9 ? sel9.value : "auto"; if (sel9) sel9.value = "auto"; Game.bagWear(Number(bw9.dataset.bwear), sv9, rw9 ? rw9.dataset.bk : null); return; }   /* P249 带名字核对；手选的部位用过即清；连点只算一下 */
+    if (bw9) { if (tapTwice9(e)) return; const sel9 = bw9.parentElement.querySelector("[data-bslot]"), rw9 = bw9.closest(".db-row"), sv9 = sel9 ? sel9.value : "auto"; if (sel9) sel9.value = "auto"; Game.bagWear(Number(bw9.dataset.bwear), sv9, rw9 ? rw9.dataset.bk : null, rw9 ? rw9.dataset.bps === "1" : undefined); return; }   /* P249 带名字核对；手选的部位用过即清；连点只算一下 */
     const go9 = e.target.closest("[data-gsoff]");
     if (go9) { if (tapTwice9(e)) return; Game.gearOff(go9.dataset.gsoff); return; }
     const dx1 = e.target.closest("[data-dexon]");               /* P150 原著法术图鉴 */
