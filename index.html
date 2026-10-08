@@ -14964,8 +14964,8 @@ function bagDropTxt(run) {                                       /* P249 挤掉�
 }
 function bagSane(run) {                                          /* P249 旧档/手改档：空行、裸字串、坏装备格不再让侧栏与资料库整栏崩 */
   if (!run) return;
-  const it9 = x => typeof x === "string" || typeof x === "number" ? (String(x).trim() ? { name: String(x).trim().slice(0, 14), n: 1, q: "凡", desc: "" } : null)
-    : x && typeof x === "object" && !Array.isArray(x) && x.name != null && String(x.name).trim() ? x : null;
+  const it9 = x => !x ? null : typeof x === "string" ? (x.trim() ? { name: x.trim().slice(0, 14), n: 1, q: "凡", desc: "" } : null)
+    : typeof x === "object" && !Array.isArray(x) && x.name != null && String(x.name).trim() ? x : null;   // 空的丢掉，裸字串扶正成一件凡品，别的怪东西丢掉
   if (!Array.isArray(run.bag)) run.bag = [];
   else if (run.bag.some(x => !x || it9(x) !== x)) run.bag = run.bag.map(it9).filter(Boolean);
   for (const b9 of run.bag) if (typeof b9.name !== "string") b9.name = String(b9.name);
@@ -28169,7 +28169,7 @@ MVU.proto(),
       else if (k === "购置") {
         const seg = v.split(/[｜|]/).map(x => x.trim());
         if (seg[0] && seg[1]) {
-          const b = { kind: seg[0], name: seg[1].slice(0, 12), price: null, region: "", extra: "", inc: 0 };
+          const b = { kind: seg[0], name: seg[1].slice(0, seg[0] === "装备" ? 14 : 12), price: null, region: "", extra: "", inc: 0 };   /* P249 装备名与背包同为 14 字 */
           for (const sg of seg.slice(2)) {
             if (/价|元/.test(sg) && b.price == null && !/年入/.test(sg)) { b.price = moneyOf(sg); continue; }
             const mi = sg.match(/年入\s*(\d+)/); if (mi) { b.inc = parseInt(mi[1], 10); continue; }
