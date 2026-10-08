@@ -873,6 +873,7 @@ html[data-theme="light"] :is(.dslot,.gslot,.bag-item).q-liang b{color:var(--ok)}
 .gslot.q-weida{border-style:solid;border-image:linear-gradient(135deg,#ab90f0,#ef9fc0,#e8cd8f) 1}.gslot.q-weida b{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
 .bag-item{display:flex;gap:8px;align-items:baseline;font-size:12.5px;padding:5px 2px;border-bottom:1px dashed var(--line);cursor:pointer}
 .bag-item:last-child{border-bottom:none}
+.bag-list{max-height:min(62vh,600px);overflow-y:auto}          /* P249 整包都画，长了内滚 */
 .bag-item b{font-weight:500;color:var(--ink2)}
 .bag-item.q-liang b{color:#adc98f}.bag-item.q-xi b{color:#c4aef5}.bag-item.q-chuan b{color:#e8cd8f}
 .bag-item .n{color:var(--mut);font-size:11.5px}
@@ -5543,7 +5544,8 @@ function medalRedeem(run, nm, optId, addAnnal) {
   const opt = medalOpts(run, nm).find(o => o.id === optId); if (!opt) return { ok: 0, why: "目录里没有这一项" };
   const ann = t => { if (addAnnal) addAnnal(t); else { run.annals = run.annals || []; run.annals.push({ y: run.year, t }); } };
   if (def.kind === "gear") {
-    run.gear = run.gear || {}; run.gear[opt.slot] = { name: opt.label, q: def.q, desc: opt.desc };
+    run.gear = run.gear || {}; if (run.gear[opt.slot] && typeof bagBack === "function") bagBack(run, run.gear[opt.slot], opt.slot);   /* P249 领章装备顶下的旧物回包，不蒸发 */
+    run.gear[opt.slot] = { name: opt.label, q: def.q, desc: opt.desc };
     rd[nm].got.push(opt.label); rd[nm].y = run.year;
     ann("凭「" + nm + "」领了" + (def.q === "传奇" ? "防御性传奇装备" : "梅琳娜打造的高阶装备") + "「" + opt.label + "」");
     return { ok: 1, t: "领了「" + opt.label + "」（" + def.q + "）" };
@@ -14926,20 +14928,71 @@ function tiesWeave(run, ties) {   // 「已有关系/资产/债务」织进引�
 const STANCES = ["支持","合作","观望","竞争","对立","疏远"];
 const RELCLR = { "恋人":"#ef9fc0","家人":"#e8cd8f","挚友":"#7fd0c8","师徒":"#b89bf0","同僚":"#9fb8e8","使魔·宠物":"#95d89a","仇敌":"#e08f8f","泛交":"#8a84a8",
   "信众":"#d9b96e","生意":"#8fb8d8","房东":"#b8a08a","考官":"#a890d8","教官":"#e0917a","贵人":"#d9a2e8","经纪人":"#8fd0a8" };
-function bagPut(run, o9) {                                       /* P175 进包统一走这里：同名加量、四十件封顶 */
-  run.bag = run.bag || [];
-  const i9 = run.bag.findIndex(x => x.name === o9.name);
-  if (i9 >= 0) run.bag[i9].n = (run.bag[i9].n || 1) + 1;
-  else run.bag.push({ name: o9.name, n: 1, q: o9.q, desc: o9.desc || "" });
-  if (run.bag.length > 40) run.bag.shift();
+function qNorm(q) { return QUALITY.includes(q) ? q : ({ 珍: "稀", 绝: "传奇" })[q] || "凡"; }   /* P249 旧协议的珍/绝折成稀/传奇，不再一律打成凡 */
+function bagTrim(run) {                                          /* P249 超四十件只挤一件：先挤寻常杂物；身上卸下的（带 slot）与位面货不挤 */
+  if ((run.bag || []).length <= 40) return;
+  const j9 = run.bag.findIndex(x => x && !x.slot && !x.ps);
+  if (j9 >= 0) run.bag.splice(j9, 1);
 }
-function slotFromWord(w, gear) {                                 /* P155 词典扩编：AI 报的大多数行头都能认位 */
-  w = String(w || "");
+function bagPut(run, o9) {                                       /* P175 进包统一走这里：同名加量、四十件封顶；P249 品质/说明不同不并，免得稀的并进凡的 */
+  run.bag = run.bag || [];
+  const q9 = qNorm(o9.q), d9 = o9.desc || "";
+  const i9 = run.bag.findIndex(x => x && !x.ps && x.name === o9.name && qNorm(x.q) === q9 && (x.desc || "") === d9);
+  if (i9 >= 0) { run.bag[i9].n = (run.bag[i9].n || 1) + 1; if (o9.slot && !run.bag[i9].slot) run.bag[i9].slot = o9.slot; }
+  else { const n9 = { name: o9.name, n: 1, q: q9, desc: d9 }; if (o9.slot) n9.slot = o9.slot; run.bag.push(n9); }
+  bagTrim(run);
+}
+/* P249 穿脱公器：侧栏/角色覆层/资料库/拖拽/AI 顶槽全走这三支，不再各写一份——
+   卸下时把原槽记在包里那件的 slot 上（旧档没有就退回【部位】与猜字），放回包首、同件叠放、不挤别的；
+   穿上时先把那件从包里拿出来再顶旧物，满包时索引不再被 shift 挤歪 */
+const SLOTLB = { hat: "帽", wand: "杖帚", robe: "袍", boots: "靴", acc1: "饰一", acc2: "饰二", acc: "饰" };
+function accFree(g9, pref) { const o9 = pref === "acc2" ? "acc1" : "acc2", p9 = pref === "acc2" ? "acc2" : "acc1"; return !g9[p9] ? p9 : !g9[o9] ? o9 : p9; }
+function slotKOf(run, b9) {                                      /* 认位：记住的原槽 > 【部位】标记 > 名字猜字 > 说明猜字 */
+  if (!b9) return null;
+  const g9 = (run && run.gear) || {};
+  if (b9.slot && SLOTLB[b9.slot]) return /^acc/.test(b9.slot) ? accFree(g9, b9.slot) : b9.slot;
+  const tg9 = String(b9.desc || "").match(/【部位】(帽|杖帚|袍|靴|饰)/);
+  if (tg9) return tg9[1] === "饰" ? accFree(g9) : ({ 帽: "hat", 杖帚: "wand", 袍: "robe", 靴: "boots" })[tg9[1]];
+  return slotFromWord(b9.name, g9) || slotFromWord(b9.desc || "", g9);
+}
+function bagBack(run, it9, k9) {                                 /* 身上的一件回包：记原槽、放包首、同件叠放、永不挤掉 */
+  run.bag = run.bag || [];
+  const o9 = { name: String(it9.name), n: 1, q: qNorm(it9.q), desc: it9.desc || "" };
+  if (k9 && SLOTLB[k9]) o9.slot = k9;
+  const j9 = run.bag.findIndex(x => x && !x.ps && x.name === o9.name && qNorm(x.q) === o9.q && (x.desc || "") === o9.desc);
+  if (j9 >= 0) { const x9 = run.bag.splice(j9, 1)[0]; x9.n = (x9.n || 1) + 1; if (o9.slot && !x9.slot) x9.slot = o9.slot; run.bag.unshift(x9); return x9; }
+  run.bag.unshift(o9); return o9;
+}
+function gearToBag(run, k9) {                                    /* 卸下：槽→包 */
+  const it9 = run && run.gear && run.gear[k9]; if (!it9) return null;
+  delete run.gear[k9];
+  bagBack(run, it9, k9);
+  return it9;
+}
+function gearWear(run, i9, slot9) {                              /* 穿上：包第 i9 件→槽；slot9 缺省/auto＝自动认位，acc＝哪个饰位空去哪个 */
+  const b9 = ((run && run.bag) || [])[i9]; if (!b9) return { why: "gone" };
+  run.gear = run.gear || {};
+  let k9 = !slot9 || slot9 === "auto" ? slotKOf(run, b9) : slot9;
+  if (k9 === "acc") k9 = accFree(run.gear, /^acc/.test(b9.slot || "") ? b9.slot : "acc1");
+  if (!k9 || !SLOTNAME[k9]) return { why: "slot", b: b9 };
+  const it9 = { name: String(b9.name).slice(0, 14), q: qNorm(b9.q), desc: String(b9.desc || "").slice(0, 60) };
+  if ((b9.n || 1) > 1) b9.n -= 1; else run.bag.splice(i9, 1);
+  const old9 = run.gear[k9];
+  run.gear[k9] = it9;
+  if (old9) bagBack(run, old9, k9);
+  return { k: k9, it: it9, old: old9 || null };
+}
+function slotFromWord(w, gear) {                                 /* P155 词典扩编：AI 报的大多数行头都能认位；P249 复合词先认（围巾≠帽、戒指≠冠、连帽衫≠帽、挂坠≠剑） */
+  w = String(w || ""); gear = gear || {};
+  const acc9 = !gear.acc1 ? "acc1" : (!gear.acc2 ? "acc2" : "acc1");
+  if (/围巾|披肩|手套|护腕|腕带|臂[环章]|胸针|领[结带]|挂[坠件]|吊坠|项[链圈]|戒指|指环|耳[环钉坠夹]|头饰|发[饰卡夹]|印信|印章|[徽勋]章|护符|怀表|手[镯链表]/.test(w)) return acc9;
+  if (/连帽衫|卫衣|衬衫|[制礼常队校和睡]服|训练服/.test(w)) return "robe";
+  if (/护目镜|眼镜|墨镜|面[具罩纱]/.test(w)) return "hat";
   if (/[帽盔冠笠巾箍]/.test(w)) return "hat";
   if (/[杖帚弓剑刀枪刃铳]/.test(w)) return "wand";
-  if (/[袍衣裙氅甲铠]|斗篷|披风|外套/.test(w)) return "robe";
+  if (/[袍衣裙氅甲铠服衫披]|斗篷|外套/.test(w)) return "robe";
   if (/[靴鞋履屐袜]/.test(w)) return "boots";
-  if (/[饰坠镯铃环戒链佩符簪珠牌徽]|耳[环钉坠]|项链/.test(w)) return !gear.acc1 ? "acc1" : (!gear.acc2 ? "acc2" : "acc1");
+  if (/[饰坠镯铃环戒链佩符簪珠牌徽腕]|耳[环钉坠]|项链/.test(w)) return acc9;
   return null;
 }
 /* 世界线年表 643-2099：开局播种 + 跳岁月自动补录 + 星图年代驱动（详见 docs/TIMELINE.md） */
@@ -20780,7 +20833,7 @@ const PromptM = (() => {
 "我方：（可选，主角的人脉产业声望真实扎根或撤出某星域时写：我方：+南城 或 我方：-雪楠湖。产业所在自动计入）",
 "人口：（可选，某星域人口因灾祸魔潮剧变时写：人口：盖亚-三成 或 人口：南城+一成，可多处用｜分隔）",
 "地标：（可选，剧情真实改变城市面貌时写：地标：南城｜+夜航灯桥（港·一句介绍） 或 地标：南城｜-老茶摊。类限 塔/港/市/坊/馆/署/校/宅/桥/站，改动会真实画上地域图，城市会随岁月长出新去处）",
-"装备：（可选，穿脱得失：装备：+星纹尖帽（帽·稀·一句）｜-旧尖帽。部位限 帽/杖帚/袍/靴/饰，品质限 凡/良/稀/传奇/伟大；品质是真加成（稀+1档/传奇+2档入判定）；白得的至多稀、当幕大成可得传奇，更高须购置：购置：装备｜名｜部位｜品质（账房定价：凡200/良1000/稀8000/传奇10万，×纪元；伟大有市无价））",
+"装备：（可选，穿脱得失：装备：+星纹尖帽（帽·稀·一句）｜-旧尖帽。-名＝脱下收进背包；丢了坏了被夺写 -名（丢）。部位限 帽/杖帚/袍/靴/饰，品质限 凡/良/稀/传奇/伟大；品质是真加成（稀+1档/传奇+2档入判定）；白得的至多稀、当幕大成可得传奇，更高须购置：购置：装备｜名｜部位｜品质（账房定价：凡200/良1000/稀8000/传奇10万，×纪元；伟大有市无价））",
 "背包：（可选，随身物品得失时写：背包：+魔力电池×3（良·一句描述）｜-传单×1）",
 "名下：（可选，主角购置或失去空岛、折叠空间、开垦地时写：名下：+听雨空岛（雪楠湖·空岛·一句描述） 或 -名称。剧情确认主角已有而档上没有的资产，必须当幕用此行补录——不入档＝不存在，地图与账房都不认）",
 "日期：（每幕必写，按剧情推进合理时长：日期：5月12日·暮。时段限 晨/午/暮/夜；跨日跨月照实写）",
@@ -21090,9 +21143,9 @@ MVU.proto(),
         stat.gear = stat.gear || [];
         for (const seg of v.split(/[｜|]/)) {
           const s2 = seg.trim(); if (!s2) continue;
-          const add = s2.match(/^\+(.+?)（(.+?)）$/), del = s2.match(/^[-－](.+)$/);
+          const add = s2.match(/^\+(.+?)(?:（(.*?)）)?$/), del = s2.match(/^[-－](.+?)(?:（(.*?)）)?$/);   /* P249 +名 不带括号也认；-名＝脱下收包，-名（丢）才算没了 */
           if (add) {
-            const parts = add[2].split(/[·・]/).map(x => x.trim());
+            const parts = String(add[2] || "").split(/[·・]/).map(x => x.trim()).filter(Boolean);
             let slotW = "", q = "良", desc = [];
             for (const pt of parts) {
               if (!slotW && /^(帽|杖|帚|杖帚|袍|衣|裙|靴|鞋|饰|饰品)$/.test(pt)) { slotW = pt; continue; }
@@ -21100,7 +21153,7 @@ MVU.proto(),
               desc.push(pt);
             }
             stat.gear.push({ op:"+", name: add[1].trim(), slotW, q, desc: desc.join("·") });
-          } else if (del) stat.gear.push({ op:"-", name: del[1].trim() });
+          } else if (del) stat.gear.push({ op: /丢|失|毁|坏|碎|夺|弃|没收|烧|断|送|卖|当掉/.test(del[2] || "") ? "-" : "off", name: del[1].trim() });
         }
       }
       else if (k === "行囊" || k === "背包") {
@@ -21601,36 +21654,45 @@ MVU.proto(),
         if (r) run.popMod[r.id] = U.clamp((run.popMod[r.id] || 1) * pd.f, .05, 3);
       }
     }
-    if (stat.gear) for (const g of stat.gear) {
+    const off9 = {};                                              /* P249 本幕 AI 卸下已自动收包，背包行再报 +同名 不重复入账 */
+    const nmIs9 = (a, b) => a === b || (b.length > 12 && a === b.slice(0, 12));   // 旧档装备名曾截到 12 字
+    if (stat.gear) { run.gear = run.gear || {}; run.bag = run.bag || []; for (const g of stat.gear) {
+      const gn9 = String(g.name || "").slice(0, 14); if (!gn9) continue;   /* P249 装备名与背包同为 14 字，不再截掉末尾的部位字 */
       if (g.op === "+") {
-        const slot = slotFromWord(g.slotW || g.name, run.gear) || slotFromWord(g.desc || "", run.gear);   /* P155 不再硬塞 acc2 */
         let q = QUALITY.includes(g.q) ? g.q : "凡";
         if (q === "传奇" || q === "伟大") {                          // 白得的至多稀；本幕大成开恩到传奇
           const lr = lastRollOf(run);
           q = (lr && lr.band === 3 && !lr.atk) ? "传奇" : "稀";   /* P244 战斗回合不给传奇放行 */
         }
-        const it9 = { name: g.name.slice(0, 12), q, desc: (g.desc || "").slice(0, 60) };
-        const toBag9 = o9 => bagPut(run, o9);                     /* P155 收进包（P175 起走公器） */
-        if (!slot) toBag9(it9);                                   /* 认不出部位＝进包，玩家自己拖到该去的槽 */
-        else {
-          if (run.gear[slot] && run.gear[slot].name !== it9.name) toBag9(run.gear[slot]);   /* 顶槽旧物回包，不再蒸发 */
-          run.gear[slot] = it9;
-        }
+        const on9 = Object.keys(run.gear).find(k => run.gear[k] && nmIs9(run.gear[k].name, gn9));   /* P249 已穿着＝重申，原地补说明，不再复制进另一个饰位 */
+        if (on9) { if (g.desc) run.gear[on9].desc = String(g.desc).slice(0, 60); continue; }
+        const bi9 = run.bag.findIndex(x => x && !x.ps && nmIs9(x.name, gn9)), bb9 = bi9 >= 0 ? run.bag[bi9] : null;   /* P249 包里有这件＝拿出来穿，不凭空再造一件 */
+        const slot = slotFromWord(g.slotW, run.gear) || (bb9 ? slotKOf(run, bb9) : null) || slotFromWord(gn9, run.gear) || slotFromWord(g.desc || "", run.gear);   /* P155 不再硬塞 acc2 */
+        if (!slot) { if (!bb9) bagPut(run, { name: gn9, q, desc: (g.desc || "").slice(0, 60) }); continue; }   /* 认不出部位＝进包，玩家自己挑槽 */
+        const it9 = bb9 ? { name: gn9, q: qNorm(bb9.q), desc: String(bb9.desc || g.desc || "").slice(0, 60) } : { name: gn9, q, desc: (g.desc || "").slice(0, 60) };
+        if (bb9) { if ((bb9.n || 1) > 1) bb9.n -= 1; else run.bag.splice(bi9, 1); }
+        if (run.gear[slot]) bagBack(run, run.gear[slot], slot);   /* 顶槽旧物回包、记原槽，不再蒸发 */
+        run.gear[slot] = it9;
       } else {
-        for (const sk of Object.keys(run.gear)) if (run.gear[sk] && run.gear[sk].name === g.name) delete run.gear[sk];
+        for (const sk of Object.keys(run.gear)) if (run.gear[sk] && nmIs9(run.gear[sk].name, gn9)) {
+          if (g.op === "off") { gearToBag(run, sk); off9[gn9] = (off9[gn9] || 0) + 1; break; }   /* P249 UNEQUIP／-名＝脱下收进背包，记住原槽 */
+          delete run.gear[sk];                                    // LOSE／-名（丢）＝真没了
+        }
       }
-    }
-    if (stat.bag) for (const b of stat.bag) {
+    } }
+    if (stat.bag) { run.bag = run.bag || []; for (const b of stat.bag) {
       const i2 = run.bag.findIndex(x => x.name === b.name);
       if (b.op === "+") {
-        if (i2 >= 0) { run.bag[i2].n += b.n; if (b.desc) run.bag[i2].desc = b.desc; }
-        else run.bag.push({ name: b.name.slice(0, 14), n: b.n, q: b.q || "凡", desc: (b.desc || "").slice(0, 60) });
-        if (run.bag.length > 40) run.bag.shift();
+        const bk9 = String(b.name).slice(0, 14); let n2 = b.n || 1;
+        if (off9[bk9]) { const u9 = Math.min(off9[bk9], n2); off9[bk9] -= u9; n2 -= u9; if (n2 <= 0) continue; }
+        if (i2 >= 0) { run.bag[i2].n += n2; if (b.desc) run.bag[i2].desc = b.desc; }
+        else run.bag.push({ name: bk9, n: n2, q: qNorm(b.q), desc: (b.desc || "").slice(0, 60) });
+        bagTrim(run);
       } else if (i2 >= 0) {
         run.bag[i2].n -= b.n;
         if (run.bag[i2].n <= 0) run.bag.splice(i2, 1);
       }
-    }
+    } }
     if (stat.estates) for (const es of stat.estates) {
       es.name = nmz(es.name); if (!es.name) continue;             /* P144 */
       if (es.op === "+") {
@@ -21958,7 +22020,7 @@ MVU.proto(),
         const slot = slotFromWord(slotW || b.name, run.gear) || slotFromWord(it9.desc, run.gear);   /* P175 认不出部位不再硬塞饰位 */
         if (!slot) bagPut(run, it9);                              /* 买来的先进行囊，玩家自己拖到该去的槽 */
         else {
-          if (run.gear[slot] && run.gear[slot].name !== it9.name) bagPut(run, run.gear[slot]);   /* 顶槽旧物回包，不蒸发 */
+          if (run.gear[slot]) bagBack(run, run.gear[slot], slot);   /* 顶槽旧物回包，不蒸发；P249 记原槽，同名也是另一件 */
           run.gear[slot] = it9;
         }
         addAnnal("购入" + q + "品「" + b.name + "」（" + U.fmtYuan(price) + "）" + (slot ? "" : "，先收进行囊"));
@@ -22249,7 +22311,7 @@ MVU.proto(),
       (stat._settle ? "　" + stat._settle : "") +
       (stat._wealthAfter != null ? "　· 结余 " + U.fmtYuan(stat._wealthAfter) : "")]);
     if (stat.popd && stat.popd.length) kv.push(["人口", stat.popd.map(p => p.region + (p.f >= 1 ? "+" : "-") + Math.round(Math.abs(p.f - 1) * 10) + "成").join("　")]);
-    if (stat.gear && stat.gear.length) kv.push(["装备", stat.gear.map(g => g.op + g.name).join("　")]);
+    if (stat.gear && stat.gear.length) kv.push(["装备", stat.gear.map(g => (g.op === "off" ? "卸" : g.op) + g.name).join("　")]);
     if (stat.bag && stat.bag.length) kv.push(["背包", stat.bag.map(b => b.op + b.name + (b.n > 1 ? "×" + b.n : "")).join("　")]);
     if (stat.estates && stat.estates.length) kv.push(["名下", stat.estates.map(e2 => e2.op + e2.name).join("　")]);
     if (stat.cast && stat.cast.length) kv.push(["在场", stat.cast.map(c => U.esc(c.name) + (c.fav != null ? "<span class='fav'>（" + c.fav + (c.att ? "·" + U.esc(c.att) : "") + "）</span>" : "")).join("　")]);
@@ -22377,6 +22439,7 @@ const MVU = (() => {
       : { cmd: "ADD_ITEM", name: x.name, n: x.n, quality: x.q, desc: x.desc, _lg: 1 });
     for (const x of stat.gear || []) out.push(x.op === "-"
       ? { cmd: "LOSE_EQUIPMENT", name: x.name, _lg: 1 }
+      : x.op === "off" ? { cmd: "UNEQUIP_ITEM", name: x.name, _lg: 1 }   /* P249 */
       : { cmd: "EQUIP_ITEM", name: x.name, slot: x.slotW, quality: x.q, desc: x.desc, _lg: 1 });
     for (const x of stat.conds || []) out.push(x.op === "-"
       ? { cmd: "REMOVE_CONDITION", name: x.name, _lg: 1 }
@@ -22507,10 +22570,11 @@ const MVU = (() => {
       else if (c.cmd === "LEVEL_SPELL") stat.spells.push({ op: "^", name: c.name, d: 1 });
       else if (c.cmd === "LEARN_SKILL") stat.skills.push({ op: "+", name: c.name, desc: c.desc || "" });
       else if (c.cmd === "LEVEL_SKILL") stat.skills.push({ op: "^", name: c.name, d: 1 });
-      else if (c.cmd === "ADD_ITEM") stat.bag.push({ op: "+", name: c.name, n: c.n || 1, q: c.quality || "凡", desc: c.desc || "" });
+      else if (c.cmd === "ADD_ITEM") stat.bag.push({ op: "+", name: c.name, n: c.n || 1, q: qNorm(c.quality || "凡"), desc: c.desc || "" });
       else if (c.cmd === "REMOVE_ITEM") stat.bag.push({ op: "-", name: c.name, n: c.n || 1 });
-      else if (c.cmd === "EQUIP_ITEM") stat.gear.push({ op: "+", name: c.name, slotW: c.slot || "", q: c.quality || "良", desc: c.desc || "" });
-      else if (c.cmd === "UNEQUIP_ITEM" || c.cmd === "LOSE_EQUIPMENT") stat.gear.push({ op: "-", name: c.name });
+      else if (c.cmd === "EQUIP_ITEM") stat.gear.push({ op: "+", name: c.name, slotW: c.slot || "", q: qNorm(c.quality || "良"), desc: c.desc || "" });
+      else if (c.cmd === "UNEQUIP_ITEM") stat.gear.push({ op: "off", name: c.name });   /* P249 卸下＝收进背包，不再与丢失同删 */
+      else if (c.cmd === "LOSE_EQUIPMENT") stat.gear.push({ op: "-", name: c.name });
       else if (c.cmd === "ADD_CONDITION") stat.conds.push({ op: "+", name: c.name, note: c.desc || "" });
       else if (c.cmd === "REMOVE_CONDITION") stat.conds.push({ op: "-", name: c.name });
     }
@@ -22549,11 +22613,11 @@ const MVU = (() => {
       LEVEL_SPELL: "已有法术明确精进一级",
       LEARN_SKILL: "同上，技能",
       LEVEL_SKILL: "同上，技能精进",
-      ADD_ITEM: "进背包。n 默认1，quality 限 凡/良/稀/珍/绝",
+      ADD_ITEM: "进背包。n 默认1，quality 限 凡/良/稀/传奇/伟大",
       REMOVE_ITEM: "出背包",
       EQUIP_ITEM: "上身。slot 限 帽/袍/鞋/杖/坠/戒/佩",
-      UNEQUIP_ITEM: "卸下",
-      LOSE_EQUIPMENT: "丢了、坏了、被夺",
+      UNEQUIP_ITEM: "卸下，引擎自动收进背包（别再另写 ADD_ITEM）",
+      LOSE_EQUIPMENT: "丢了、坏了、被夺（直接没了，不进背包）",
       ADD_CONDITION: "伤病与异常",
       REMOVE_CONDITION: "痊愈"
     };
@@ -23199,6 +23263,7 @@ const UI = (() => {
   };
   function panels() {
     const run = S.run; if (!run || !U.$("#col-char")) return;
+    run.gear = run.gear || {};                                  /* P249 旧档缺 gear 不再整栏崩 */
     const firstPaint = !U.$("#col-char").children.length;
     const shut = S.disp.shutCards || {};
     const inc = incomeOf(run).total;
@@ -23208,8 +23273,8 @@ const UI = (() => {
         ? '<div class="dslot ' + (QCLS[it.q] || "") + '" draggable="true" data-slotk="' + k + '" data-slot="' + k + '" data-gdesc="' + U.esc(it.name + "（" + it.q + "）" + (it.desc ? "：" + it.desc : "") + (typeof dndItemLine === "function" && dndItemLine(k, it) ? "　〔" + dndItemLine(k, it) + "〕" : "")) + '"><span class="sl">' + lb + '</span><b>' + U.esc(it.name) + "</b>" + (typeof dndItem === "function" ? (function () { const d9 = dndItem(k, it); return d9 && (d9.die || d9.ac || d9.perks.length) ? '<em class="dn-tag">' + U.esc([d9.die || "", d9.ac ? "甲" + (d9.ac + d9.q) : "", d9.perks.map(p => p.nm).join("·")].filter(Boolean).join(" ")) + "</em>" : ""; })() : "") + "</div>"
         : '<div class="dslot empty" data-slotk="' + k + '"><span class="sl">' + lb + '</span><b>—</b></div>';
     }).join("");
-    const bagRows = (run.bag || []).slice(0, 20).map((b, bi) =>
-      '<div class="bag-item ' + (QCLS[b.q] || "") + '" draggable="true" data-bagi="' + bi + '" data-gdesc="' + U.esc(b.name + (b.desc ? "：" + b.desc : "")) + '"><b>' + U.esc(b.name) + '</b><span class="n">×' + b.n + "</span></div>").join("") || '<p class="hint">空的。</p>';
+    const bagRows = ((run.bag || []).map((b, bi) =>             /* P249 整包都画（封顶四十，多了自带滚动），刚卸下的在包首——不再有第 21 件点不着 */
+      '<div class="bag-item ' + (QCLS[b.q] || "") + '" draggable="true" data-bagi="' + bi + '" data-bagn="' + U.esc(b.name) + '" data-gdesc="' + U.esc(b.name + (b.desc ? "：" + b.desc : "") + (b.slot && SLOTLB[b.slot] ? "　〔原在" + SLOTLB[/^acc/.test(b.slot) ? "acc" : b.slot] + "位〕" : "")) + '"><b>' + U.esc(b.name) + '</b><span class="n">×' + (b.n || 1) + "</span></div>").join("") || '<p class="hint">空的。</p>');
     const estRows = (run.estates || []).map(e2 =>
       '<div class="estate-item" data-gdesc="' + U.esc(((e2.desc || "").slice(0, 40) || "私产") + ((e2.fac || []).length ? "　设施：" + e2.fac.map(f => f.name + ((f.lv || 1) > 1 ? f.lv + "级" : "") + (f.inc ? "·年入" + f.inc + "元" : "")).join("、") : "")) + '"><b>' + U.esc(e2.name) + '</b><span class="k">' + U.esc((RNAME[e2.region] || "") + "·" + (e2.size || e2.kind) + (e2.size ? "·" + (e2.fac || []).length + "/" + isleSlots(e2) + "位" : ((e2.fac || []).length ? "·设施" + e2.fac.length : ""))) + "</span></div>").join("");
     const kin = Object.keys(run.npcs || {}).filter(n => run.npcs[n].rel === "使魔·宠物").slice(0, 3);
@@ -23250,7 +23315,7 @@ const UI = (() => {
         : '<div class="doll-wrap">' + gearCells + kinCell + "</div>") + (typeof gearSheetHTML === "function" ? gearSheetHTML(run) : "") + "</div>" +   /* P194 判定面板 */
       '<div class="pcard"><h4>法 术</h4>' + (Object.entries(run.spells || {}).slice(0, 5).map(([n, sp]) =>
         '<div class="bag-item q-xi" data-gdesc="' + U.esc(n + "（" + (sp.lv || 1) + "级）" + (sp.cost ? "·耗" + sp.cost : "") + (sp.range ? "·" + sp.range : "") + (sp.mod ? "·改造：" + sp.mod : "") + (sp.desc ? "：" + sp.desc : "")) + '"><b>' + U.esc(n) + "</b><span class=\"n\">" + (sp.lv || 1) + "级" + (sp.mod ? "·改" : "") + "</span></div>").join("") || '<p class="hint">暂无法术</p>') + "</div>" +
-      '<div class="pcard bagbox"><h4>背 包</h4>' + bagRows + "</div>" +
+      '<div class="pcard bagbox"><h4>背 包</h4><div class="bag-list">' + bagRows + "</div></div>" +
       (function () {                                             /* P122 侧栏随开局配牌 */
         const fit = PANEL_FIT[run.seed || "custom"] || PANEL_FIT.custom;
         const isleC = estRows
@@ -23781,6 +23846,7 @@ const Game = (() => {
       live.remove();
       UI.appendMsg(run.log[run.log.length - 1], run.log.length - 1);
       UI.refresh(run.year !== oldY || run.era !== oldEra);            // MVU：Model 落地后只刷新一次
+      if (U.$("#ov-db") && U.$("#ov-db").classList.contains("on")) renderDB();   /* P249 资料库开着就跟着刷，行号不再过期 */
       if (U.$('#ov-mei').classList.contains('on')) renderMei();
       if (U.$("#ov-map").classList.contains("on")) MapM.paint(run.era);
       const jumped = oldY != null && run.year != null && Math.abs(run.year - oldY) >= 5;
@@ -23814,7 +23880,7 @@ const Game = (() => {
     if (snap) {
       const keep = S.run.log;
       const st9 = S.run._snapTurn;
-      if (turnRestore(S.run, snap)) { S.run.log = keep; S.run._snap = snap; S.run._snapTurn = st9; UI.refresh(); }
+      if (turnRestore(S.run, snap)) { S.run.log = keep; S.run._snap = snap; S.run._snapTurn = st9; UI.refresh(); if (U.$("#ov-db") && U.$("#ov-db").classList.contains("on")) renderDB(); }   /* P249 */
     }
     UI.renderStory();
     await aiTurn();
@@ -24888,40 +24954,34 @@ const Game = (() => {
       return '<div class="tal-cat">' + cat + '</div><div class="tal-grid">' + rows + "</div>";
     }).join("");
   }
-  function gearOff(k9) {                                        /* P151 卸下入包 */
-    const run = S.run; if (!run || !run.gear || !run.gear[k9]) return;
-    const it9 = run.gear[k9];
-    run.bag = run.bag || [];
-    run.bag.push({ name: it9.name, n: 1, q: it9.q, desc: it9.desc || "" });
-    if (run.bag.length > 40) run.bag.shift();
-    delete run.gear[k9];
+  function gearOff(k9) {                                        /* P151 卸下入包；P249 侧栏/覆层/资料库/拖拽同走 gearToBag：记原槽、放包首、不挤别的 */
+    const run = S.run; if (!run) return false;
+    const it9 = gearToBag(run, k9); if (!it9) return false;
     autosave(); renderDB(); UI.panels();
-    U.toast("已卸下「" + it9.name + "」收进背包");
+    U.toast("已卸下「" + it9.name + "」，收进背包——判定加成随之变化");
+    return true;
   }
   function gearMove(k9, k2) {                                   /* P155 槽拖到槽：挪位/互换 */
-    const run = S.run; if (!run || !run.gear || !run.gear[k9] || k9 === k2) return;
+    const run = S.run; if (!run || !run.gear || !run.gear[k9] || k9 === k2 || !SLOTNAME[k2]) return;
     const a9 = run.gear[k9], b9 = run.gear[k2];
     run.gear[k2] = a9;
     if (b9) run.gear[k9] = b9; else delete run.gear[k9];
     autosave(); renderDB(); UI.panels();
-    U.toast("「" + a9.name + "」挪到「" + (SLOTS.find(s2 => s2[0] === k2) || ["", k2])[1] + "」槽" + (b9 ? "，与「" + b9.name + "」互换" : ""));
+    U.toast("「" + a9.name + "」挪到「" + (SLOTLB[k2] || k2) + "」槽" + (b9 ? "，与「" + b9.name + "」互换" : ""));
   }
-  function bagWear(i9, slot9) {
-    const run = S.run; if (!run) return;
-    const b9 = (run.bag || [])[i9]; if (!b9) return;
-    const tg9 = String(b9.desc || "").match(/【部位】(帽|杖帚|袍|靴|饰)/), g9 = run.gear || {};
-    const k9 = slot9 === "auto" ? (tg9 ? ({ 帽: "hat", 杖帚: "wand", 袍: "robe", 靴: "boots", 饰: !g9.acc1 ? "acc1" : !g9.acc2 ? "acc2" : "acc1" })[tg9[1]] : (slotFromWord(b9.name, g9) || slotFromWord(b9.desc || "", g9))) : slot9;
-    if (!k9 || !SLOTS.some(s2 => s2[0] === k9)) { U.toast("认不出「" + b9.name + "」该装哪儿——左边下拉手选一个部位"); return; }
-    run.gear = run.gear || {};
-    if (run.gear[k9]) {
-      const old9 = run.gear[k9];
-      run.bag.push({ name: old9.name, n: 1, q: old9.q, desc: old9.desc || "" });
-      if (run.bag.length > 40) run.bag.shift();
+  function bagWear(i9, slot9, nm9) {                             /* P151 行囊归置；P249 侧栏装上/资料库/拖拽同走 gearWear；nm9＝点的那件名字，列表过期就按名字重找 */
+    const run = S.run; if (!run) return false;
+    const bag9 = run.bag || [];
+    if (nm9 != null && nm9 !== "" && (bag9[i9] || {}).name !== nm9) {
+      i9 = bag9.findIndex(x => x && x.name === nm9);
+      if (i9 < 0) { renderDB(); UI.panels(); U.toast("背包刚变过，「" + nm9 + "」已不在包里——列表已刷新"); return false; }
     }
-    run.gear[k9] = { name: String(b9.name).slice(0, 12), q: QUALITY.includes(b9.q) ? b9.q : "凡", desc: (b9.desc || "").slice(0, 60) };
-    if ((b9.n || 1) > 1) b9.n -= 1; else run.bag.splice(i9, 1);
+    const r9 = gearWear(run, i9, slot9 || "auto");
+    if (r9.why === "gone") { renderDB(); UI.panels(); return false; }
+    if (r9.why === "slot") { U.toast("看不出「" + r9.b.name + "」该穿戴在哪个部位——点背包里这件挑个部位（资料库也可下拉选）"); return false; }
     autosave(); renderDB(); UI.panels();
-    U.toast("已把「" + run.gear[k9].name + "」装到「" + (SLOTS.find(s2 => s2[0] === k9) || ["", k9])[1] + "」槽");
+    U.toast("已把「" + r9.it.name + "」装到「" + (SLOTLB[r9.k] || r9.k) + "」槽" + (r9.old ? "，换下的「" + r9.old.name + "」收进背包" : ""));
+    return true;
   }
   function spellDexLearn(nm) {                                  /* P150 图鉴照价学：账房定价·天赋折扣 */
     const run = S.run; if (!run) return;
@@ -25158,21 +25218,24 @@ const Game = (() => {
       const bag = run.bag || [], gear = run.gear || {};
       cnt.textContent = "背包 " + bag.length + " 件 · 装备 " + Object.keys(gear).length + "/" + SLOTS.length + " 槽 · 随【携带】常驻注入";
       const QOPT = q => QUALITY.map(x => '<option' + (x === q ? ' selected' : '') + '>' + x + '</option>').join("");
-      const SLOPT = '<option value="auto">自动认位</option>' + SLOTS.map(s2 => '<option value="' + s2[0] + '">' + s2[1] + '</option>').join("");
+      const keep9 = {};                                          /* P249 重画前记下各行手选的部位，AI 回合刷新也不丢 */
+      box.querySelectorAll(".db-row[data-bk]").forEach(r9 => { const s9 = r9.querySelector("[data-bslot]"); if (s9 && s9.value !== "auto") keep9[r9.dataset.bk] = s9.value; });
+      const SLOPT = b => { const k9 = slotKOf(run, b), sv9 = keep9[b.name] || "auto";   /* P249 两个饰位分开叫饰一/饰二；自动一栏直说会去哪 */
+        return '<option value="auto">' + (k9 ? "自动·" + SLOTLB[k9] : "自动认位") + '</option>' + SLOTS.map(s2 => '<option value="' + s2[0] + '"' + (s2[0] === sv9 ? " selected" : "") + '>' + SLOTLB[s2[0]] + '</option>').join(""); };
       h = '<p class="hint" style="margin:0 0 6px">— 装 备 栏 —</p>' + SLOTS.map(s2 => {
         const g = gear[s2[0]];
-        return '<div class="db-row" data-gs="' + s2[0] + '"><span class="hint" style="flex:none;width:36px">' + s2[1] + '</span>' +
+        return '<div class="db-row" data-gs="' + s2[0] + '"><span class="hint" style="flex:none;width:36px">' + SLOTLB[s2[0]] + '</span>' +
           '<input data-df="gname" value="' + U.esc(g ? g.name : "") + '" placeholder="（空）" style="width:128px;flex:none">' +
           '<select data-df="gq" style="width:66px;flex:none"' + (g ? '' : ' disabled') + '>' + QOPT(g ? g.q : "凡") + '</select>' +
           '<input class="grow" data-df="gdesc" value="' + U.esc(g ? (g.desc || "") : "") + '" placeholder="备注"' + (g ? '' : ' disabled') + '>' +
           (g ? '<button class="btn sm" style="flex:none" data-gsoff="' + s2[0] + '">卸下</button>' : '') + '</div>';
       }).join("") +
       '<p class="hint" style="margin:10px 0 6px">— 背 包 —</p>' + (bag.map((b, i) =>
-        '<div class="db-row" data-bi="' + i + '"><input data-df="bname" value="' + U.esc(b.name) + '" style="width:128px;flex:none">' +
+        '<div class="db-row" data-bi="' + i + '" data-bk="' + U.esc(b.name) + '"><input data-df="bname" value="' + U.esc(b.name) + '" style="width:128px;flex:none">' +
         '<input data-df="bn" type="number" min="1" max="999" value="' + (b.n || 1) + '" style="width:56px;flex:none" title="数量">' +
         '<select data-df="bq" style="width:66px;flex:none">' + QOPT(b.q || "凡") + '</select>' +
         '<input class="grow" data-df="bdesc" value="' + U.esc(b.desc || "") + '" placeholder="备注">' +
-        '<select data-bslot="1" style="width:92px;flex:none" title="装到哪个部位">' + SLOPT + '</select>' +
+        '<select data-bslot="1" style="width:92px;flex:none" title="装到哪个部位">' + SLOPT(b) + '</select>' +
         '<button class="btn sm" style="flex:none" data-bwear="' + i + '">装上</button>' +
         '<button class="del" data-ddel="1">删</button></div>').join("") || '<p class="hint">背包空空。</p>');
     } else if (dbTab === "threads") {
@@ -25242,24 +25305,28 @@ const Game = (() => {
       else if (f === "range") sp.range = t.value.slice(0, 16);
       else if (f === "mod") sp.mod = t.value.slice(0, 30);
     } else if (dbTab === "bag") {                                /* P151 行囊行内改 */
+      let re9 = false;                                           /* P249 只有槽位有无变了才重画——改字一重画，按下去的「装上」就被换掉、手选的部位也被打回自动 */
       if (row.dataset.gs) {
         const k9 = row.dataset.gs;
         run.gear = run.gear || {};
         if (f === "gname") {
-          const v9 = t.value.trim().slice(0, 12);
-          if (!v9) { delete run.gear[k9]; U.toast("已清空该槽"); }
-          else { run.gear[k9] = run.gear[k9] || { q: "凡", desc: "" }; run.gear[k9].name = v9; }
+          const v9 = t.value.trim().slice(0, 14);
+          if (!v9) { if (run.gear[k9]) { delete run.gear[k9]; re9 = true; U.toast("已清空该槽"); } }
+          else { if (!run.gear[k9]) re9 = true; run.gear[k9] = run.gear[k9] || { q: "凡", desc: "" }; run.gear[k9].name = v9; }
         }
         else if (run.gear[k9] && f === "gq") run.gear[k9].q = QUALITY.includes(t.value) ? t.value : "凡";
         else if (run.gear[k9] && f === "gdesc") run.gear[k9].desc = t.value.slice(0, 60);
       } else {
-        const b9 = (run.bag || [])[Number(row.dataset.bi)]; if (!b9) return;
-        if (f === "bname") b9.name = (t.value.trim() || b9.name).slice(0, 14);
+        const bag9 = run.bag || [];
+        let b9 = bag9[Number(row.dataset.bi)];
+        if (row.dataset.bk != null && (!b9 || b9.name !== row.dataset.bk)) b9 = bag9.find(x => x && x.name === row.dataset.bk);   // 列表过期按名字找
+        if (!b9) { renderDB(); U.toast("背包刚变过，列表已刷新"); return; }
+        if (f === "bname") { b9.name = (t.value.trim() || b9.name).slice(0, 14); row.dataset.bk = b9.name; }
         else if (f === "bn") b9.n = U.clamp(parseInt(t.value, 10) || 1, 1, 999);
         else if (f === "bq") b9.q = QUALITY.includes(t.value) ? t.value : "凡";
         else if (f === "bdesc") b9.desc = t.value.slice(0, 60);
       }
-      renderDB();
+      if (re9) renderDB();
     } else if (dbTab === "threads") {
       const t2 = run.threads[Number(row.dataset.di)]; if (!t2) return;
       if (f === "title") t2.title = t.value.slice(0, 16);
@@ -25286,7 +25353,12 @@ const Game = (() => {
     else if (dbTab === "diary") run.diary.splice(Number(row.dataset.di), 1);
     else if (dbTab === "skills") delete run.skills[row.dataset.dn];
     else if (dbTab === "spells") delete run.spells[row.dataset.dn];
-    else if (dbTab === "bag") { if (row.dataset.bi != null) run.bag.splice(Number(row.dataset.bi), 1); }
+    else if (dbTab === "bag") { if (row.dataset.bi != null) {   /* P249 按名字核对，列表过期不删错件 */
+      let j9 = Number(row.dataset.bi);
+      if (row.dataset.bk != null && (run.bag[j9] || {}).name !== row.dataset.bk) j9 = run.bag.findIndex(x => x && x.name === row.dataset.bk);
+      if (j9 < 0) { renderDB(); U.toast("背包刚变过，列表已刷新"); return; }
+      run.bag.splice(j9, 1);
+    } }
     else if (dbTab === "threads") run.threads.splice(Number(row.dataset.di), 1);
     autosave(); renderDB(); UI.panels();
   }
@@ -25546,36 +25618,13 @@ const Game = (() => {
     U.$("#ov-char-body").innerHTML = U.$("#col-char").innerHTML;
     UI.open("ov-char");
   });
-  function unequipSlot(k) {
-    const run = S.run; if (!run || !run.gear || !run.gear[k]) return;
-    const it = run.gear[k];
-    run.bag = run.bag || [];
-    run.bag.push({ name: it.name, n: 1, q: it.q, desc: it.desc || "" });
-    if (run.bag.length > 40) run.bag.shift();
-    delete run.gear[k];
-    Game.autosave(); UI.panels();
-    U.toast("已卸下「" + it.name + "」，收进背包——判定加成随之变化");
-  }
-  function equipFromBag(i) {
-    const run = S.run; if (!run) return;
-    const b = (run.bag || [])[i]; if (!b) return;
-    const tg9 = String(b.desc || "").match(/【部位】(帽|杖帚|袍|靴|饰)/), slot = tg9 ? ({ 帽: "hat", 杖帚: "wand", 袍: "robe", 靴: "boots", 饰: !run.gear.acc1 ? "acc1" : !run.gear.acc2 ? "acc2" : "acc1" })[tg9[1]] : (slotFromWord(b.name, run.gear) || slotFromWord(b.desc || "", run.gear));   /* P244 战利品带部位标记 */
-    if (!slot) { U.toast("看不出「" + b.name + "」该穿戴在哪个部位（帽/杖帚/袍/靴/饰）"); return; }
-    if (run.gear[slot]) {
-      const old = run.gear[slot];
-      run.bag.push({ name: old.name, n: 1, q: old.q, desc: old.desc || "" });
-      if (run.bag.length > 40) run.bag.shift();
-    }
-    run.gear[slot] = { name: String(b.name).slice(0, 12), q: QUALITY.includes(b.q) ? b.q : "凡", desc: (b.desc || "").slice(0, 60) };
-    if ((b.n || 1) > 1) b.n -= 1; else run.bag.splice(i, 1);
-    Game.autosave(); UI.panels();
-    U.toast("已装上「" + run.gear[slot].name + "」");
-  }
+  function unequipSlot(k) { return Game.gearOff(k); }            /* P249 与资料库/拖拽同一支公器，不再各写一份 */
+  function equipFromBag(i, k, nm) { return Game.bagWear(i, k || "auto", nm); }
   function gdescToggle(e) {
     const uq = e.target.closest("[data-unequip]");
     if (uq) { unequipSlot(uq.dataset.unequip); return false; }
     const eq = e.target.closest("[data-equipbag]");
-    if (eq) { equipFromBag(parseInt(eq.dataset.equipbag, 10)); return false; }
+    if (eq) { equipFromBag(parseInt(eq.dataset.equipbag, 10), eq.dataset.eqslot, eq.dataset.bagn); return false; }
     const pd9 = e.target.closest(".pdesc");                     /* P244 点说明本身就收起 */
     if (pd9 && !e.target.closest("button")) { pd9.remove(); return false; }
     const t = e.target.closest("[data-gdesc]"); if (!t) return true;
@@ -25585,7 +25634,16 @@ const Game = (() => {
       if (t.parentElement) t.parentElement.querySelectorAll(":scope > .pdesc").forEach(x => x.remove());   /* 只留一张 */
       let inner = U.esc(t.dataset.gdesc);
       if (t.dataset.slot) inner += ' <button class="btn sm" data-unequip="' + t.dataset.slot + '" style="margin-left:8px">卸下</button>';
-      if (t.dataset.bagi != null) inner += ' <button class="btn sm" data-equipbag="' + t.dataset.bagi + '" style="margin-left:8px">装上</button>';
+      if (t.dataset.bagi != null && S.run) {                     /* P249 认得出部位给「装上·部位」；猜来的再给一排改选，认不出就只给一排部位任挑 */
+        const bi9 = Number(t.dataset.bagi), b9 = (S.run.bag || [])[bi9];
+        if (b9) {
+          const k9 = slotKOf(S.run, b9), sure9 = !!(b9.slot && SLOTLB[b9.slot]) || /【部位】/.test(b9.desc || ""), at9 = ' data-equipbag="' + bi9 + '" data-bagn="' + U.esc(b9.name) + '"';
+          const pick9 = '<span class="eqpick" style="display:inline-flex;flex-wrap:wrap;gap:4px;margin-left:8px;align-items:center"><span class="hint">' + (k9 ? "改装到" : "装到") + '</span>' +
+            ["hat", "wand", "robe", "boots", "acc"].map(s9 => '<button class="btn sm"' + at9 + ' data-eqslot="' + s9 + '">' + SLOTLB[s9] + "</button>").join("") + "</span>";
+          if (k9) inner += ' <button class="btn sm"' + at9 + ' style="margin-left:8px">装上·' + (SLOTLB[/^acc/.test(k9) ? "acc" : k9]) + "</button>";
+          if (!k9 || !sure9) inner += pick9;
+        }
+      }
       t.after(U.el("div", "pdesc on", inner));
     }
     return false;
@@ -25908,7 +25966,7 @@ const Game = (() => {
     const mark9 = el => { clear9(); if (el) el.classList.add("dropok"); clearTimeout(unT9); unT9 = setTimeout(clear9, 300); };
     document.addEventListener("dragstart", e => {
       const bi = e.target.closest ? e.target.closest(".bag-item[draggable]") : null;
-      if (bi && bi.dataset.bagi != null) { e.dataTransfer.setData("text/plain", "bagi:" + bi.dataset.bagi); e.dataTransfer.effectAllowed = "move"; return; }
+      if (bi && bi.dataset.bagi != null) { e.dataTransfer.setData("text/plain", "bagi:" + bi.dataset.bagi + "|" + (bi.dataset.bagn || "")); e.dataTransfer.effectAllowed = "move"; return; }   /* P249 带上名字，列表过期也认得准 */
       const ds = e.target.closest ? e.target.closest(".dslot[draggable]") : null;
       if (ds && ds.dataset.slot) { e.dataTransfer.setData("text/plain", "slot:" + ds.dataset.slot); e.dataTransfer.effectAllowed = "move"; }
     });
@@ -25931,9 +25989,9 @@ const Game = (() => {
       if (!slotEl && !bagEl && !dollEl) return;
       e.preventDefault(); clear9();
       if (pay9.indexOf("bagi:") === 0) {
-        const i9 = parseInt(pay9.slice(5), 10);
-        if (slotEl && slotEl.dataset.slotk) Game.bagWear(i9, slotEl.dataset.slotk);
-        else if (dollEl) Game.bagWear(i9, "auto");
+        const i9 = parseInt(pay9.slice(5), 10), nm9 = pay9.indexOf("|") > 0 ? pay9.slice(pay9.indexOf("|") + 1) : null;
+        if (slotEl && slotEl.dataset.slotk) Game.bagWear(i9, slotEl.dataset.slotk, nm9);
+        else if (dollEl) Game.bagWear(i9, "auto", nm9);
       } else {
         const k9 = pay9.slice(5);
         if (bagEl) Game.gearOff(k9);
@@ -26515,7 +26573,7 @@ const Game = (() => {
       return;
     }
     const bw9 = e.target.closest("[data-bwear]");               /* P151 行囊归置 */
-    if (bw9) { const sel9 = bw9.parentElement.querySelector("[data-bslot]"); Game.bagWear(Number(bw9.dataset.bwear), sel9 ? sel9.value : "auto"); return; }
+    if (bw9) { const sel9 = bw9.parentElement.querySelector("[data-bslot]"), rw9 = bw9.closest(".db-row"); Game.bagWear(Number(bw9.dataset.bwear), sel9 ? sel9.value : "auto", rw9 ? rw9.dataset.bk : null); return; }   /* P249 带名字核对 */
     const go9 = e.target.closest("[data-gsoff]");
     if (go9) { Game.gearOff(go9.dataset.gsoff); return; }
     const dx1 = e.target.closest("[data-dexon]");               /* P150 原著法术图鉴 */
