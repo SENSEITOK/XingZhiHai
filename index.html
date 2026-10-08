@@ -5250,7 +5250,7 @@ function meiChurnFillSet() { const el = U.$("#disp-meichurn"); if (el) el.value 
 /* ── 检查更新（纯引擎功能，不是设定）：开局几秒后去 GitHub 仓库取 version.json，与本包版本号比对；有新版就在顶上挂一条横幅给下载链接。
    浏览器打开的本地文件不能改写自己，所以「更新」到此为止：下载新包、解压、把旧的 星之海.html 换掉——存档在浏览器本机存储里，换文件不丢。
    规矩：设置·显示里可关（默认开）；一天最多自动查一次；离线不查；本机调试地址（localhost／127.0.0.1）不自动查；只发一个 GET，不带任何本机数据；查不到就当没这回事，不弹不报。 */
-const UPD_VER = "beta19";
+const UPD_VER = "beta19.1";
 const UPD_REPO = "SENSEITOK/XingZhiHai";
 const UPD_URL = "https://raw.githubusercontent.com/" + UPD_REPO + "/main/version.json";
 const UPD_PAGE = "https://github.com/" + UPD_REPO;
@@ -30176,9 +30176,7 @@ const UI = (() => {
       ((function () { const ks = Object.keys(run.skills || {}); return ks.length ? '<div class="pc-mana" data-dbtab="skills" style="cursor:pointer" title="点开技能页">技能 · ' + ks.slice(0, 6).map(k => U.esc(k) + ((run.skills[k].lv || 1) > 1 ? (run.skills[k].lv) : "")).join("、") + (ks.length > 6 ? " 等" + ks.length + "项" : "") + "</div>" : ""; })()) +
       ((run.conds || []).length ? '<div class="pc-mana" style="color:#e8a8a8">状态 · ' + run.conds.map(c => U.esc(c.name)).join("、") + "</div>" : "") + "</div>" +
       '<div class="pcard"><h4>在 场</h4>' + castRows + "</div>" +
-      '<div class="pcard"><h4>装 备</h4>' + (typeof dollOn === "function" && dollOn()   /* P239 有素材就把小人立在上头，六格在下 */
-        ? '<div class="doll-wrap doll-on">' + dollHTML(run) + gearCells + kinCell + "</div>"
-        : '<div class="doll-wrap">' + gearCells + kinCell + "</div>") + (typeof gearSheetHTML === "function" ? gearSheetHTML(run) : "") + "</div>" +   /* P194 判定面板 */
+      '<div class="pcard"><h4>装 备</h4>' + '<div class="doll-wrap">' + gearCells + kinCell + "</div>" + (typeof gearSheetHTML === "function" ? gearSheetHTML(run) : "") + "</div>" +   /* P194 判定面板；侧栏不再立玩家小人（用户嫌惊悚），只留六格 */
       '<div class="pcard"><h4>法 术</h4>' + (Object.entries(run.spells || {}).slice(0, 5).map(([n, sp]) =>
         '<div class="bag-item q-xi" data-gdesc="' + U.esc(n + "（" + (sp.lv || 1) + "级）" + (sp.cost ? "·耗" + sp.cost : "") + (sp.range ? "·" + sp.range : "") + (sp.mod ? "·改造：" + sp.mod : "") + (sp.desc ? "：" + sp.desc : "")) + '"><b>' + U.esc(n) + "</b><span class=\"n\">" + (sp.lv || 1) + "级" + (sp.mod ? "·改" : "") + "</span></div>").join("") || '<p class="hint">暂无法术</p>') + "</div>" +
       '<div class="pcard bagbox"><h4>背 包</h4><div class="bag-list">' + bagRows + "</div></div>" +
