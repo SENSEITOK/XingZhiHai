@@ -29419,13 +29419,13 @@ const MVU = (() => {
     for (const x of stat.skills || []) out.push(x.op === "^"
       ? { cmd: "LEVEL_SKILL", name: x.name, _lg: 1 }
       : { cmd: "LEARN_SKILL", name: x.name, desc: x.desc, _lg: 1 });
-    for (const x of stat.bag || []) out.push(x.op === "-"
-      ? { cmd: "REMOVE_ITEM", name: x.name, n: x.n, _lg: 1 }
-      : { cmd: "ADD_ITEM", name: x.name, n: x.n, quality: x.q, desc: x.desc, _lg: 1 });
-    for (const x of stat.gear || []) out.push(x.op === "-"
+    for (const x of stat.gear || []) out.push(x.op === "-"           /* P249d 装备行排在背包行前头：一幕至多四十条，背包行一口气报四十多件时，穿脱那几条不再被挤出去（落库本就先装备后背包，次序不影响记账） */
       ? { cmd: "LOSE_EQUIPMENT", name: x.name, _lg: 1 }
       : x.op === "off" ? { cmd: "UNEQUIP_ITEM", name: x.name, why: x.dmg ? "坏了" : undefined, _lg: 1 }   /* P249；P249c 坏了还留着 */
       : { cmd: "EQUIP_ITEM", name: x.name, slot: x.slotW, quality: x.q, desc: x.desc, _lg: 1 });
+    for (const x of stat.bag || []) out.push(x.op === "-"
+      ? { cmd: "REMOVE_ITEM", name: x.name, n: x.n, _lg: 1 }
+      : { cmd: "ADD_ITEM", name: x.name, n: x.n, quality: x.q, desc: x.desc, _lg: 1 });
     for (const x of stat.conds || []) out.push(x.op === "-"
       ? { cmd: "REMOVE_CONDITION", name: x.name, _lg: 1 }
       : { cmd: "ADD_CONDITION", name: x.name, desc: x.note, _lg: 1 });
