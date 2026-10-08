@@ -1,0 +1,28 @@
+<!doctype html><html><head><meta charset="utf-8"><title>i3d</title>
+<style>html,body{margin:0;height:100%;background:#000}#host{position:relative;width:100%;height:100%;overflow:hidden}.isle-3d{position:absolute;inset:0;width:100%;height:100%}.i3-labs{position:absolute;inset:0;pointer-events:none}.i3-lab{position:absolute;left:0;top:0;font:12px sans-serif;color:#f4efff;background:rgba(20,16,40,.72);padding:2px 7px;border-radius:9px;white-space:nowrap;border:1px solid rgba(255,255,255,.18)}</style></head>
+<body><div id="host"><canvas id="star-cv" style="display:none"></canvas></div>
+<script src="build/three.bundle.js"></script>
+<script src="isle3d.js"></script>
+<script>
+(function(){ const q = new URLSearchParams(location.search); (q.get("models") || "").split(",").filter(Boolean).forEach(f => document.write('<script src="' + f + '"><\/script>')); })();
+</script>
+<script>
+const FACPOS = [[32, 34], [62, 30], [36, 66], [70, 46], [40, 50], [24, 44], [56, 24], [80, 58]];
+const SLOTPOS = [[62, 78], [44, 80], [26, 70], [84, 50], [20, 36], [50, 66], [72, 30], [40, 24]];
+function islandDesc(o) {
+  const pois = [{ x: 50, y: 36, kind: "home", n: "主屋" }, { x: 20, y: 56, kind: "port", n: "岛沿码头" }, { x: 74, y: 70, kind: "fall", n: "垂瀑口" }, { x: 64, y: 60, kind: "garden", n: "自留畦" }];
+  const facs = o.facs || [];
+  facs.forEach((f, i) => pois.push({ x: FACPOS[i][0], y: FACPOS[i][1], kind: "fac", type: f[0], lv: f[1] || 1, bad: !!f[2], n: f[0] + (f[1] > 1 ? "·" + f[1] + "级" : "") }));
+  const slots = { "小岛": 3, "中岛": 5, "大岛": 8 }[o.size || "中岛"];
+  for (let s = facs.length; s < slots; s++) pois.push({ x: SLOTPOS[s][0], y: SLOTPOS[s][1], kind: "slot", n: "可营建" });
+  pois.forEach((p, i) => p.i = i);
+  return { name: o.name || "听雨空岛", size: o.size || "中岛", era: o.era || "y1994", part: o.part || "午", pois };
+}
+window.run3d = function (o) {
+  const desc = o.showroom ? { showroom: o.showroom, part: o.part || "午", era: o.era || "y1994", gap: o.gap } : islandDesc(o);
+  const okk = Isle3D.open(document.getElementById("host"), desc, { onPick: i => { window.lastPick = i; } });
+  if (!okk) return { ok: false };
+  if (o.cam) Isle3D.view(o.cam, true);
+  return { ok: true, stats: Isle3D.stats() };
+};
+</script></body></html>
