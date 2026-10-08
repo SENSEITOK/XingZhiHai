@@ -18815,6 +18815,7 @@ const MapM = (() => {
     const pois = poisNow(cm).filter(p => eraSees(p, eraId));
     const p2 = pois[i]; if (!p2) return;
     sel = "poi:" + i;
+    if (isle3d && cityCur === "__isle") Isle3D.select(i);                                          /* P246 立体岛上跟着高亮 */
     const kd = POI_KIND[p2.k] || POI_KIND.land;
     const tip = U.$("#map-tip");
     if (p2.hid) {                                                                                  /* P211 没踏查的地标：只知道方位，能走就给「踏查此处」 */
