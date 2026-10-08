@@ -7054,9 +7054,9 @@ function dndLevel(run) { return Math.max(1, Math.floor(typeof profCR === "functi
 function dndProf(run) { return 2 + Math.floor((dndLevel(run) - 1) / 4); }   /* 熟练加值：一到四级 +2，往上每四级 +1 */
 function dndManaIdx(run) { try { return manaOf(run).idx; } catch (e) { return 1; } }
 function dndHpMax(run) { const tv = (run.traits || {})["体魄"] != null ? run.traits["体魄"] : 1; return 8 + tv * 4 + dndLevel(run) * 4; }
-function dndAC(run) {                                    /* 魔女常备法师护甲：护甲至少 12，精锐以上 +1、大魔女以上 +2；随熟练涨 */
+function dndAC(run, broken) {                            /* 魔女常备法师护甲（1 环护体，原著 1994:4175）：护甲至少 12，精锐以上 +1、大魔女以上 +2；碎了（broken）就只剩袍子本身 */
   const r = run.gear && run.gear.robe, d = dndItem("robe", r), tv = (run.traits || {})["体魄"] != null ? run.traits["体魄"] : 1, mi = dndManaIdx(run);
-  return Math.max(d ? d.ac : 10, 12) + (d ? d.q : 0) + (mi >= 6 ? 2 : mi >= 4 ? 1 : 0) + (tv >= 2 ? 1 : 0) + Math.max(0, dndProf(run) - 2) + dndEffSum(run, "ac");
+  return (broken ? (d ? d.ac : 10) : Math.max(d ? d.ac : 10, 12) + (mi >= 6 ? 2 : mi >= 4 ? 1 : 0)) + (d ? d.q : 0) + (tv >= 2 ? 1 : 0) + Math.max(0, dndProf(run) - 2) + dndEffSum(run, "ac");
 }
 function dndInit(run) { return dndAbil(run, "体魄") / 2 + dndEffSum(run, "init"); }
 function dndHp(run) {                                    /* 血条：过一天回满 */
@@ -7104,7 +7104,7 @@ function dndFightLive(run) {                             /* 战况过期：换�
     fl.day = dndDay(run); fl.idle = Math.max(fl.idle || 0, 1);
     if (fl.buff && fl.buff.ally && !(fl.buff.ally.left > 0)) fl.buff.ally.left = 1;
   }
-  for (const f of (fl.foes || [])) if (f.tr === undefined) { const T = dndFoeTraits(f.name); f.tr = T.tr; f.boss = T.boss ? 1 : 0; }   /* P245 以前的敌人补认特性（血和护甲不动） */
+  for (const f of (fl.foes || [])) if (f.cat === undefined) { const T = dndFoeTraits(f.name); f.cat = T.cat; if (f.tr === undefined) f.tr = T.tr; if (f.boss === undefined) f.boss = T.boss ? 1 : 0; }   /* P245 以前的敌人补认类别（血和护甲不动） */
   if (fl.day !== dndDay(run) || (fl.idle || 0) >= 2 || !(fl.foes || []).some(f => f.hp > 0 && !f.yield)) { dndFightEnd(run, "fled"); return null; }
   return fl;
 }
@@ -7138,15 +7138,15 @@ function dndFoe(run, f, kind) {                          /* 战场上登记／�
   const room = () => { if (fl.foes.length < 6) return true; const di = fl.foes.findIndex(x => x.hp <= 0 || x.yield); if (di >= 0) { fl.foes.splice(di, 1); return true; } return false; };
   if (n >= 2 && (f.mook || (n >= 4 && lv <= Math.max(1, dndPeerLv(run) - 2)))) {   /* 杂鱼（裁定者标了，或比她弱得多的一大群）才合成一条 */
     if (!room()) return weak(alive);
-    e = { name: uniq(), grp: nm, lv, ac: t[0] - 1 + (T.tr === "guard" ? 1 : 0), hp: n, max: n, mook: 1, atk: t[2], dmg: "1d1+" + lv, tr: T.tr }; fl.foes.push(e); return e;
+    e = { name: uniq(), grp: nm, lv, ac: t[0] - 1 + (T.tr === "guard" ? 1 : 0), hp: n, max: n, mook: 1, atk: t[2], dmg: "1d1+" + lv, cat: T.cat, tr: T.tr }; fl.foes.push(e); return e;
   }
   const m = Math.min(n, 4), row = DND_FOE[m >= 2 ? Math.max(1, lv - 1) : lv], hp1 = m >= 2 ? Math.max(1, Math.round(t[1] / Math.sqrt(m))) : t[1];
   let first = null;                                       /* 两到四个像样的对手：各占一条，人多每条血薄、出手低一级；再多的挤不上前 */
-  for (let i = 0; i < m; i++) { if (!room()) break; const hpB = T.boss ? Math.round(hp1 * 1.5) : hp1, x = { name: uniq(), grp: nm, lv, ac: t[0] + (T.tr === "guard" ? 2 : 0), hp: hpB, max: hpB, atk: row[2], dmg: row[3], tr: T.tr, boss: T.boss ? 1 : 0, lr: T.boss ? 1 : 0 }; fl.foes.push(x); if (!first) first = x; }
+  for (let i = 0; i < m; i++) { if (!room()) break; const hpB = T.boss ? Math.round(hp1 * 1.5) : hp1, x = { name: uniq(), grp: nm, lv, ac: t[0] + (T.tr === "guard" ? 2 : 0), hp: hpB, max: hpB, atk: row[2], dmg: row[3], cat: T.cat, tr: T.tr, boss: T.boss ? 1 : 0 }; fl.foes.push(x); if (!first) first = x; }
   return first || weak(alive) || null;
 }
 /* 法术分十类（P242b）：有学派按学派，没有就按名字里的字认。每类上战场各有一手 */
-const DND_SCHOOL = { "塑能": "blast", "死灵": "drain", "咒法": "summon", "防护": "ward", "预言": "foresee", "变化": "shift", "幻术": "mirage", "符文": "rune", "仪式": "ritual" };
+const DND_SCHOOL = { "塑能": "blast", "死灵": "drain", "咒法": "summon", "防护": "ward", "预言": "foresee", "变化": "shift", "幻术": "mirage", "惑控": "control", "附魔": "control", "符文": "rune", "仪式": "ritual" };   /* 原著八门（2077:3275）：防护、咒法、预言、惑控、塑能、幻术、死灵、变化；符文、仪式是载体 */
 const DND_STYPE = {
   blast: { nm: "轰击", d: "掷法术命中，中了按等级出伤害；名字带雨、潮、爆、风暴的波及身边两人；打杂兵按伤害一发倒一到三个（杂兵比她弱得越多倒得越多），群体的至少三个" },
   drain: { nm: "汲取", d: "伤害稍低，打掉的血回一半给自己" },
@@ -7164,7 +7164,8 @@ function dndSpellProfile(nm, sp) {
   const c = typeof spellCanonOf === "function" ? spellCanonOf(nm) : null;
   const t = nm + " " + ((sp && sp.desc) || "") + " " + ((c && c.d) || "");
   let ty;
-  if (/治愈|治疗|疗伤|愈合|回复|复原|回春/.test(t)) ty = "heal";
+  if (/畏惧(?:法术|魔法|术)?/.test(nm)) ty = "control";       /* 1994:659 畏惧法术＝削魔抗的起手，不是恐惧术 */
+  else if (/治愈|治疗|疗伤|愈合|回复|复原|回春/.test(t)) ty = "heal";
   else if (/魅|惑|摄神|安神|催眠|定身|束缚|冻结|石化|禁锢|安魂|镇压|唤猫|让灵体安静/.test(t) && !/火|雷|爆|炮/.test(nm)) ty = "control";
   else if (c && DND_SCHOOL[c.s]) ty = DND_SCHOOL[c.s];
   else if (/照明|照亮|点灯|明灯|光亮术/.test(nm)) ty = "ritual";   /* 照明术不是打人的（开局说明里的「圣火」不算） */
@@ -7242,86 +7243,154 @@ function dndLoot(run, foes, out) {
   }
   return got;
 }
-/* ================= P245 交锋与交情：敌人特性、意图、状态、同伴、战中喊话、社交检定 =================
-   敌人特性：按名字（或裁定者给的类型 t）认首领、施法、蛮力、刺客、护卫、野兽、亡灵、构装，首领能跟别的叠。
-   意图：蛮力和首领会蓄力、施法的会念咒，亮在侧栏和战况里，下一回合才落下——招架成功化解蓄力，一下打掉它四分之一的血、重击或定身能打断。
-   状态：火灼烧、冰冻缓、雷麻痹、风掀翻、毒中毒、音与光动摇；利刃重击见血、钝器重击砸翻。
-   同伴：在场、交情不坏的熟人和使魔可以并肩出手（裁定者给 allies）：熟人按魔力档位出手、会挨打、会倒下；使魔扰敌，她的攻击有优势。打赢了每人好感 +2。
-   战中喊话（kind talk）：劝降、威吓、嘲讽、谈条件，对亡灵、构装、野兽不管用；对方残血、同伙倒得多、她有帮手时更好劝。
-   社交检定：冲着在册的人做交际检定时，好感定态度（亲近、友善、一般、冷淡、敌视）调难度；说服、请托、表演、欺瞒、威吓、洞察各有后果；
-   档案里的爱好、心仪礼物、口味、心愿投其所好给优势（没探到的撞上了也算，成功就亮出来），踩到已知的讨厌给劣势；威吓、欺瞒要抓已知的软肋、秘密；
-   察言观色成功揭开一条藏着的档案（大成两条）。好感变化每人每天加分封顶 +4，状态栏照写，写反了方向引擎按掷骰的来。 */
-const DND_FTRAIT = {
-  caster: { nm: "施法", re: /魔女|法师|巫|术士|祭司|萨满|魔导|咒术|修女|学徒|圣女/, d: "隔一阵念一手法术：下一回合砸向她和同伴，抵抗成功只吃一半" },
-  brute: { nm: "蛮力", re: /狼人|熊人|巨人|蛮|力士|打手|壮汉|兽人|食人魔|大块头|拳手|莽汉/, d: "会蓄力：下一回合重击（命中 +2、伤害骰翻倍）；她招架成功就化解，它还会踉跄一回合；一下打掉它四分之一的血能打断" },
-  sneak: { nm: "刺客", re: /刺客|杀手|忍者|暗杀|盗贼|小偷|扒手|影子|夜枭|飞贼/, d: "头一回出手有优势，掷 19 也算重击" },
-  guard: { nm: "护卫", re: /卫兵|护卫|保镖|骑士|守卫|门卫|侍卫|盾|近卫|保安|警卫/, d: "护甲高一截；她打它的同伙时，它有三成会挡上来" },
-  beast: { nm: "野兽", re: /狼|熊|虎|豹|蛇|鳄|(?<!走)狗|犬|野猪|鹰|蝎|蜘蛛|鼠|蝠|兽|龙|蟒/, d: "劝不动；残血只会逃" },
-  undead: { nm: "亡灵", re: /亡灵|骷髅|僵尸|丧尸|幽灵|怨灵|恶灵|吸血鬼|巫妖|游魂|死灵|尸鬼|鬼魂|鬼怪|(?:女|恶|厉|水|饿)鬼/, d: "不投降不逃，劝不动；怕光与火（伤害 ×1.5），暗与血减半，汲取吸不到血" },
-  construct: { nm: "构装", re: /机器|机械|傀儡|魔像|人偶|无人机|炮台|机甲|自律|石像|守护像|发条/, d: "不投降不逃，劝不动，不吃控制、毒与流血；怕雷电（伤害 ×1.5）" }
+/* ================= P245 交锋与交情（按原著修订） =================
+   对手分类（原著 1994:635 怪物、野兽、异族智慧体，最危险的是魔女）：魔女、凡人、仆从、异族、野兽、怪物、亡灵、构装、恶魔、龙，再叠首领、施法、刺客、护卫。
+   · 魔女对手打倒就是俘虏（2077:33304 挂【已俘虏】、好吃好喝招待；1994:45929 被打趴不逃、去营地兑换），不写死；输得明白会体面认输。
+   · 亡灵、构装、洗脑的铁军没有士气（1994:114897、84809），劝不动吓不住；野兽、凡人、猫士气低；首领倒下只让低士气的散伙（2077:12923 天狗死战反扑）。
+   · 只有大招有前摇（1994:53390 传奇法术、75418 变身、87909 首领大招）：首领、龙、高环施法者会亮出「蓄力」「念咒」，下一回合落下。
+     蓄力：招架成功就挡住并借势反击（2077:23790）。念咒：闪开吃一半、抵抗有优势；打断靠定身、恐吓、推撞，或伤到它让它专注失手（1994:110101、113577）——硬吃伤害不一定打得断（2077:10288）。
+   · 元素：火对亡灵加倍、破盾；冰冻缓、冻住构装；雷连锁到旁边（1994:110910）；风推撞、打断；毒对魔女减半；光致盲、克亡灵；音震荡。动摇只来自恐吓（1994:55376）。
+   · 控制：首领挨控只露一瞬破绽（1994:36011），同级魔女定一回合，杂鱼两回合；差一点没压住也有三分之一的效果——露个破绽（1994:98843）。构装不吃惑控。
+   · 野兽、龙有魔抗（1994:4104），「畏惧法术」削抗（1994:659，不是恐惧术）。恶魔不怕凡铁（2077:37118）。
+   · 法师护甲是 1 环护体（1994:4175）：挨了重击、大招就碎，写「刷甲」重刷。
+   同伴：熟人帮忙要欠人情（1994:25285）；按魔力档位出力，档位太低只做后勤；默契慢慢攒，攒够了能在她倒下前拉一把；人少被围时交情浅的会先撤。
+   魔宠／使魔不怎么打（2077:34743），能警戒、护主挡一下；猫一吓就跑，过会儿自己回来（1994:57513）。
+   战中喊话：给台阶劝魔女体面认输、吓唬士气低的、嘲讽（双刃：对方上头只盯着她，也更狠）、交战中谈条件（多半被当成诈术，2077:33311）、花招骗出破绽。
+   交际：好感定态度；察言观色读的是情绪和意图（1994:92078），读出来下一句好开口；误导比撒谎安全，越熟越难骗，谎话败露就「不信任」（2077:31452）；
+   送礼看借口与分寸——吃的最稳，同样的东西送多了不领情，送砸了结仇（2077:30030、32723）；请托要么花掉对方欠的人情，要么自己欠下一份；威吓总要伤交情，吓不住比自己强的。 */
+const DND_FCAT = {
+  witch: { nm: "魔女", morale: "proud" }, mortal: { nm: "凡人", morale: "low" }, thrall: { nm: "仆从", morale: "low" }, alien: { nm: "异族", morale: "mid" },
+  beast: { nm: "野兽", morale: "beast" }, monster: { nm: "怪物", morale: "mid" }, undead: { nm: "亡灵", morale: "none" }, construct: { nm: "构装", morale: "none" },
+  demon: { nm: "恶魔", morale: "mid" }, dragon: { nm: "龙", morale: "mid" }
 };
-const DND_FTRAIT_ORD = ["undead", "construct", "brute", "sneak", "guard", "caster", "beast"];
-const DND_BOSS_RE = /首领|头目|头领|老大|队长|馆长|领主|统领|团长|魁首|帮主|长老|女王|魔王|大魔女|boss/i;
-const DND_BOSS_D = "血厚一半；头一次被控制能硬扛掉（传奇抵抗）；它一倒，手下多半作鸟兽散";
-const DND_FT_ALIAS = [["亡灵", "undead"], ["构装", "construct"], ["机械", "construct"], ["蛮力", "brute"], ["蛮兵", "brute"], ["刺客", "sneak"], ["护卫", "guard"], ["法师", "caster"], ["施法", "caster"], ["魔女", "caster"], ["野兽", "beast"], ["兽", "beast"]];
-function dndFoeTraits(name, t) {                          /* 名字或裁定者给的类型 → {tr, boss} */
+const DND_FTRAIT = {
+  caster: { nm: "施法", d: "会念大咒：亮出「念咒」的下一回合砸向她和同伴，闪开或抵抗住只吃一半" },
+  sneak: { nm: "刺客", d: "头一回出手有优势，掷 19 也算重击；她带着警戒的伙伴就偷袭不成" },
+  guard: { nm: "护卫", d: "护甲高一截；她打它的同伙时，它有三成会挡上来" },
+  brute: { nm: "蛮力", d: "力大，伤害高" }
+};
+const DND_CAT_D = {
+  witch: "魔女：打倒就是俘虏，不写死；输得明白会体面认输；打上头了吓不住", mortal: "凡人：士气低，残血就跑或投降", thrall: "仆从：士气低；洗脑的铁军不知疼、吓不住，却最怕惑控",
+  alien: "异族：会撤退、会谈条件", beast: "野兽：有魔抗（法术伤害打折，畏惧法术能削），劝不动，残血就逃", monster: "怪物：残血才逃",
+  undead: "亡灵：没有士气，劝不动吓不住；光与火伤害加倍，汲取吸不到血", construct: "构装：没有心智，劝不动、不吃惑控与毒；怕冰火（×1.5），冰能冻住它",
+  demon: "恶魔：不怕凡铁（品质凡的兵刃伤害减半）；小恶魔胆小", dragon: "龙：魔抗高（法术伤害减半，畏惧法术能削），会亮大招"
+};
+const DND_BOSS_RE = /首领|头目|头领|老大|队长|馆长|领主|统领|团长|魁首|帮主|长老|女王|魔王|大魔女|顶级魔女|英雄|传奇|boss/i;
+const DND_BOSS_D = "首领：血厚一半；挨控只露一瞬破绽；会亮大招；它一倒，低士气的手下多半散伙；只会撤不会降";
+const DND_FT_ALIAS = [["亡灵", "undead"], ["构装", "construct"], ["机械", "construct"], ["恶魔", "demon"], ["龙", "dragon"], ["仆从", "thrall"], ["铁军", "thrall"], ["凡人", "mortal"], ["异族", "alien"], ["野兽", "beast"], ["怪物", "monster"], ["魔女", "witch"]];
+const DND_TR_ALIAS = [["施法", "caster"], ["法师", "caster"], ["刺客", "sneak"], ["护卫", "guard"], ["蛮力", "brute"]];
+function dndFoeTraits(name, t) {                          /* 名字或裁定者给的类型 → {cat, tr, boss}；人形对手默认是魔女（魔女是这个世界的主流人种） */
   const s = String(name || ""), tt = String(t || "");
-  const boss = DND_BOSS_RE.test(s) || /首领|头目|boss/i.test(tt);
-  let tr = "";
-  for (const [k, v] of DND_FT_ALIAS) if (tt.includes(k)) { tr = v; break; }
-  if (!tr) for (const k of DND_FTRAIT_ORD) if (DND_FTRAIT[k].re.test(s)) { tr = k; break; }
-  return { tr, boss };
+  const boss = DND_BOSS_RE.test(s) || /首领|头目|boss|英雄|传奇/i.test(tt);
+  let cat = "", tr = "";
+  for (const [k, v] of DND_FT_ALIAS) if (tt.includes(k)) { cat = v; break; }
+  for (const [k, v] of DND_TR_ALIAS) if (tt.includes(k)) { tr = v; break; }
+  if (!cat) {
+    if (/亡灵系魔女|死灵魔女|亡灵魔女|幽灵魔女/.test(s)) cat = "witch";
+    else if (/(?<![小飞])龙(?!虾|猫|舟|井)|飞龙|翼龙|骸龙|晶龙|龙族/.test(s)) cat = "dragon";
+    else if (/骷髅|僵尸|丧尸|幽灵|怨灵|恶灵|吸血鬼|巫妖|游魂|尸鬼|鬼魂|鬼怪|亡灵|(?:女|恶|厉|水|饿)鬼/.test(s)) cat = "undead";
+    else if (/魔像|傀儡|人偶|机械|机器|无人机|炮台|机甲|自律|石像|守护像|发条|仿生/.test(s)) cat = "construct";
+    else if (/恶魔|魔鬼|劣魔|魔将|深渊/.test(s)) cat = "demon";
+    else if (/仆从|铁军|洗脑|奴兵/.test(s)) cat = "thrall";
+    else if (/猎魔|猎巫|魔女猎人|凡人|土著|原住民|村民|农夫|异界人/.test(s)) cat = "mortal";
+    else if (/精灵|安瑟|豺狼人|哥布林|兽人|狼人|熊人|蜥蜴人|食人魔|巨人|矮人|霜妖|天狗|异族|外星/.test(s)) cat = "alien";
+    else if (/魔女|女巫|巫女|女术士/.test(s)) cat = "witch";
+    else if (/狼|熊|虎|豹|蛇|鳄|(?<!走)狗|犬|野猪|鹰|蝎|蜘蛛|鼠|蝠|兽|蟒|鹿|狐|鸟|蜥|野猫|猞猁/.test(s)) cat = "beast";
+    else if (/怪物|魔物|异兽|触手|史莱姆|软泥|虫群|巨虫/.test(s)) cat = "monster";
+    else cat = "witch";
+  }
+  if (!tr) {
+    if (/法师|术士|祭司|萨满|巫师|魔导|咒术|修女|女巫|学徒/.test(s) || (cat === "witch" && /魔女|女巫/.test(s) && /黑|暗|咒|术|法/.test(s))) tr = "caster";
+    else if (/刺客|杀手|忍者|暗杀|盗贼|小偷|扒手|影子|夜枭|飞贼|猎杀/.test(s)) tr = "sneak";
+    else if (/卫兵|护卫|保镖|骑士|守卫|门卫|侍卫|盾|近卫|保安|警卫/.test(s)) tr = "guard";
+    else if (/巨人|蛮|力士|打手|壮汉|食人魔|大块头|拳手|莽汉|狼人|熊人/.test(s)) tr = "brute";
+  }
+  return { cat, tr, boss };
 }
-function dndFoeTag(f) { return [f.boss ? "首领" : "", f.tr && DND_FTRAIT[f.tr] ? DND_FTRAIT[f.tr].nm : ""].filter(Boolean).join("·"); }
-function dndFoeTip(f) { return [f.boss ? "首领：" + DND_BOSS_D + (f.lr > 0 ? "（传奇抵抗还剩 " + f.lr + " 次）" : "") : "", f.tr && DND_FTRAIT[f.tr] ? DND_FTRAIT[f.tr].nm + "：" + DND_FTRAIT[f.tr].d : ""].filter(Boolean).join("；"); }
-/* 状态：灼烧、中毒、流血每回合轮到它时掉 1d4；冻缓命中 −2、蓄不了力；动摇出手吃劣势；被激只打她；倒地这回合还手吃劣势、同伴打它有优势；暴怒下一击有优势；破绽她下一次打它有优势 */
-const DND_COND = { burn: "灼烧", poison: "中毒", bleed: "流血", slow: "冻缓", shaken: "动摇", taunt: "被激", prone: "倒地", rage: "暴怒", exposed: "破绽" };
+function dndFoeTag(f) { return [f.boss ? "首领" : "", f.cat && DND_FCAT[f.cat] ? DND_FCAT[f.cat].nm : "", f.tr && DND_FTRAIT[f.tr] ? DND_FTRAIT[f.tr].nm : ""].filter(Boolean).join("·"); }
+function dndFoeTip(f) { return [f.boss ? DND_BOSS_D : "", f.cat ? DND_CAT_D[f.cat] : "", f.tr && DND_FTRAIT[f.tr] ? DND_FTRAIT[f.tr].nm + "：" + DND_FTRAIT[f.tr].d : ""].filter(Boolean).join("；"); }
+function dndMoraleOf(f) { const c = DND_FCAT[f.cat] || DND_FCAT.witch; return f.cat === "thrall" && /铁军|洗脑/.test(f.name) ? "none" : f.cat === "demon" && f.lv > 3 ? "none" : c.morale; }
+/* 状态：中毒、流血每回合掉 1d4（对魔女减半）；冻缓命中 −2；致盲与动摇出手吃劣势；被激只打她（命中 +2、护甲 −2）；暴怒下一击有优势；破绽她下一次打它有优势；易伤法术伤害 ×1.25 */
+const DND_COND = { poison: "中毒", bleed: "流血", slow: "冻缓", blind: "致盲", shaken: "动摇", taunt: "上头", rage: "拼命", exposed: "破绽", vuln: "易伤" };
 function dndCondAdd(f, k, n) {
   if (!f || f.hp <= 0 || f.yield) return false;
-  if (f.mook && /burn|poison|bleed|prone/.test(k)) return false;
-  if ((k === "poison" || k === "bleed") && (f.tr === "undead" || f.tr === "construct")) return false;
-  if ((k === "shaken" || k === "taunt") && (f.tr === "undead" || f.tr === "construct")) return false;
+  if (f.mook && /poison|bleed/.test(k)) return false;
+  if ((k === "poison" || k === "bleed") && (f.cat === "undead" || f.cat === "construct")) return false;
+  if ((k === "shaken" || k === "taunt") && dndMoraleOf(f) === "none") return false;
+  if (k === "blind" && f.cat === "construct") return false;
   f.cd = f.cd || {}; f.cd[k] = Math.max(f.cd[k] || 0, n); return true;
 }
-function dndCondTag(f) { const c = f.cd || {}; return Object.keys(DND_COND).filter(k => c[k] > 0).map(k => DND_COND[k] + (c[k] > 1 ? c[k] : "")).join("·"); }
-function dndElemMul(f, el) { if (!f) return 1; if (f.tr === "undead") return /光|火/.test(el) ? 1.5 : /暗|血/.test(el) ? .5 : 1; if (f.tr === "construct" && /雷|电/.test(el)) return 1.5; return 1; }
-function dndRider(f, el, R) {                             /* 轰击、汲取打中以后的元素附带 */
-  if (!f || f.hp <= 0 || f.yield) return;
-  let t = "";
-  if (el === "火" && dndCondAdd(f, "burn", 2)) t = "烧了起来（灼烧 2 回合）";
-  else if (el === "冰" && dndCondAdd(f, "slow", 2)) { t = f.int === "charge" ? "被冻得发僵，蓄的那口力散了（冻缓 2 回合，命中 −2）" : "被冻得发僵（冻缓 2 回合，命中 −2）"; if (f.int === "charge") f.int = ""; }
-  else if ((el === "雷" || el === "电") && !f.mook && !f.boss && f.tr !== "construct" && Math.random() < .3) { f.stun = Math.max(f.stun || 0, 1); f.int = ""; t = "被电得一麻（定身 1 回合）"; }
-  else if (el === "风" && dndCondAdd(f, "prone", 1)) t = "被掀翻在地（这回合还手吃劣势，同伴打它有优势）";
-  else if ((el === "毒" || el === "酸") && dndCondAdd(f, "poison", 3)) t = "中了毒（3 回合）";
-  else if ((el === "音" || (el === "光" && f.tr !== "undead")) && dndCondAdd(f, "shaken", 1)) t = el === "音" ? "被震得发懵（动摇 1 回合）" : "被晃了眼（动摇 1 回合）";
-  if (t) R.fx.push("「" + f.name + "」" + t);
+function dndCondTag(f) { const c = f.cd || {}; return Object.keys(DND_COND).filter(k => c[k] > 0).map(k => DND_COND[k] + (c[k] > 1 && c[k] < 50 ? c[k] : "")).join("·"); }
+function dndElemMul(f, el) {                              /* 元素克制 */
+  if (!f) return 1;
+  if (f.cat === "undead") return /光|火|星/.test(el) ? 2 : /暗|血/.test(el) ? .5 : 1;
+  if (f.cat === "construct") return /火|冰|星/.test(el) ? 1.5 : /毒|酸/.test(el) ? .5 : 1;
+  return 1;
 }
-/* 意图：回合末至多两个敌人亮出下一手 */
+function dndMR(f, spd) {                                  /* 魔抗：野兽（4 级起）、龙；畏惧法术削掉以后吃全额、再加易伤 */
+  if (!f || !spd) return 1;
+  let m = 1;
+  if (!f.mrOff && (f.cat === "dragon" || (f.cat === "beast" && f.lv >= 4))) m = f.cat === "dragon" ? .5 : .75;
+  if (f.cd && f.cd.vuln > 0) m *= 1.25;
+  return m;
+}
+function dndConc(f, dmg, R, why) {                        /* 亮了大招的敌人挨了伤：专注检定，失手就打断 */
+  if (!f || !f.int || f.hp <= 0 || f.yield || !dmg) return;
+  const dc = 10 + Math.floor(dmg / 2), roll = 1 + Math.floor(Math.random() * 20) + Math.floor(f.lv / 2) + (f.boss ? 2 : 0);
+  if (roll < dc) { R.fx.push((why || "") + "打断了「" + f.name + "」的" + DND_INT[f.int] + "（专注 " + roll + " 对 " + dc + "）"); f.int = ""; }
+  else R.fx.push("「" + f.name + "」咬牙撑住了" + DND_INT[f.int] + "（专注 " + roll + " 对 " + dc + "）");
+}
+function dndBreakNow(f, R, why) { if (f && f.int && f.hp > 0 && !f.yield) { R.fx.push(why + "，「" + f.name + "」的" + DND_INT[f.int] + "被打断了"); f.int = ""; } }
+function dndRider(run, f, el, R, dmg) {                   /* 轰击、汲取打中以后的元素附带 */
+  if (!f || f.hp <= 0 || f.yield) return;
+  const fl = run.fight;
+  if ((el === "火" || el === "星") && f.cat === "witch" && !f.mook && !f.shieldOff) { f.shieldOff = 1; f.ac = Math.max(8, f.ac - 1); R.fx.push("火把「" + f.name + "」的护盾烧穿了一角（护甲 −1）"); }
+  else if (el === "冰") {
+    if (f.cat === "construct" && !f.boss) { f.stun = Math.max(f.stun || 0, 1); f.int = ""; R.fx.push("「" + f.name + "」被冻住了（定身 1 回合）"); }
+    else if (dndCondAdd(f, "slow", 2)) R.fx.push("「" + f.name + "」冻得发僵（冻缓 2 回合，命中 −2）");
+  }
+  else if ((el === "雷" || el === "电") && fl) {
+    const o = fl.foes.find(x => x !== f && x.hp > 0 && !x.yield);
+    if (o) { if (o.mook) { const k = Math.min(o.hp, 1); o.hp -= k; R.fx.push("雷光连锁到「" + o.name + "」，倒下 " + k + " 个"); } else { const d2 = Math.max(1, Math.ceil(dmg / 2)); o.hp = Math.max(0, o.hp - d2); R.fx.push("雷光连锁到「" + o.name + "」−" + d2 + (o.hp <= 0 ? "，倒下" : "")); dndConc(o, d2, R); } }
+  }
+  else if (el === "风" || el === "音") { if (f.int) dndBreakNow(f, R, el === "风" ? "一股风把它推了个趔趄" : "音爆震得它五脏发颤"); else if (el === "音" && dndCondAdd(f, "shaken", 1)) R.fx.push("「" + f.name + "」被音爆震懵了（动摇 1 回合）"); }
+  else if ((el === "毒" || el === "酸") && dndCondAdd(f, "poison", 3)) R.fx.push("「" + f.name + "」中了毒（3 回合" + (f.cat === "witch" ? "，魔女吃一半" : "") + "）");
+  else if (el === "光" && f.cat !== "undead" && dndCondAdd(f, "blind", 1)) R.fx.push("「" + f.name + "」被强光晃瞎了眼（致盲 1 回合）");
+}
+/* 大招前摇：首领、龙、高环施法者、大型构装 */
 const DND_INT = { charge: "蓄力", cast: "念咒" };
 function dndIntentRoll(run, fl, easy, R) {
   let n = fl.foes.filter(f => f.int && f.hp > 0 && !f.yield).length;
   for (const f of fl.foes) {
     if (n >= 2) break;
     if (f.hp <= 0 || f.yield || f.mook || f.int || f.stun > 0) continue;
-    const ch = easy ? .22 : .3;
-    if (f.tr === "caster" && Math.random() < ch) f.int = "cast";
-    else if ((f.tr === "brute" || (f.boss && f.tr !== "caster")) && !(f.cd && f.cd.slow > 0) && Math.random() < ch + .05) f.int = "charge";
-    if (f.int) { n++; R.intents.push({ foe: f.name, int: f.int }); }
+    const casty = f.tr === "caster" || f.cat === "witch" || f.cat === "dragon";
+    let ch = 0;
+    if (f.boss || f.cat === "dragon") ch = .35;
+    else if (f.tr === "caster" && f.lv >= 5) ch = .25;
+    else if (f.cat === "witch" && f.lv >= 6) ch = .2;
+    else if (f.cat === "construct" && f.lv >= 5) ch = .25;
+    if (easy) ch *= .75;
+    if (!ch || Math.random() >= ch) continue;
+    f.int = casty ? "cast" : "charge";
+    if (f.int === "charge" && f.cd && f.cd.slow > 0) { f.int = ""; continue; }
+    n++; R.intents.push({ foe: f.name, int: f.int, dragon: f.cat === "dragon" ? 1 : 0 });
   }
 }
 function dndIntentTxt(x) {
-  return x.int === "cast" ? "「" + x.foe + "」开始念咒（下一回合法术砸向她和同伴，抵抗成功只吃一半；一下打掉它四分之一的血、重击或定身能打断）"
-    : "「" + x.foe + "」伏低身子蓄力（下一回合重击：命中 +2、伤害骰翻倍；她招架成功就化解，还能让它踉跄一回合；一下打掉它四分之一的血、重击或定身能打断）";
+  return x.int === "cast" ? "「" + x.foe + "」" + (x.dragon ? "深吸一口气，龙语在喉咙里滚" : "开始念一个大咒") + "（下一回合砸向她和同伴：闪开或抵抗住只吃一半；定身、恐吓、推撞能打断，伤到它也可能让它专注失手）"
+    : "「" + x.foe + "」伏低身子蓄力（下一回合重击：命中 +2、伤害骰翻倍；她招架成功就挡住并借势反击；定身、恐吓、推撞能打断）";
 }
-function dndBreak(f, dmg, crit, R) { if (f && f.int && f.hp > 0 && !f.yield && (crit || dmg >= Math.ceil(f.max / 4))) { R.fx.push("打断了「" + f.name + "」的" + DND_INT[f.int]); f.int = ""; } }
 function dndSaveMod(run) { return dndProf(run) + Math.max(dndAbil(run, "体魄"), dndAbil(run, "控制")) / 2 + dndEffSum(run, "save"); }
-/* 同伴：在场、交情不坏的熟人（至多两个）和一只使魔 */
+/* ---- 同伴 ---- */
 const DND_TIER_LV = [1, 2, 3, 4, 4, 5, 7, 8, 10];
+const DND_CLOSE = /家人|亲人|母亲|挚友|恋人|师父|师傅|徒弟|学生|同门|发小|姐妹|好友/;
 function dndAllyLv(run, p) {                              /* 档案里写了魔力档位就按档位，没写按她的同行水准低一级 */
   const tv = String((p.facts && p.facts.tier && p.facts.tier.v) || "");
   if (tv && typeof manaTab === "function") { let bi = -1, bl = 0; manaTab(run.year).forEach(([, nm], i) => { if (tv.includes(nm) && nm.length > bl) { bi = i; bl = nm.length; } }); if (bi >= 0) return DND_TIER_LV[Math.min(bi, DND_TIER_LV.length - 1)]; }
   return Math.max(1, dndPeerLv(run) - 1);
 }
+function dndPetWord(run) { return (run.year || 1994) >= 2060 ? "使魔" : "魔宠"; }
 function dndAllyOf(run, name, text) {
   const nm0 = String(name || "").replace(/[（(].*$/, "").trim(); if (!nm0) return null;
   const key = typeof stirFind === "function" ? stirFind(run, nm0) : "", p = key && run.npcs[key];
@@ -7329,9 +7398,14 @@ function dndAllyOf(run, name, text) {
   const bare = npcBare(key);
   if (!((run.lastCast || []).some(c => c && (c.name === key || npcBare(c.name) === bare)) || String(text || "").includes(bare))) return null;   /* 得在场 */
   if (run.fight && run.fight.foes.some(f => f.name === bare || f.name === key)) return null;
-  if (/使魔|宠物/.test(p.rel || "")) return { name: bare, key, lv: 1, hp: 8, max: 8, ac: 13, atk: 3, dmg: "1d4", pet: 1 };
-  const lv = dndAllyLv(run, p), t = DND_FOE[lv];
-  return { name: bare, key, lv, hp: t[1], max: t[1], ac: t[0], atk: t[2] + 1, dmg: t[3] };
+  if (/使魔|宠物|魔宠|伙伴/.test(p.rel || "")) {
+    const cat = /猫/.test(bare + (p.note || "") + (p.look || "")) || /猫/.test(p.rel || "");
+    return { name: bare, key, lv: 1, hp: 8, max: 8, ac: 13, atk: 3, dmg: "1d4", pet: 1, cat: cat ? 1 : 0, guard: 1 };
+  }
+  const lv = dndAllyLv(run, p), t = DND_FOE[lv], close = DND_CLOSE.test(p.rel || "");
+  const sync = p.sync != null ? p.sync : close ? 40 : 10;
+  const sup = lv < dndPeerLv(run) - 1;                    /* 档位差太多：只做后勤（递东西、治伤、打气） */
+  return { name: bare, key, lv, hp: t[1], max: t[1], ac: t[0], atk: t[2] + 1 + (sync >= 40 ? 1 : 0), dmg: t[3], close: close ? 1 : 0, sync, sup: sup ? 1 : 0, save: sync >= 25 || close ? 1 : 0 };
 }
 function dndAllyJoin(run, list, text) {
   const fl = run.fight; if (!fl) return [];
@@ -7340,38 +7414,54 @@ function dndAllyJoin(run, list, text) {
   for (const n of names) {
     const a = dndAllyOf(run, n, text); if (!a || fl.allies.some(x => x.key === a.key)) continue;
     if (a.pet ? fl.allies.some(x => x.pet) : fl.allies.filter(x => !x.pet).length >= 2) continue;
-    fl.allies.push(a); got.push(a.name);
+    fl.allies.push(a); got.push(a);
+    if (!a.pet && !/家人|亲人|母亲|姐姐|妹妹|女儿/.test(run.npcs[a.key].rel || "")) { const p = run.npcs[a.key]; p.owe = (p.owe || 0) - 1; a.owed = 1; }   /* 熟人出手，她欠一份人情（血亲不记这个账；好姐妹照样记） */
   }
   return got;
 }
-/* 战中喊话 */
-const TALK_HOW = [[/嘲|讽|激将|挑衅|骂阵|叫阵/, "嘲讽"], [/威|吓|镇住|喝退|震慑|恫/, "威吓"], [/骗|唬|诈|谎|虚张/, "欺骗"], [/条件|交易|收买|谈判|放你|买路/, "谈条件"]];
+/* ---- 战中喊话 ---- */
+const TALK_HOW = [[/嘲|讽|激将|挑衅|骂阵|垃圾话|阴阳/, "嘲讽"], [/威|吓|镇住|喝退|震慑|恫|报名号|亮实力/, "威吓"], [/花招|佯|假装|虚晃|骗|唬|诈|虚张/, "花招"], [/条件|交易|收买|谈判|放你|买路|停手|说和/, "谈条件"]];
 function talkHow(h, text) { const s = String(h || "") + " " + String(text || "").slice(0, 60); for (const [re, v] of TALK_HOW) if (re.test(s)) return v; return "劝降"; }
-function talkImmune(run, f) {
-  if (f.tr === "undead") return "亡灵听不进人话";
-  if (f.tr === "construct") return "构装体不吃这一套";
-  if (f.tr === "beast" && !(/猫/.test(f.name) && dndPerksRaw(run).some(p => p.nm === "猫缘"))) return "野兽听不懂人话";
+function talkImmune(run, f, how) {
+  const mo = dndMoraleOf(f);
+  if (how === "花招") return f.cat === "construct" ? "构装体只认程序" : "";
+  if (mo === "none") return f.cat === "undead" ? "亡灵没有士气，听不进人话" : f.cat === "construct" ? "构装体没有心智" : "它不知疼也不知怕";
+  if (f.cat === "beast" && how !== "威吓" && !(/猫/.test(f.name) && dndPerksRaw(run).some(p => p.nm === "猫缘"))) return "野兽听不懂人话";
   return "";
 }
 function talkDC(run, f, how) {
-  const fl = run.fight, fallen = fl.foes.filter(x => x !== f && (x.hp <= 0 || x.yield)).length, mates = (fl.allies || []).filter(a => a.hp > 0).length, r = f.hp / Math.max(1, f.max);
+  const fl = run.fight, fallen = fl.foes.filter(x => x !== f && (x.hp <= 0 || x.yield)).length, mates = (fl.allies || []).filter(a => a.hp > 0 && !a.pet).length, r = f.hp / Math.max(1, f.max), gap = dndLevel(run) - 2 * f.lv;
   if (how === "嘲讽") return U.clamp(10 + Math.floor(f.lv / 2) + (f.boss ? 2 : 0), 8, 22);
-  return U.clamp(10 + f.lv + (r > .5 ? 4 : r > .25 ? 0 : -4) + (f.boss ? 3 : 0) - Math.min(3, fallen) - (mates ? 1 : 0), 8, 25);
+  if (how === "花招") return U.clamp(10 + Math.floor(f.lv / 2) + (f.tr === "sneak" ? 2 : 0), 8, 22);
+  return U.clamp(10 + f.lv + (r > .5 ? 4 : r > .25 ? 0 : -4) + (f.boss ? 4 : 0) - Math.min(3, fallen) - (mates ? 1 : 0) - U.clamp(Math.floor(gap / 3), 0, 3), 8, 26);
 }
-function talkApply(run, f, how, band, R) {
-  const fl = run.fight, yOf = x => (x.tr === "beast" ? "fled" : "surr"), half = f.mook || f.hp <= f.max / 2, quarter = f.hp <= f.max / 4;
-  if (how === "嘲讽") {
-    if (band >= 2) { for (const x of fl.foes) if (x.hp > 0 && !x.yield) dndCondAdd(x, "taunt", 2); if (band >= 3) dndCondAdd(f, "exposed", 1); return "敌人都冲她来了（被激 2 回合，不再打她的同伴）" + (band >= 3 ? "，「" + f.name + "」气昏了头、露出破绽" : ""); }
-    if (band === 1) { dndCondAdd(f, "taunt", 1); return "「" + f.name + "」被激得只盯着她（1 回合）"; }
-    return "没人理她的挑衅";
+function talkApply(run, f, how, band, R, text) {
+  const fl = run.fight, mo = dndMoraleOf(f), half = f.mook || f.hp <= f.max / 2, quarter = f.hp <= f.max / 4, lose = half || fl.foes.some(x => x !== f && (x.hp <= 0 || x.yield));
+  const giveUp = x => (x.cat === "witch" ? "cap" : x.cat === "beast" || x.boss ? "fled" : "surr");
+  const gone = x => x.yield === "cap" ? "体面认输，当了俘虏" : x.yield === "surr" ? "放下家伙投降了" : "掉头撤走了";
+  if (how === "嘲讽") {                                    /* 双刃：上头的只盯着她打，下手更狠，也更露破绽 */
+    if (band >= 2) { dndCondAdd(f, "taunt", 2); if (band >= 3) dndCondAdd(f, "exposed", 1); return "「" + f.name + "」上头了：两回合只盯着她打（命中 +2、护甲 −2）" + (band >= 3 ? "，气得露出破绽" : "") + "——同伴那边松了口气，她自己得扛住"; }
+    if (band === 1) return "「" + f.name + "」冷笑一声，没接茬";
+    dndCondAdd(f, "rage", 1); return "这话反倒把「" + f.name + "」激励了（下一击有优势）";
+  }
+  if (how === "花招") {                                    /* 佯攻、装伤、虚晃：骗出破绽，不伤信誉 */
+    if (band >= 2) { const had = f.int; dndCondAdd(f, "exposed", 1); if (had) f.int = ""; return "「" + f.name + "」上了当" + (had ? "，憋着的" + DND_INT[had] + "砸了个空" : "") + "，露出破绽（她下一次打它有优势）"; }
+    if (band === 1) return "「" + f.name + "」犹豫了一下，没全信";
+    dndCondAdd(f, "rage", 1); return "被「" + f.name + "」看穿了，反被抓住空当（它下一击有优势）";
   }
   if (how === "威吓") {
+    if (f.int && band >= 2) dndBreakNow(f, R, "她一声喝");
+    if (f.cat === "witch" && !f.mook) {                   /* 对魔女：先亮实力再报名号，对方认怂改谈；打上头的吓不住 */
+      if (dndLevel(run) >= 2 * f.lv + 3 && band >= 2) { f.yield = "cap"; f.int = ""; return "「" + f.name + "」掂量了一下两边的斤两，认了怂，停手听她开条件（算体面认输）"; }
+      if (band >= 2) return "「" + f.name + "」打上头了，这话吓不住她";
+      if (band === 0) { dndCondAdd(f, "rage", 1); return "「" + f.name + "」被激出了火气（下一击有优势）"; }
+      return "「" + f.name + "」不为所动";
+    }
     if (band >= 3) {
-      let res;
-      if (f.boss && !quarter) { dndCondAdd(f, "shaken", 2); res = "「" + f.name + "」被镇住了（动摇 2 回合）"; }
-      else { f.yield = f.tr === "beast" || Math.random() < .5 ? "fled" : "surr"; f.int = ""; res = "「" + f.name + "」" + (f.yield === "surr" ? "被吓得举手投降" : "被吓得掉头就跑"); }
-      for (const x of fl.foes) if (x !== f && x.hp > 0 && !x.yield && !talkImmune(run, x)) { if (x.mook) { const k = Math.ceil(x.hp / 3); x.hp -= k; R.fx.push("「" + x.name + "」吓跑了 " + k + " 个"); } dndCondAdd(x, "shaken", 2); }
-      return res;
+      if (f.boss && !quarter) { dndCondAdd(f, "shaken", 2); return "「" + f.name + "」被镇住了（动摇 2 回合）"; }
+      f.yield = f.mook ? "fled" : giveUp(f); f.int = "";
+      for (const x of fl.foes) if (x !== f && x.hp > 0 && !x.yield && !talkImmune(run, x, how) && x.cat !== "witch") { if (x.mook) { const k = Math.ceil(x.hp / 3); x.hp -= k; R.fx.push("「" + x.name + "」吓跑了 " + k + " 个"); } dndCondAdd(x, "shaken", 2); }
+      return "「" + f.name + "」被吓破了胆，" + gone(f);
     }
     if (band === 2) {
       if (f.mook) { const k = Math.ceil(f.hp / 3); f.hp -= k; dndCondAdd(f, "shaken", 2); return "「" + f.name + "」吓跑了 " + k + " 个，剩下的发怵（动摇 2 回合）"; }
@@ -7379,19 +7469,29 @@ function talkApply(run, f, how, band, R) {
       dndCondAdd(f, "shaken", 2); return "「" + f.name + "」被镇住了（动摇 2 回合，出手吃劣势）";
     }
     if (band === 1) { dndCondAdd(f, "shaken", 1); return "「" + f.name + "」犹豫了一下（动摇 1 回合）"; }
-    dndCondAdd(f, "rage", 1); return "「" + f.name + "」被激怒了（下一击有优势）";
+    dndCondAdd(f, "rage", 1); return "「" + f.name + "」被逼得拼死一搏（下一击有优势）";
   }
-  const give = band >= 3 ? (!f.boss || half) : band === 2 ? (half && (!f.boss || quarter)) : false;   /* 劝降、谈条件、欺骗 */
-  if (give) {
-    f.yield = yOf(f); f.int = "";
-    if (band >= 3) for (const x of fl.foes) if (x !== f && x.hp > 0 && !x.yield && !x.boss && !talkImmune(run, x) && (x.mook || x.hp <= x.max / 2)) { x.yield = yOf(x); x.int = ""; R.fx.push("「" + x.name + "」也跟着" + (x.yield === "surr" ? "认了输" : "跑了")); }
-    return "「" + f.name + "」" + (f.yield === "surr" ? "放下了手里的家伙，认输了" : "掉头就跑");
+  if (how === "谈条件") {                                  /* 交战中说和多半被当成诈术；对方真吃亏了才肯停 */
+    if (band >= 2 && half && !f.boss) { f.yield = giveUp(f); f.int = ""; return "「" + f.name + "」看了看自己的伤，答应停手——" + gone(f) + "；正式的条件战后再谈"; }
+    if (band >= 2) return "「" + f.name + "」不信：战场上说和，十回有九回是诈";
+    if (band === 0) { dndCondAdd(f, "rage", 1); return "「" + f.name + "」只当她要使诈，攻势更紧了（下一击有优势）"; }
+    return "「" + f.name + "」没理会";
   }
-  if (band >= 2) { dndCondAdd(f, "shaken", 2); return "「" + f.name + "」动摇了（2 回合出手吃劣势），但还没松口"; }
-  if (band === 1) { dndCondAdd(f, "shaken", 1); return "「" + f.name + "」迟疑了一下（动摇 1 回合）"; }
-  dndCondAdd(f, "rage", 1); return "「" + f.name + "」不吃这一套，反倒被激怒了（下一击有优势）";
+  /* 劝降：给台阶（优待、赎金、体面）——对魔女是按惯例体面认输当俘虏，对异族凡人是投降归顺；首领只会撤 */
+  const step = /优待|赎金|体面|保你|放你|不为难|好吃好喝|台阶/.test(String(text || "")) ? 1 : 0;
+  const big = dndLevel(run) >= 2 * f.lv + 3, need = f.cat === "witch" ? lose || big : lose || mo === "low";   /* 魔女得输得明白（或差距悬殊）才认；士气低的大成就降 */
+  const ok9 = band + step >= 3 ? need && (!f.boss || quarter) : band + step >= 2 ? lose && (!f.boss || quarter) : false;
+  if (ok9) {
+    if (f.boss) { f.yield = "fled"; f.int = ""; return "「" + f.name + "」不肯降，带着残部撤了"; }
+    f.yield = giveUp(f); f.int = "";
+    if (band >= 3) for (const x of fl.foes) if (x !== f && x.hp > 0 && !x.yield && !x.boss && !talkImmune(run, x, how) && (x.mook || x.hp <= x.max / 2)) { x.yield = giveUp(x); x.int = ""; R.fx.push("「" + x.name + "」也跟着" + gone(x)); }
+    return "「" + f.name + "」" + gone(f) + (f.cat === "witch" ? "（按惯例押回去好吃好喝招待，不写死）" : "");
+  }
+  if (band >= 2) { dndCondAdd(f, "shaken", 1); return "「" + f.name + "」还没输到要认的地步" + (f.cat === "witch" ? "（魔女输得明白才肯体面认输）" : "") + "，但手上慢了半拍"; }
+  if (band === 1) return "「" + f.name + "」没接这个台阶";
+  dndCondAdd(f, "rage", 1); return "「" + f.name + "」只觉得被看扁了（下一击有优势）";
 }
-/* 社交检定 */
+/* ---- 交际 ---- */
 const SOC_ATT = [[80, "亲近", -5], [60, "友善", -2], [40, "一般", 0], [20, "冷淡", 2], [0, "敌视", 5]];
 function socAtt(p) {
   const f = p && p.fav != null ? p.fav : 50;
@@ -7399,7 +7499,7 @@ function socAtt(p) {
   if (p && /仇|敌|对头/.test(p.rel || "") && a[2] < 2) a = SOC_ATT[3];
   return { nm: a[1], dc: a[2], fav: f };
 }
-const SOC_HOW = [[/洞察|察言|观色|揣摩|看穿|读心/, "洞察"], [/欺|骗|瞒|谎|唬|诈/, "欺瞒"], [/威|吓|胁|逼|镇/, "威吓"], [/表演|演|唱|舞|弹|才艺|逗/, "表演"], [/请托|拜托|求|托|借|请/, "请托"], [/说服|劝|交涉|商量|谈|讲理/, "说服"]];
+const SOC_HOW = [[/洞察|察言|观色|揣摩|看穿|读心|观察/, "洞察"], [/误导|含糊|暗示|打马虎眼|避重就轻/, "误导"], [/撒谎|欺|骗|瞒|谎|唬|诈/, "撒谎"], [/威|吓|胁|逼|镇/, "威吓"], [/送礼|送|礼/, "送礼"], [/表演|演|唱|舞|弹|才艺|逗|示弱|卖萌|哭/, "表演"], [/请托|拜托|求|托|借|请/, "请托"], [/说服|劝|交涉|商量|谈|讲理|道歉|认错/, "说服"]];
 function socHow(h) { const s = String(h || ""); for (const [re, v] of SOC_HOW) if (re.test(s)) return v; return ""; }
 const SOC_STOP = /^(喜欢|讨厌|收集|一个|一些|什么|自己|因为|所以|还是|就是|不是|没有|可以|他们|我们|这个|那个|时候|东西|一点|有点|特别|非常|最近|平时|总是|别人|大家|魔女)$/;
 function socGrams(v) {                                  /* 档案内容拆成两字词；「烟味」「甜食」「猫咪」这种再留一个单字词根 */
@@ -7418,52 +7518,85 @@ function socFind(run, adj, text, peek) {                 /* 交际对象：裁�
   for (const c of (run.lastCast || [])) { const k = c && stirFind(run, c.name); if (k && npcBare(k).length >= 2 && t.includes(npcBare(k))) return k; }
   return "";
 }
-const SOC_FAV = { "说服": [-2, 0, 1, 3], "请托": [-2, 0, 1, 2], "表演": [-1, 0, 1, 3], "欺瞒": [-4, -1, 0, 1], "威吓": [-4, -3, -2, -1], "洞察": [0, 0, 0, 0] };
-const SOC_PEEK = ["weak", "secret", "plan", "goal", "gift", "dislike", "hobby", "past", "family", "taste"];
+const SOC_GIFT = [[/吃|糕|点心|茶|酒|甜|饭|菜|果|糖|零食|美食|饼|蛋糕|巧克力/, "吃食"], [/钱|现金|红包|金条|黄金|银元/, "钱财"], [/宝石|首饰|项链|戒指|手镯|水晶|耳坠|发簪/, "首饰"], [/画|雕|艺术|摆件|瓷/, "摆件"], [/书|法术|秘籍|笔记|知识|典籍|卷轴/, "学问"]];
+const SOC_FAV = { "说服": [-2, 0, 1, 3], "请托": [-2, 0, 1, 2], "表演": [-1, 0, 1, 3], "送礼": [-4, 0, 1, 3], "误导": [-1, 0, 0, 1], "撒谎": [-4, -1, 0, 0], "威吓": [-4, -3, -2, -2], "洞察": [0, 0, 0, 0] };
+const SOC_HARD = /安洁|枯华|雾花|首席|馆长|政客/;
+function socTierIdx(run, p) { const tv = String((p.facts && p.facts.tier && p.facts.tier.v) || ""); if (!tv || typeof manaTab !== "function") return -1; let bi = -1, bl = 0; manaTab(run.year).forEach(([, nm], i) => { if (tv.includes(nm) && nm.length > bl) { bi = i; bl = nm.length; } }); return bi; }
 function socLayer(run, adj, text, dom) {
   let how = socHow(adj && adj.how);
   if (!how && /察言观色|揣摩|看穿她|读出她|留心观察|打量.{0,4}神色/.test(String(text || ""))) how = "洞察";
+  if (how === "撒谎" && /误导|含糊|暗示|打马虎眼|避重就轻|不算撒谎/.test(String(text || ""))) how = "误导";
+  if (!how && dom === "交际" && /送|礼物|带了.{0,8}给/.test(String(text || ""))) how = "送礼";
   if (!(dom === "交际" || how === "洞察")) return null;
   const key = socFind(run, adj, text, how === "洞察"); if (!key) return null;
   how = how || "说服";
-  const p = run.npcs[key], att = socAtt(p), fs = p.facts || {};
+  const p = run.npcs[key], att = socAtt(p), fs = p.facts || {}, day = dndDay(run), t = String(text || "");
   const S = { key, nm: npcBare(key), how, att: att.nm, fav0: att.fav, dc: 0, adv: 0, dis: 0, tags: [] };
-  S.dc = how === "欺瞒" ? Math.round(att.dc * .6) : how === "威吓" ? (att.nm === "亲近" ? 2 : att.nm === "友善" ? 1 : 0) : how === "洞察" ? (att.nm === "敌视" ? 2 : att.nm === "冷淡" ? 1 : 0) : att.dc;
-  if (how !== "洞察") {
-    const keys = how === "威吓" || how === "欺瞒" ? ["weak", "secret"] : ["gift", "hobby", "taste", "goal"];
-    for (const k of keys) {
-      const live = !!FACT_LIVE[k], v = live ? (fs[k] && fs[k].k ? p[k] : "") : (fs[k] && fs[k].v), kn = live ? 1 : (fs[k] && fs[k].k ? 1 : 0);
-      if (!v || (!kn && (k === "weak" || k === "secret"))) continue;
-      if (!socHit(v, text)) continue;
-      S.adv = 1; S.hit = k; if (!kn) S.lucky = k;
-      S.tags.push((kn ? (k === "weak" || k === "secret" ? "抓住" : "投其所好") : "误打误撞投其所好") + "：" + factLabel(run, k) + "·" + v);
-      break;
-    }
-    if (fs.dislike && fs.dislike.k && socHit(fs.dislike.v, text)) { S.dis = 1; S.tags.push("踩雷：讨厌·" + fs.dislike.v); }
+  const close = att.nm === "亲近" ? 3 : att.nm === "友善" ? 1 : att.nm === "敌视" ? 2 : att.nm === "冷淡" ? 1 : 0;
+  if (how === "撒谎") S.dc = close;                        /* 越熟越难骗，生分的也多个心眼 */
+  else if (how === "误导") S.dc = Math.max(-1, close - 2);
+  else if (how === "威吓") S.dc = att.nm === "亲近" ? 2 : att.nm === "友善" ? 1 : 0;
+  else if (how === "洞察") S.dc = (att.nm === "敌视" ? 2 : att.nm === "冷淡" ? 1 : 0) + (SOC_HARD.test(S.nm) || socTierIdx(run, p) >= 6 ? 4 : 0);
+  else S.dc = att.dc;
+  if (p.read && p.read.day === day && how !== "洞察") { S.adv = 1; S.tags.push("看准了时机（察言观色）"); }
+  if (p.distrust && (how === "说服" || how === "请托" || how === "撒谎" || how === "误导") && !/道歉|认错|赔不是|对不起/.test(t)) { S.dis = 1; S.tags.push("她还记着上回的谎（不信任）"); }
+  if (how === "威吓") {
+    const ti = socTierIdx(run, p), mi = dndManaIdx(run);
+    if (ti >= 0 && ti > mi) { S.dis = 1; S.tags.push("对方比她强，吓不住"); }
+    if (p.seen && p.seen.day === day) { S.dis = 1; S.tags.push("上一回已经被看穿"); }
+    if (fs.weak && fs.weak.k && socHit(fs.weak.v, t)) { S.adv = 1; S.tags.push("抓住软肋：" + fs.weak.v); }
   }
+  if (how === "请托") {
+    if ((p.owe || 0) > 0) { S.adv = 1; S.spend = 1; S.tags.push("她欠你一份人情，这回拿来用"); }
+    else S.newOwe = 1;
+  }
+  if (how === "送礼" || how === "说服" || how === "表演" || how === "请托") {
+    for (const k of ["gift", "hobby", "taste", "goal"]) {
+      const live = !!FACT_LIVE[k], v = live ? (fs[k] && fs[k].k ? p[k] : "") : (fs[k] && fs[k].v), kn = live ? 1 : (fs[k] && fs[k].k ? 1 : 0);
+      if (!v || !kn || !socHit(v, t)) continue;                /* 投其所好靠情报：没探到的不算 */
+      S.adv = 1; S.hit = k; S.tags.push("投其所好：" + factLabel(run, k) + "·" + v); break;
+    }
+    if (how === "表演" && fs.hobby && fs.hobby.k && /戏|剧|艺术|音乐|唱/.test(fs.hobby.v)) { S.adv = 1; S.tags.push("她吃这一套（爱好·" + fs.hobby.v + "）"); }
+  }
+  if (how === "送礼") {
+    const g = (SOC_GIFT.find(([re]) => re.test(t)) || [null, "别的"])[1]; S.gift = g;
+    if (g === "吃食") S.tags.push("送吃的最稳");
+    if (g === "钱财" && fs.job && /局|署|委员|官|处|科|纪/.test(fs.job.v || "")) { S.dis = 1; S.tags.push("给公门的人送钱，她不敢收"); }
+    if (g === "学问" && !S.hit) { S.dis = 1; S.tags.push("送书送法术最容易送错"); }
+    if (g === "摆件" && !S.hit) S.dc += 1;
+    if (!/生日|节|谢|回礼|赔|见面|拜师|顺路|试用|多买|帮.{0,4}忙|庆|贺/.test(t)) { S.dc += 1; S.tags.push("没找个由头，显得硬塞"); }
+    const gl = (p.gifts || []).filter(x => x.g === g && x.y === run.year).length;
+    if (gl >= 1) { S.same = gl; S.tags.push("同样的东西送过" + (gl >= 2 ? "好几回" : "一回") + "，不稀罕了"); }
+  }
+  if (fs.dislike && fs.dislike.k && socHit(fs.dislike.v, t)) { S.dis = 1; S.tags.push("踩雷：讨厌·" + fs.dislike.v); }
   return S;
 }
-function socApply(run, S, band, text) {                  /* 掷完以后：好感（每人每天加分至多 +4）与揭开的档案 */
+function socApply(run, S, band, text) {                  /* 掷完以后：好感（每人每天加分至多 +4）、人情、不信任、送礼记录 */
   const p = run.npcs[S.key]; if (!p) return;
-  let d = (SOC_FAV[S.how] || SOC_FAV["说服"])[band] || 0;
-  if (S.hit === "gift" && band >= 2 && /送|礼|带了|捎/.test(String(text || ""))) d += 1;   /* 礼送到了心坎上 */
   const day = dndDay(run);
+  let d = (SOC_FAV[S.how] || SOC_FAV["说服"])[band] || 0;
+  if (S.how === "送礼") { if (S.gift === "吃食" && band >= 1) d += 1; if (S.hit && band >= 2) d += 1; if (S.same && d > 0) d = S.same >= 2 ? 0 : Math.min(d, 1); p.gifts = (p.gifts || []).concat([{ g: S.gift, y: run.year }]).slice(-8); }
   if (!run.socDay || run.socDay.day !== day) run.socDay = { day, up: {} };
   if (d > 0) { const u = run.socDay.up[S.key] || 0; d = Math.max(0, Math.min(d, 4 - u)); run.socDay.up[S.key] = u + d; }
   const f0 = p.fav != null ? p.fav : 50, f1 = U.clamp(f0 + d, 0, 100);
   S.fav0 = f0; S.d = f1 - f0; S.fav1 = f1;
   if (S.d) { p.fav = f1; run.favPin = (run.favPin || []).filter(x => x.key !== S.key).concat([{ key: S.key, fav: f1, d: S.d }]); }
-  S.reveal = [];
-  const fs = p.facts || {};
-  if (S.lucky && band >= 2 && fs[S.lucky] && fs[S.lucky].v && factSet(run, S.key, S.lucky, fs[S.lucky].v, true, "投其所好")) S.reveal.push(factLabel(run, S.lucky) + "·" + fs[S.lucky].v);
-  if (S.how === "洞察" && band >= 2) {
-    let n = band >= 3 ? 2 : 1;
-    for (const k of SOC_PEEK) {
-      if (n <= 0) break;
-      const f9 = (p.facts || {})[k], v = FACT_LIVE[k] ? p[k] : f9 && f9.v;
-      if (!v || (f9 && f9.k)) continue;
-      if (factSet(run, S.key, k, v, true, "察言观色")) { S.reveal.push(factLabel(run, k) + "·" + v); n--; }
-    }
+  S.notes = [];
+  if (S.how === "洞察") {
+    if (band >= 2) {
+      p.read = { day }; S.notes.push("她读出了" + S.nm + "此刻的情绪和真实意图，接下来这一句好开口（今天对她的下一次交际有优势）");
+      if (p.plan && !(p.facts && p.facts.plan && p.facts.plan.k) && factSet(run, S.key, "plan", p.plan, true, "察言观色")) S.notes.push("看出了她的打算：" + p.plan);
+    } else S.notes.push(SOC_HARD.test(S.nm) ? S.nm + "的心思读不透" : "她没看出什么名堂");
+  }
+  if (S.how === "撒谎" && band === 0) { p.distrust = { y: run.year, day }; S.notes.push("谎话当场被识破：" + S.nm + "从此不信任她（之后对她说服、请托都吃劣势，得认错道歉才缓得过来）"); }
+  if (S.how === "撒谎" && band === 1) S.notes.push(S.nm + "起了疑心");
+  if ((S.how === "说服" || S.how === "表演") && p.distrust && band >= 2 && /道歉|认错|赔不是|对不起/.test(String(text || ""))) { delete p.distrust; S.notes.push(S.nm + "接受了道歉，不再揪着那句谎"); }
+  if (S.how === "威吓" && band <= 1) { p.seen = { day }; S.notes.push(S.nm + "看穿了这是虚张声势，今天再吓也没用"); }
+  if (S.how === "威吓" && band >= 2) S.notes.push(S.nm + "照办了，心里不情愿");
+  if (S.how === "送礼" && band === 0) S.notes.push("礼送砸了，" + S.nm + "觉得被冒犯");
+  if (S.how === "请托" && band >= 1) {
+    if (S.spend) { p.owe = (p.owe || 0) - 1; S.notes.push(S.nm + "还了欠她的人情"); }
+    else if (S.newOwe) { p.owe = (p.owe || 0) - 1; S.notes.push("这回是她欠" + S.nm + "一份人情（日后对方来请托，别推）"); }
   }
 }
 function dndPrefill(txt) {                               /* 把一句行动填进输入框，交给玩家改了再发 */
@@ -7478,15 +7611,16 @@ function dndActText(run, act) {                          /* 角色卡上的快�
   const fl = dndFightLive(run), up = fl ? fl.foes.filter(f => f.hp > 0 && !f.yield) : [];
   const tg = up.find(f => f.int) || up.slice().sort((a, b) => a.hp / a.max - b.hp / b.max)[0], tn = tg ? "「" + tg.name + "」" : "对方";
   if (act === "atk") return "我抡起" + (run.gear && run.gear.wand ? "「" + run.gear.wand.name + "」" : "拳头") + "打向" + tn;
-  if (act === "def") { const ch = up.find(f => f.int === "charge"); return ch ? "我稳住脚，架住「" + ch.name + "」蓄力的那一击" : "我稳住阵脚，招架" + tn + "的攻势"; }
+  if (act === "def") { const ch = up.find(f => f.int === "charge"), cs = up.find(f => f.int === "cast"); return ch ? "我稳住脚，架住「" + ch.name + "」蓄力的那一击" : cs ? "我闪到掩体后面，躲开「" + cs.name + "」那个大咒" : "我稳住阵脚，招架" + tn + "的攻势"; }
   if (act === "cast") {
     let cur = 0; try { cur = manaOf(run).cur; } catch (e) {}
     const ls = Object.entries(run.spells || {}).map(([n, sp]) => Object.assign({ name: n }, dndSpellProfile(n, sp))).filter(p => ["blast", "drain", "control"].includes(p.ty)).sort((a, b) => b.lv - a.lv);
     const sp = ls.find(p => dndSpellCost(run, p) <= cur) || ls[0];
     return sp ? "我对" + tn + "放" + sp.name : "";
   }
-  if (act === "talk") return "我冲" + tn + "喊话：";
+  if (act === "talk") return tg && tg.cat === "witch" ? "我冲" + tn + "喊话，给她个台阶：" : "我冲" + tn + "喊话：";
   if (act === "flee") return "我找准空当脱身撤走";
+  if (act === "mage") return "我重新给自己刷一层法师护甲";
   if (act.indexOf("ally:") === 0) return "我招呼" + act.slice(5) + "一起上，";
   return "";
 }
@@ -7528,7 +7662,13 @@ function dndResolve(run, adj, text) {
   const hp = dndHp(run), hp0 = hp.cur, out = { d20: 1, domain: dom, kind, perks: [], fx: [], goal: String(adj.goal || "").slice(0, 30), lose: String(adj.lose || "").slice(0, 30) };
   /* 同伴入列：在场的熟人、使魔跟她并肩（P245） */
   const joined = run.fight && adj.allies ? dndAllyJoin(run, adj.allies, tx) : [];
-  if (joined.length) out.fx.push(joined.join("、") + "跟她并肩上阵");
+  if (joined.length) {
+    const ow = joined.filter(a => a.owed).map(a => a.name);
+    out.fx.push(joined.map(a => a.name + (a.pet ? "（" + dndPetWord(run) + "）" : a.sup ? "（打下手）" : "")).join("、") + "跟她并肩上阵" + (ow.length ? "——她欠" + ow.join("、") + "一份人情" : ""));
+    out.joined = joined.map(a => ({ name: a.name, pet: a.pet ? 1 : 0, sup: a.sup ? 1 : 0, owed: a.owed ? 1 : 0 }));
+    if (joined.some(a => a.pet) && run.fight) run.fight.alert = 1;   /* 伙伴在旁警戒：偷袭不成、先攻 +2 */
+  }
+  if (fb && fb.mageOff && /刷甲|法师护甲|重刷.{0,3}护甲/.test(tx)) { delete fb.mageOff; try { if (manaOf(run).cur >= 30) manaSpend(run, 30); } catch (e) {} out.fx.push("她顺手重刷了一层法师护甲"); }
   const soc = kind === "check" ? socLayer(run, adj, tx, dom) : null;   /* 冲着在册的人做交际检定（P245） */
   /* 施法扣魔力值：够就扣；不够看她写没写硬撑／烧金，都没有就法术没成形 */
   let fizzle = 0, overdraw = 0, goldBonus = 0;
@@ -7558,7 +7698,7 @@ function dndResolve(run, adj, text) {
     if (g && Math.random() < .3) { list.push("「" + g.name + "」挡在「" + foe.name + "」前面"); foe = g; }
   };
   const preFx = []; guardSwap(preFx);
-  const petHelp = kind === "attack" && !!(run.fight && (run.fight.allies || []).some(a => a.pet && a.hp > 0));
+  const petHelp = false;                                   /* 伙伴不替她打，只警戒、护主 */
   const tgtAdv = f => !!(f && (f.stun > 0 || (f.cd && f.cd.exposed > 0)));
   /* 优劣势（灵感只在没有优势、或有劣势要抵时才用掉） */
   const adv0 = U.clamp(Math.round(dndNum(adj.adv, 0)), -1, 1);
@@ -7580,13 +7720,13 @@ function dndResolve(run, adj, text) {
   const mod = dndSum(parts);
   /* 难度 */
   let dc = U.clamp(Math.round(dndNum(adj.dc, 12)), 5, 30);
-  if (kind === "attack" && foe) dc = ctl ? 10 + foe.lv + 2 : foe.ac;
+  if (kind === "attack" && foe) dc = ctl ? 10 + foe.lv + 2 : foe.ac - (foe.cd && foe.cd.taunt > 0 ? 2 : 0);
   if (kind === "parley") dc = U.clamp(17 - run.mw.score + (run.mw.foe.talk || 0) + (run.mw.cap ? 2 : 0), 8, 25);
   if (kind === "talk") dc = talkDC(run, foe, how9);
   if (soc) dc = U.clamp(dc + soc.dc, 5, 30);
   /* 先攻：新开的仗比一次，她抢到先手，敌人这一回合不还手（被偷袭／招架时不比；对面有刺客 +2） */
   if (fresh && kind !== "defend") {
-    const me = 1 + Math.floor(Math.random() * 20) + dndInit(run), lead = run.fight.foes.reduce((a, f) => Math.max(a, Math.floor(f.lv / 2)), 0) + (run.fight.foes.some(f => f.tr === "sneak") ? 2 : 0), them = 1 + Math.floor(Math.random() * 20) + lead;
+    const me = 1 + Math.floor(Math.random() * 20) + dndInit(run) + (run.fight.alert ? 2 : 0), lead = run.fight.foes.reduce((a, f) => Math.max(a, Math.floor(f.lv / 2)), 0) + (run.fight.foes.some(f => f.tr === "sneak") && !run.fight.alert ? 2 : 0), them = 1 + Math.floor(Math.random() * 20) + lead;
     run.fight.first = me >= them ? 1 : 0; out.init = { me, them, won: run.fight.first };
   }
   const extraTotal = /打到底|速战速决|一口气|连打|连击|一鼓作气|乘胜追击|穷追猛打/.test(tx) && kind === "attack" && !fizzle && !ctl ? 2 : 0;   /* 一口气连打至多三合 */
@@ -7603,7 +7743,7 @@ function dndResolve(run, adj, text) {
     const a2 = (fb && fb.foresee) || tgtAdv(foe) || petHelp ? 1 : 0, d2 = autoDis.length ? 1 : 0;
     const advR = ri === 0 ? netAdv : a2 && d2 ? 0 : a2 ? 1 : d2 ? -1 : 0;
     const r = dndD20(advR), R = { dice: r.dice, die: r.die, adv: advR, total: r.die + mod, fx: ri === 0 ? preFx.slice() : swFx, allyHits: [], intents: [] };
-    const dcR = ri > 0 && kind === "attack" && foe ? (ctl ? 10 + foe.lv + 2 : foe.ac) : dc;   /* 后几合按当下目标，不改顶层 dc */
+    const dcR = ri > 0 && kind === "attack" && foe ? (ctl ? 10 + foe.lv + 2 : foe.ac - (foe.cd && foe.cd.taunt > 0 ? 2 : 0)) : dc;   /* 后几合按当下目标，不改顶层 dc */
     R.dc = dcR;
     let band = R.total >= dcR + 10 ? 3 : R.total >= dcR ? 2 : R.total >= dcR - 5 ? 1 : 0;
     if (r.die === 20) band = 3;
@@ -7629,9 +7769,9 @@ function dndResolve(run, adj, text) {
       }
       /* 战中喊话（P245）：劝降、威吓、嘲讽、谈条件 */
       if (kind === "talk" && foe) {
-        const im = talkImmune(run, foe);
+        const im = talkImmune(run, foe, how9);
         if (im) { R.band = band = easy ? 1 : 0; R.talk = { foe: foe.name, how: how9, res: "「" + foe.name + "」根本不理——" + im }; }
-        else R.talk = { foe: foe.name, how: how9, res: talkApply(run, foe, how9, band, R) };
+        else R.talk = { foe: foe.name, how: how9, res: talkApply(run, foe, how9, band, R, tx) };
       }
     }
     /* 攻击：武器或轰击、汲取、控制法术（法术没成形就白耗一合） */
@@ -7639,10 +7779,13 @@ function dndResolve(run, adj, text) {
       let hit = r.die === 20 || (r.die !== 1 && R.total >= dcR);
       if (ctl) {
         let note = "";
-        if (hit && foe.tr === "construct") { hit = false; note = "「" + foe.name + "」是构装体，不吃控制"; }
-        else if (hit && foe.boss && foe.lr > 0) { foe.lr--; hit = false; note = "「" + foe.name + "」硬扛住了控制（首领的传奇抵抗，还剩 " + foe.lr + " 次）"; }
-        if (hit) { foe.stun = band >= 3 ? 3 : 2; foe.int = ""; R.fx.push(spl.name + "压住了「" + foe.name + "」：定身 " + foe.stun + " 回合"); }
-        else if (note) R.fx.push(note);
+        const vulnSp = /畏惧/.test(spl.name);                /* 畏惧法术：削魔抗（不是恐惧术） */
+        if (vulnSp) { if (hit) { foe.mrOff = 1; dndCondAdd(foe, "vuln", 99); note = spl.name + "把魔力打进了「" + foe.name + "」的魔抗里，它身上泛起红光（魔抗削掉，法术伤害 ×1.25）"; } }
+        else if (hit && foe.cat === "construct") { hit = false; note = "「" + foe.name + "」是构装体，没有心智可控"; }
+        else if (hit && foe.boss) { hit = false; dndCondAdd(foe, "exposed", 1); note = "「" + foe.name + "」只僵了一瞬就挣开了" + (foe.int ? "，憋着的" + DND_INT[foe.int] + "也散了" : "") + "（露出破绽）"; foe.int = ""; }
+        if (hit && !vulnSp) { foe.stun = foe.cat === "witch" && foe.lv >= dndPeerLv(run) ? 1 : band >= 3 ? 3 : 2; foe.int = ""; R.fx.push(spl.name + "压住了「" + foe.name + "」：定身 " + foe.stun + " 回合"); }
+        else if (!hit && !note && !vulnSp && r.die !== 1 && R.total >= dcR - 4 && foe.cat !== "construct") { dndCondAdd(foe, "exposed", 1); note = "「" + foe.name + "」抵住了大半，还是晃了一下（露出破绽）"; }
+        if (note) R.fx.push(note);
         R.atk = { foe: foe.name, ac: dcR, hit: hit ? 1 : 0, crit: 0, ex: "", dmg: 0, rolls: [], via: "法术·" + spl.name, foeHp: foe.hp, foeMax: foe.max, down: 0, ctl: 1 };
         R.band = hit ? (r.die === 20 ? 3 : 2) : note ? Math.min(band, 1) : ((r.die === 1 && !easy) ? 0 : R.total >= dcR - 3 ? 1 : 0);
       } else {
@@ -7657,19 +7800,26 @@ function dndResolve(run, adj, text) {
         let dmg = 0, rolls = [];
         if (hit) { const dm = dndDie(ex); dmg = dm.total; rolls = dm.rolls; }
         if (hit && fb && fb.rune && !spd) { const ru = dndDie(fb.rune).total; dmg += ru; ex += "+刻印" + fb.rune; }
-        const dmg0 = dmg, mul = spd ? dndElemMul(foe, spd.el) : 1;
-        if (hit && mul !== 1) { dmg = Math.max(1, Math.round(dmg * mul)); ex += "×" + mul; R.fx.push("「" + foe.name + "」" + (mul > 1 ? "怕" : "不怕") + spd.el + "（伤害×" + mul + "）"); }
+        const dmg0 = dmg, em9 = spd ? dndElemMul(foe, spd.el) : 1, mr9 = spd ? dndMR(foe, spd) : 1;
+        let mul = em9 * mr9, why9 = [];
+        if (em9 !== 1) why9.push((em9 > 1 ? "怕" : "不怕") + spd.el);
+        if (spd && !foe.mrOff && mr9 < 1.2 && (foe.cat === "dragon" || (foe.cat === "beast" && foe.lv >= 4))) why9.push("有魔抗");
+        if (spd && foe.cd && foe.cd.vuln > 0) why9.push("魔法易伤");
+        if (!spd && foe.cat === "demon" && !(w && w.q > 0 && !disarm) && !/银|寒铁/.test(String((run.gear && run.gear.wand && run.gear.wand.name) || ""))) { mul *= .5; why9.push("凡铁伤不了恶魔"); }
+        if (!spd && foe.cat === "undead") { mul *= .75; why9.push("亡灵不怕刀砍棍砸"); }
+        mul = Math.round(mul * 100) / 100;
+        if (hit && mul !== 1) { dmg = Math.max(1, Math.round(dmg * mul)); ex += "×" + mul; R.fx.push("「" + foe.name + "」" + why9.join("、") + "（伤害×" + mul + "）"); }
         let downs = 0;
         if (hit && foe.mook) { downs = Math.min(foe.hp, 6, (Math.max(spd && spd.area ? 3 : 1, U.clamp(Math.floor(dmg / Math.ceil(DND_FOE[foe.lv][1] / 2)), 1, 3)) + U.clamp(Math.floor((dndLevel(run) - 2 * foe.lv) / 3), 0, 3)) * (crit ? 2 : 1)); foe.hp -= downs; }   /* 伤害越高、杂兵比她弱得越多，一下倒得越多；群体轰击至少三个 */
-        else if (hit) { foe.hp = Math.max(0, foe.hp - dmg); dndBreak(foe, dmg, crit, R); }
+        else if (hit) { foe.hp = Math.max(0, foe.hp - dmg); if (foe.hp > 0) dndConc(foe, dmg, R); }
         if (hit && foe.cd) foe.cd.exposed = 0;
-        if (hit && foe.hp > 0 && !foe.mook) {                /* 附带：元素，或兵刃重击 */
-          if (spd) dndRider(foe, spd.el, R);
-          else if (crit && !disarm) { if (w && w.kind === "利刃") { if (dndCondAdd(foe, "bleed", 2)) R.fx.push("「" + foe.name + "」见了血（流血 2 回合）"); } else if (dndCondAdd(foe, "prone", 1)) R.fx.push("「" + foe.name + "」被砸翻在地（这回合还手吃劣势，同伴打它有优势）"); }
+        if (hit && foe.hp > 0 && (spd || !foe.mook)) {      /* 附带：元素，或兵刃重击 */
+          if (spd) dndRider(run, foe, spd.el, R, dmg);
+          else if (crit && !disarm) { if (w && w.kind === "利刃") { if (dndCondAdd(foe, "bleed", 2)) R.fx.push("「" + foe.name + "」见了血（流血 2 回合）"); } else { dndCondAdd(foe, "exposed", 1); if (foe.int) dndBreakNow(foe, R, "这一下砸得结实"); else R.fx.push("「" + foe.name + "」被砸得一个踉跄（露出破绽）"); } }
         }
         if (hit && spd && spd.area && run.fight) for (const o of run.fight.foes.filter(f => f !== foe && f.hp > 0 && !f.yield).slice(0, 2)) {
           if (o.mook) { const d3 = Math.min(o.hp, 2); o.hp -= d3; R.fx.push(spl.name + "波及「" + o.name + "」，倒下 " + d3 + " 个"); }
-          else { const d2 = Math.max(1, Math.ceil(dmg0 / 2 * dndElemMul(o, spd.el))); o.hp = Math.max(0, o.hp - d2); dndBreak(o, d2, false, R); R.fx.push(spl.name + "波及「" + o.name + "」−" + d2 + (o.hp <= 0 ? "，倒下" : "")); }
+          else { const d2 = Math.max(1, Math.ceil(dmg0 / 2 * dndElemMul(o, spd.el))); o.hp = Math.max(0, o.hp - d2); if (o.hp > 0) dndConc(o, d2, R); R.fx.push(spl.name + "波及「" + o.name + "」−" + d2 + (o.hp <= 0 ? "，倒下" : "")); }
         }
         if (hit && spd && spd.ty === "drain") { if (foe.tr === "undead" || foe.tr === "construct") R.fx.push("「" + foe.name + "」身上没有活气，汲取吸不到血"); else { const back = Math.ceil(dmg / 2); hp.cur = Math.min(hp.max, hp.cur + back); R.fx.push("汲取回血 +" + back); } }
         R.atk = { foe: foe.name, ac: foe.ac, hit: hit ? 1 : 0, crit: crit ? 1 : 0, ex: hit ? ex : "", dmg: foe.mook ? 0 : dmg, rolls, via: spd ? "法术·" + spl.name + "（" + spl.el + "）" : (disarm ? "徒手" : run.gear && run.gear.wand ? run.gear.wand.name : "徒手"), foeHp: foe.hp, foeMax: foe.max, down: foe.hp <= 0 ? 1 : 0, mook: foe.mook ? downs : undefined };
@@ -7699,54 +7849,66 @@ function dndResolve(run, adj, text) {
       if (ri === 0) fled = kind === "flee" && band >= 2;
       if (!fled && fb && fb.ally) {
         const t2 = (fl.foes || []).find(f => f.hp > 0 && !f.yield);
-        if (t2) { const a = dndD20(0), hit = a.die === 20 || (a.die !== 1 && a.die + fb.ally.hit >= t2.ac), d = hit ? dndDie(fb.ally.dice).total : 0; if (hit) { if (t2.mook) t2.hp -= 1; else { t2.hp = Math.max(0, t2.hp - d); dndBreak(t2, d, a.die === 20, R); } } R.fx.push(fb.ally.nm + "的帮手" + (hit ? "打中「" + t2.name + "」" + (t2.mook ? "，倒下 1 个" : "−" + d + (t2.hp <= 0 ? "，倒下" : "")) : "扑了个空")); }
+        if (t2) { const a = dndD20(0), hit = a.die === 20 || (a.die !== 1 && a.die + fb.ally.hit >= t2.ac), d = hit ? dndDie(fb.ally.dice).total : 0; if (hit) { if (t2.mook) t2.hp -= 1; else { t2.hp = Math.max(0, t2.hp - d); if (t2.hp > 0) dndConc(t2, d, R); } } R.fx.push(fb.ally.nm + "的帮手" + (hit ? "打中「" + t2.name + "」" + (t2.mook ? "，倒下 1 个" : "−" + d + (t2.hp <= 0 ? "，倒下" : "")) : "扑了个空")); }
         if (!(--fb.ally.left > 0)) { R.fx.push(fb.ally.nm + "的帮手散去了"); delete fb.ally; }
       }
-      if (!fled) for (const a of (fl.allies || [])) {     /* 同伴（P245）：熟人每回合出手一次，使魔扰敌（她的攻击有优势） */
-        if (a.hp <= 0 || a.pet) continue;
-        const t = foe && foe.hp > 0 && !foe.yield ? foe : (fl.foes || []).find(x => x.hp > 0 && !x.yield); if (!t) break;
-        const d = dndD20(t.stun > 0 || (t.cd && (t.cd.prone > 0 || t.cd.exposed > 0)) ? 1 : 0), tot = d.die + a.atk, hit = d.die === 20 || (d.die !== 1 && tot >= t.ac);
+      if (!fled) for (const a of (fl.allies || [])) {     /* 同伴：熟人按档位出手；档位低的打下手（递药治伤）；默契浅的各打各的 */
+        if (a.hp <= 0 || a.pet || a.gone) continue;
+        if (a.sup) { if (!a.healed && hp.cur > 0 && hp.cur < hp.max / 2) { a.healed = 1; const h9 = dndDie("1d6+2").total; hp.cur = Math.min(hp.max, hp.cur + h9); R.allyHits.push({ ally: a.name, sup: 1, heal: h9 }); } continue; }
+        let t = foe && foe.hp > 0 && !foe.yield ? foe : (fl.foes || []).find(x => x.hp > 0 && !x.yield); if (!t) break;
+        if ((a.sync || 0) < 20 && Math.random() < .25) { const al9 = fl.foes.filter(x => x.hp > 0 && !x.yield); t = al9[Math.floor(Math.random() * al9.length)] || t; }
+        const d = dndD20(t.stun > 0 || (t.cd && t.cd.exposed > 0) ? 1 : 0), tot = d.die + a.atk, hit = d.die === 20 || (d.die !== 1 && tot >= t.ac - (t.cd && t.cd.taunt > 0 ? 2 : 0));
         let dm = 0, dn;
-        if (hit) { dm = dndDie(d.die === 20 ? dndDouble(a.dmg) : a.dmg).total; if (t.mook) { dn = Math.min(t.hp, U.clamp(Math.floor(dm / Math.ceil(DND_FOE[t.lv][1] / 2)), 1, 2)); t.hp -= dn; } else { t.hp = Math.max(0, t.hp - dm); dndBreak(t, dm, d.die === 20, R); } }
+        if (hit) { dm = dndDie(d.die === 20 ? dndDouble(a.dmg) : a.dmg).total; if (t.mook) { dn = Math.min(t.hp, U.clamp(Math.floor(dm / Math.ceil(DND_FOE[t.lv][1] / 2)), 1, 2)); t.hp -= dn; } else { t.hp = Math.max(0, t.hp - dm); if (t.hp > 0) dndConc(t, dm, R); } }
         R.allyHits.push({ ally: a.name, foe: t.name, die: d.die, total: tot, ac: t.ac, hit: hit ? 1 : 0, dmg: dm, mook: dn, left: t.hp, max: t.max, down: t.hp <= 0 ? 1 : 0 });
       }
       const up = (fl.foes || []).filter(f => f.hp > 0 && !f.yield);
       if (ri === 0 && fl.first) { R.foeHits.push({ init: 1 }); fl.first = 0; }
       else if (!fled && up.length) {
-        const ac = dndAC(run) + ((fb && fb.ac) || 0) - ((fb && fb.acpen) || 0), dr = dndEffSum(run, "dr"), nPar = perksAll.filter(p => p.eff === "parry").length;
-        const defOK = kind === "defend" && band >= 2, mates = () => (fl.allies || []).filter(a => a.hp > 0);
+        const acNow = () => dndAC(run, fb && fb.mageOff) + ((fb && fb.ac) || 0) - ((fb && fb.acpen) || 0), dr = dndEffSum(run, "dr"), nPar = perksAll.filter(p => p.eff === "parry").length;
+        const defOK = kind === "defend" && band >= 2, mates = () => (fl.allies || []).filter(a => a.hp > 0 && !a.gone);
         const shield = kind === "defend" && mates().some(a => tx.includes(a.name));   /* 她把同伴护在身后：都冲她来 */
-        const pick = f => {                               /* 有同伴时敌人挑人打：她两份、熟人一份、使魔半份；被激的只打她 */
+        const pick = f => {                               /* 有同伴时敌人挑人打：她两份、熟人一份、伙伴半份；上头的只打她 */
           const al = mates(); if (!al.length || shield || (f.cd && f.cd.taunt > 0)) return null;
           const w = [2].concat(al.map(a => a.pet ? .5 : 1)); let x = Math.random() * w.reduce((s, v) => s + v, 0);
           for (let i = 0; i < w.length; i++) { x -= w[i]; if (x < 0) return i ? al[i - 1] : null; }
           return null;
         };
+        const scare = why => { const pt = mates().find(a => a.pet); if (pt && Math.random() < (pt.cat ? .6 : .3)) { pt.gone = 1 + Math.floor(Math.random() * 2); R.fx.push(pt.name + why + "，吓得一溜烟跑了（过一会儿自己会回来）"); } };
+        const rescue = () => { if (hp.cur > 0) return; const sv = mates().find(a => !a.pet && a.save && !a.saved); if (sv) { sv.saved = 1; hp.cur = 1; R.fx.push(sv.name + "一把把她拽开，替她挡掉了要命的那一下"); } };
+        const meHit = (f, dmg9, entry) => {               /* 打在她身上：先看伙伴护主，再扣临时生命，最后同伴救场 */
+          const pt = mates().find(a => a.pet && !a.guarded);
+          if (pt && dmg9 > 0) { pt.guarded = 1; pt.hp = Math.max(0, pt.hp - dmg9); entry.guard = pt.name; entry.gdown = pt.hp <= 0 ? 1 : 0; return; }
+          let soak = 0; if (fb && fb.temp > 0) { soak = Math.min(fb.temp, dmg9); fb.temp -= soak; }
+          hp.cur = Math.max(0, hp.cur - (dmg9 - soak)); lost += dmg9 - soak; entry.soak = soak; rescue();
+        };
         let slots = 3;
         for (const f of up) {
           if (slots <= 0 || hp.cur <= 0) break;
-          if (f.cd && !f.mook) {                          /* 灼烧、中毒、流血先发作 */
+          if (f.cd && !f.mook) {                          /* 中毒、流血先发作 */
             let dot = 0; const why = [];
-            for (const k of ["burn", "poison", "bleed"]) if (f.cd[k] > 0) { dot += Math.round(dndDie("1d4").total * (k === "burn" && f.tr === "undead" ? 1.5 : 1)); f.cd[k]--; why.push(DND_COND[k]); }
+            for (const k of ["poison", "bleed"]) if (f.cd[k] > 0) { dot += Math.max(1, Math.round(dndDie("1d4").total * (f.cat === "witch" ? .5 : 1))); f.cd[k]--; why.push(DND_COND[k]); }
             if (dot) { f.hp = Math.max(0, f.hp - dot); R.foeHits.push({ foe: f.name, dot, why: why.join("、"), down: f.hp <= 0 ? 1 : 0 }); if (f.hp <= 0) continue; }
           }
           if (f.stun > 0) { f.stun--; f.int = ""; R.foeHits.push({ foe: f.name, stun: 1 }); slots--; continue; }
-          const cd = f.cd || {}, sk = f.tr === "sneak" && !f.acted;
-          const aS = cd.rage > 0 || sk ? 1 : 0, dS = (kind === "defend" && band >= 2) || (fb && fb.mirage > 0) || cd.shaken > 0 || cd.prone > 0 ? 1 : 0, fAdv = aS && dS ? 0 : aS ? 1 : dS ? -1 : 0;
-          const atkB = f.atk - (cd.slow > 0 ? 2 : 0);
-          if (f.int === "cast") {                         /* 念完的咒：砸她和同伴，抵抗成功吃一半 */
+          const cd = f.cd || {}, sk = f.tr === "sneak" && !f.acted && !fl.alert;
+          const aS = cd.rage > 0 || sk ? 1 : 0, dS = (kind === "defend" && band >= 2) || (fb && fb.mirage > 0) || cd.shaken > 0 || cd.blind > 0 ? 1 : 0, fAdv = aS && dS ? 0 : aS ? 1 : dS ? -1 : 0;
+          const atkB = f.atk - (cd.slow > 0 ? 2 : 0) + (cd.taunt > 0 ? 2 : 0);
+          if (f.int === "cast") {                         /* 念完的大咒：砸她和同伴；闪开、抵抗住各减一半，护持再挡一点 */
             f.int = ""; slots--;
-            const dcS = 10 + f.lv + 2, sv = dndD20(kind === "save" ? 1 : 0), sTot = sv.die + dndSaveMod(run), ok = sv.die === 20 || (sv.die !== 1 && sTot >= dcS);
-            const raw = dndDie(dndDouble(f.dmg)).total;
-            let dm = Math.max(0, (ok ? Math.floor(raw / 2) : raw) - dr), soak = 0;
-            if (fb && fb.temp > 0) { soak = Math.min(fb.temp, dm); fb.temp -= soak; }
-            hp.cur = Math.max(0, hp.cur - (dm - soak)); lost += dm - soak;
-            R.foeHits.push({ foe: f.name, cast: 1, die: sv.die, total: sTot, dc: dcS, save: ok ? 1 : 0, dmg: dm, soak });
-            for (const a of mates()) { const as = dndD20(0), aok = as.die === 20 || (as.die !== 1 && as.die + Math.floor(a.lv / 2) + 2 >= dcS), ad = aok ? Math.floor(raw / 2) : raw; a.hp = Math.max(0, a.hp - ad); R.foeHits.push({ foe: f.name, cast: 1, ally: a.name, save: aok ? 1 : 0, dmg: ad, down: a.hp <= 0 ? 1 : 0 }); }
+            const dcS = 10 + f.lv + 2, sv = dndD20(kind === "save" ? 1 : 0), sTot = sv.die + dndSaveMod(run), ok = sv.die === 20 || (sv.die !== 1 && sTot >= dcS), dodge = defOK;
+            const raw = dndDie(dndDouble(f.dmg)).total, k9 = (ok ? .5 : 1) * (dodge ? .5 : 1) * (fb && fb.ac ? .75 : 1);
+            const dm = Math.max(0, Math.round(raw * k9) - dr), e9 = { foe: f.name, cast: 1, die: sv.die, total: sTot, dc: dcS, save: ok ? 1 : 0, dodge: dodge ? 1 : 0, dmg: dm };
+            if (!ok && !dodge && fb && !fb.mageOff) { fb.mageOff = 1; e9.mage = 1; }
+            meHit(f, dm, e9); R.foeHits.push(e9);
+            for (const a of mates()) { if (a.pet) continue; const as = dndD20(0), aok = as.die === 20 || (as.die !== 1 && as.die + Math.floor(a.lv / 2) + 2 >= dcS), ad = aok ? Math.floor(raw / 2) : raw; a.hp = Math.max(0, a.hp - ad); R.foeHits.push({ foe: f.name, cast: 1, ally: a.name, save: aok ? 1 : 0, dmg: ad, down: a.hp <= 0 ? 1 : 0 }); }
+            scare("被那一下大咒的动静");
           } else {
             const heavy = f.int === "charge"; if (heavy) f.int = "";
-            if (heavy && defOK) { dndCondAdd(f, "exposed", 1); f.stun = Math.max(f.stun || 0, 1); R.foeHits.push({ foe: f.name, blocked: 1 }); slots--; }   /* 架开蓄力：它踉跄一回合，还露出破绽 */
-            else {
+            if (heavy && defOK) {                         /* 招架住蓄力：借势反击 */
+              const w9 = dndItem("wand", run.gear && run.gear.wand), rx = (w9 ? w9.die : "1d4") + "+" + Math.max(0, dndAbil(run, "出力") / 2 + (w9 ? w9.q : 0) + Math.floor(dndProf(run) / 2)), rd = dndDie(rx).total;
+              f.hp = Math.max(0, f.hp - rd); dndCondAdd(f, "exposed", 1); R.foeHits.push({ foe: f.name, blocked: 1, riposte: rd, down: f.hp <= 0 ? 1 : 0 }); slots--;
+            } else {
               const swings = f.mook ? Math.min(slots, Math.ceil(f.hp / 2)) : 1;
               for (let s = 0; s < swings && hp.cur > 0; s++) {
                 slots--;
@@ -7755,36 +7917,58 @@ function dndResolve(run, adj, text) {
                   const hit = crit || (fa.die !== 1 && tot >= tg.ac), dm = hit ? dndDie(crit ? dndDouble(dx) : dx).total : 0;
                   if (hit) tg.hp = Math.max(0, tg.hp - dm);
                   R.foeHits.push({ foe: f.name, ally: tg.name, dice: fa.dice, die: fa.die, total: tot, ac: tg.ac, hit: hit ? 1 : 0, dmg: dm, down: tg.hp <= 0 ? 1 : 0 });
+                  if (tg.pet && hit) scare("挨了一下");
                   continue;
                 }
-                const hit = crit || (fa.die !== 1 && tot >= ac);
-                let dmg = 0, parried = 0, soak = 0;
-                if (hit && (fl.parried || 0) < nPar) { parried = 1; fl.parried = (fl.parried || 0) + 1; }
+                const ac = acNow(), hit = crit || (fa.die !== 1 && tot >= ac);
+                const e9 = { foe: f.name, dice: fa.dice, die: fa.die, total: tot, ac, hit: hit ? 1 : 0, parried: 0, dmg: 0, soak: 0, heavy: heavy ? 1 : 0 };
+                if (hit && (fl.parried || 0) < nPar) { e9.parried = 1; fl.parried = (fl.parried || 0) + 1; }
                 else if (hit) {
-                  dmg = Math.max(0, dndDie(crit ? dndDouble(dx) : dx).total - dr);
-                  if (fb && fb.temp > 0) { soak = Math.min(fb.temp, dmg); fb.temp -= soak; }
-                  hp.cur = Math.max(0, hp.cur - (dmg - soak)); lost += dmg - soak;
+                  e9.dmg = Math.max(0, dndDie(crit ? dndDouble(dx) : dx).total - dr);
+                  if ((heavy || fa.die === 20) && fb && !fb.mageOff) { fb.mageOff = 1; e9.mage = 1; }   /* 重击、大招冲碎法师护甲 */
+                  meHit(f, e9.dmg, e9);
                 }
-                R.foeHits.push({ foe: f.name, dice: fa.dice, die: fa.die, total: tot, ac, hit: hit ? 1 : 0, parried, dmg, soak, heavy: heavy ? 1 : 0 });
+                R.foeHits.push(e9);
+                if (heavy) scare("被那一下重击的声势");
               }
             }
           }
           f.acted = 1;
-          if (f.cd) { if (cd.rage > 0) cd.rage = 0; if (cd.prone > 0) cd.prone = 0; for (const k of ["shaken", "slow", "taunt"]) if (cd[k] > 0) cd[k]--; }
+          if (f.cd) { if (cd.rage > 0) cd.rage = 0; for (const k of ["shaken", "slow", "taunt", "blind"]) if (cd[k] > 0) cd[k]--; }
         }
         if (fb && fb.mirage > 0) fb.mirage--;
         if (fb && fb.acpen) delete fb.acpen;
       }
-      /* 残血的会投降或逃跑；首领一倒手下多半散伙；杂兵折了三分之二就一哄而散（这几句排在回手之后） */
+      /* 残血的按士气撤、降、认输（魔女体面认输当俘虏）；首领一倒，低士气的散伙、悍勇的拼命；人少被围，交情浅的同伴先撤 */
       R.after = [];
       if (!fled && hp.cur > 0) {
         const bd = (fl.foes || []).find(f => f.boss && (f.hp <= 0 || f.yield) && !f.bossOut);
-        if (bd) { bd.bossOut = 1; for (const f of fl.foes) if (f !== bd && f.hp > 0 && !f.yield && !f.boss && f.tr !== "undead" && f.tr !== "construct" && Math.random() < .5) { f.yield = f.tr === "beast" || Math.random() < .5 ? "fled" : "surr"; f.int = ""; R.after.push("「" + bd.name + "」一倒，「" + f.name + "」" + (f.yield === "surr" ? "跟着认了输" : "撒腿就跑")); } }
-        for (const f of (fl.foes || [])) {
-          if (f.hp <= 0 || f.yield || f.tr === "undead" || f.tr === "construct") continue;
-          if (f.mook) { if (f.max >= 3 && f.hp <= f.max / 3 && Math.random() < .5) { f.yield = "fled"; R.after.push("剩下的「" + f.name + "」一哄而散"); } continue; }
-          if (f.hp <= f.max / 4 && f.lv <= dndLevel(run) && 1 + Math.floor(Math.random() * 20) + f.lv + (f.boss ? 3 : 0) < 8 + dndProf(run) + (hp.cur >= hp.max / 2 ? 2 : 0)) { f.yield = f.tr === "beast" || Math.random() < .5 ? "fled" : "surr"; f.int = ""; R.after.push("「" + f.name + "」" + (f.yield === "surr" ? "举手投降" : "掉头逃了")); }
+        if (bd) {
+          bd.bossOut = 1;
+          for (const f of fl.foes) {
+            if (f === bd || f.hp <= 0 || f.yield || f.boss) continue;
+            const mo = dndMoraleOf(f);
+            if ((mo === "low" || mo === "beast") && Math.random() < .6) { f.yield = mo === "beast" || Math.random() < .5 ? "fled" : "surr"; f.int = ""; R.after.push("「" + bd.name + "」一倒，「" + f.name + "」" + (f.yield === "surr" ? "跟着投降了" : "撒腿就跑")); }
+            else if (mo === "mid") { dndCondAdd(f, "rage", 1); R.after.push("「" + bd.name + "」倒了，「" + f.name + "」红了眼要拼命"); }
+          }
         }
+        const fallen = fl.foes.filter(x => x.hp <= 0 || x.yield).length;
+        for (const f of (fl.foes || [])) {
+          if (f.hp <= 0 || f.yield) continue;
+          const mo = dndMoraleOf(f); if (mo === "none") continue;
+          if (f.mook) { if (f.max >= 3 && f.hp <= f.max / (mo === "low" ? 2 : 3) && Math.random() < .5) { f.yield = "fled"; R.after.push("剩下的「" + f.name + "」一哄而散"); } continue; }
+          const r9 = f.hp / f.max, chk = () => 1 + Math.floor(Math.random() * 20) + f.lv + (f.boss ? 3 : 0) < 8 + dndProf(run) + (hp.cur >= hp.max / 2 ? 2 : 0) + (fallen ? 2 : 0);
+          let y9 = "";
+          if (f.boss) { if (r9 <= .25 && chk()) y9 = "fled"; }
+          else if (mo === "proud") { if ((r9 <= .25 || (r9 <= .5 && fallen)) && chk()) y9 = "cap"; }
+          else if (mo === "low") { if (r9 <= .5 && chk()) y9 = Math.random() < .5 ? "surr" : "fled"; }
+          else if (mo === "beast") { if (r9 <= .25 && chk()) y9 = "fled"; }
+          else if (r9 <= .25 && chk()) y9 = f.cat === "alien" && Math.random() < .4 ? "surr" : "fled";
+          if (y9) { f.yield = y9; f.int = ""; R.after.push("「" + f.name + "」" + (y9 === "cap" ? "输得明白，体面认输——当了俘虏" : y9 === "surr" ? "举手投降" : f.boss ? "见势不妙，带人撤了" : "掉头逃了")); }
+        }
+        const foesUp = fl.foes.filter(x => x.hp > 0 && !x.yield).reduce((s9, x) => s9 + (x.mook ? Math.ceil(x.hp / 3) : 1), 0), side = 1 + (fl.allies || []).filter(a => a.hp > 0 && !a.gone && !a.pet).length;
+        for (const a of (fl.allies || [])) if (!a.pet && a.hp > 0 && !a.gone && !a.close && foesUp >= side * 2 && ((run.npcs[a.key] || {}).fav || 50) < 60 && Math.random() < .3) { a.gone = 99; R.after.push(a.name + "见势不妙，先撤了"); }
+        for (const a of (fl.allies || [])) if (a.pet && a.gone > 0 && a.gone < 50) { a.gone--; if (!a.gone) R.after.push(a.name + "又溜回来了"); }
         if ((fl.foes || []).some(f => f.hp > 0 && !f.yield)) dndIntentRoll(run, fl, easy, R);
       }
     }
@@ -7803,19 +7987,25 @@ function dndResolve(run, adj, text) {
   const fl = run.fight;
   if (fl && out.fight) {
     out.hp = { cur: hp.cur, max: hp.max };
-    if ((fl.allies || []).length) out.allies = fl.allies.map(a => ({ name: a.name, lv: a.lv, hp: a.hp, max: a.max, pet: a.pet ? 1 : 0, down: a.hp <= 0 ? 1 : 0 }));
+    if ((fl.allies || []).length) out.allies = fl.allies.map(a => ({ name: a.name, lv: a.lv, hp: a.hp, max: a.max, pet: a.pet ? 1 : 0, sup: a.sup ? 1 : 0, gone: a.gone ? (a.gone > 50 ? 2 : 1) : 0, down: a.hp <= 0 ? 1 : 0 }));
+    if (fb && fb.mageOff) out.mageOff = 1;
     const res = hp.cur <= 0 && hp0 > 0 ? "ko" : fled ? "fled" : !(fl.foes || []).some(f => f.hp > 0 && !f.yield) ? "won" : "";
     if (res === "ko") {                                   /* 倒下：不写死 */
       out.ko = 1; run.conds = run.conds || [];
       if (!run.conds.some(c => c.name === "重伤倒地")) run.conds.push({ name: "重伤倒地", note: "战斗中被打倒，须昏迷、被俘或被人救下；好转用状态行更新", y: run.year });
     } else if (res === "fled") out.fled = 1; else if (res === "won") out.won = 1;
-    if (res === "won" && !fl.war) { const lt = dndLoot(run, fl.foes.filter(f => f.hp <= 0 || f.yield === "surr"), out); if (lt.length) out.loot = lt; }   /* 逃了的身上搜不到东西 */
+    if (res === "won" && !fl.war) { const lt = dndLoot(run, fl.foes.filter(f => f.hp <= 0 || f.yield === "surr" || f.yield === "cap"), out); if (lt.length) out.loot = lt; }   /* 逃了的身上搜不到东西 */
+    if (res === "won") {                                  /* 魔女对手：打倒、认输的都是俘虏（战役里算筹码） */
+      const caps = fl.foes.filter(f => f.cat === "witch" && (f.hp <= 0 || f.yield === "cap" || f.yield === "surr")).map(f => f.mook ? f.name + "们" : f.name);
+      if (caps.length) { out.caps = caps; if (fl.war && run.mw && typeof mwOn === "function" && mwOn(run)) { const add = Math.min(2, caps.length); run.mw.score = U.clamp(run.mw.score + add, -10, 10); out.capWar = add; } }
+    }
     if (res === "won" && (fl.allies || []).length) {      /* 并肩打赢：每个同伴好感 +2（P245） */
       out.allyWin = [];
       for (const a of fl.allies) {
         const p = run.npcs && run.npcs[a.key]; if (!p) continue;
         const f0 = p.fav != null ? p.fav : 50, f1 = U.clamp(f0 + 2, 0, 100);
         if (f1 !== f0) { p.fav = f1; run.favPin = (run.favPin || []).filter(x => x.key !== a.key).concat([{ key: a.key, fav: f1, d: f1 - f0 }]); }
+        if (!a.pet) p.sync = Math.min(100, (p.sync != null ? p.sync : a.close ? 40 : 10) + 8);   /* 默契一仗一仗攒 */
         out.allyWin.push({ name: a.name, d: f1 - f0, fav: f1 });
       }
     }
@@ -7829,11 +8019,11 @@ function dndHitText(h) {
   if (h.init) return "她抢到了先手，对方这一回合没来得及还手。";
   if (h.stun) return "「" + h.foe + "」被定住，这回合动不了。";
   if (h.dot) return "「" + h.foe + "」身上的" + h.why + "发作，−" + h.dot + (h.down ? "，倒下了" : "") + "。";
-  if (h.blocked) return "「" + h.foe + "」蓄力的那一击被她架开，踉跄着露出破绽（它下一回合缓不过来，她下一次打它有优势）。";
+  if (h.blocked) return "「" + h.foe + "」蓄力的那一击被她架住，她借势反击 −" + (h.riposte || 0) + (h.down ? "，对方倒下了" : "，对方露出破绽（她下一次打它有优势）") + "。";
   if (h.cast) return h.ally ? "法术也砸到了" + h.ally + (h.save ? "（抵抗住一半）" : "") + "，" + h.ally + "掉 " + h.dmg + " 点血" + (h.down ? "，倒下了" : "") + "。"
-    : "「" + h.foe + "」念完了咒，法术砸向她：她抵抗 d20=" + h.die + "→" + h.total + " 对 " + h.dc + "，" + (h.save ? "扛住一半" : "没扛住") + (h.soak ? "，临时生命挡掉 " + h.soak : "") + "，她掉 " + (h.dmg - (h.soak || 0)) + " 点血。";
+    : "「" + h.foe + "」的大咒落下，砸向她：" + (h.dodge ? "她闪开了大半，" : "") + "抵抗 d20=" + h.die + "→" + h.total + " 对 " + h.dc + "，" + (h.save ? "扛住一半" : "没扛住") + (h.guard ? "；" + h.guard + "扑上来替她挡了这一下" + (h.gdown ? "，倒下了" : "") : (h.soak ? "，临时生命挡掉 " + h.soak : "") + "，她掉 " + (h.dmg - (h.soak || 0)) + " 点血") + (h.mage ? "，法师护甲被冲碎了" : "") + "。";
   if (h.ally) return "「" + h.foe + "」转打" + h.ally + " d20=" + h.die + "→" + h.total + " 对护甲" + h.ac + "：" + (h.hit ? "命中，" + h.ally + "掉 " + h.dmg + " 点血" + (h.down ? "，倒下了" : "") : "落空") + "。";
-  return "「" + h.foe + "」" + (h.heavy ? "蓄力重击" : "回手") + " d20=" + h.die + "→" + h.total + " 对她的护甲" + h.ac + "：" + (h.parried ? "本该命中，被传奇装备挡开" : h.hit ? "命中" + (h.soak ? "，临时生命挡掉 " + h.soak : "") + "，她掉 " + (h.dmg - (h.soak || 0)) + " 点血" : "落空") + "。";
+  return "「" + h.foe + "」" + (h.heavy ? "蓄力重击" : "回手") + " d20=" + h.die + "→" + h.total + " 对她的护甲" + h.ac + "：" + (h.parried ? "本该命中，被传奇装备挡开" : h.hit ? "命中" + (h.guard ? "——" + h.guard + "扑上来替她挡了这一下" + (h.gdown ? "，倒下了" : "") : (h.soak ? "，临时生命挡掉 " + h.soak : "") + "，她掉 " + (h.dmg - (h.soak || 0)) + " 点血") + (h.mage ? "，法师护甲被打碎了（写「刷甲」重刷）" : "") : "落空") + "。";
 }
 function dndRoundText(R) {
   let s = "";
@@ -7841,7 +8031,7 @@ function dndRoundText(R) {
   if (R.atk && R.atk.ctl) s += "对「" + R.atk.foe + "」施控（抵抗" + R.atk.ac + "）：" + (R.atk.hit ? "压住了" : "被扛住了") + "。";
   else if (R.atk) s += "攻击「" + R.atk.foe + "」（护甲" + R.atk.ac + "）用" + R.atk.via + "：" + (!R.atk.hit && R.band ? "擦过" : R.atk.hit ? (R.atk.crit ? "重击命中" : "命中") + (R.atk.mook != null ? "，打倒 " + R.atk.mook + " 个，还剩 " + R.atk.foeHp + " 个" : "，伤害" + R.atk.ex + "＝" + R.atk.dmg + "，对方剩 " + R.atk.foeHp + "/" + R.atk.foeMax + " 生命") + (R.atk.down ? "——倒下了" : !R.atk.mook && R.atk.foeHp <= R.atk.foeMax / 3 ? "，已是强弩之末" : "") : "落空") + "。";
   if (R.fx && R.fx.length) s += R.fx.join("；") + "。";
-  for (const a of (R.allyHits || [])) s += a.ally + "出手打「" + a.foe + "」d20=" + a.die + "→" + a.total + " 对护甲" + a.ac + "：" + (a.hit ? (a.mook != null ? "打倒 " + a.mook + " 个" : "命中 −" + a.dmg) + (a.down ? "，倒下了" : "") : "落空") + "。";
+  for (const a of (R.allyHits || [])) s += a.sup ? a.ally + "在后头给她递药治伤 +" + a.heal + "。" : a.ally + "出手打「" + a.foe + "」d20=" + a.die + "→" + a.total + " 对护甲" + a.ac + "：" + (a.hit ? (a.mook != null ? "打倒 " + a.mook + " 个" : "命中 −" + a.dmg) + (a.down ? "，倒下了" : "") : "落空") + "。";
   for (const h of (R.foeHits || [])) s += dndHitText(h);
   if ((R.after || []).length) s += R.after.join("；") + "。";
   for (const x of (R.intents || [])) s += dndIntentTxt(x) + "。";
@@ -7849,23 +8039,22 @@ function dndRoundText(R) {
 }
 function dndSocText(r) {                                 /* P245 交际对象那一段 */
   const so = r.soc, sg = n => (n >= 0 ? "+" : "") + n;
-  let s = "交际对象：" + so.nm + "（" + so.att + "·好感 " + so.fav0 + "），手段：" + so.how + (so.dc ? "，难度已按态度" + sg(so.dc) : "") +
+  let s = "交际对象：" + so.nm + "（" + so.att + "·好感 " + so.fav0 + "），手段：" + so.how + (so.dc ? "，难度" + sg(so.dc) : "") +
     (so.tags.length ? "；" + so.tags.join("；") + (so.adv && so.dis ? "（优劣相抵）" : so.adv ? "→优势" : so.dis ? "→劣势" : "") : "") + "。";
   s += so.d ? so.nm + "对她的好感 " + sg(so.d) + "（" + so.fav0 + "→" + so.fav1 + "），状态栏在场行照写 " + so.fav1 + "。" : "好感不变。";
-  if (so.reveal && so.reveal.length) s += "她看出了" + so.nm + "的" + so.reveal.join("、") + "——正文写出她是从哪个细节看出来的（档案已亮，不必再写得知行）。";
-  else if (so.how === "洞察") s += r.band >= 2 ? "她读出了对方此刻的情绪和真实意图——正文写出来；若顺带露出新底细，写状态行「得知：" + so.nm + "｜项目｜内容」。" : "她没看出什么名堂。";
-  if (so.how === "欺瞒" && r.band === 0) s += "谎话当场被识破。";
+  if (so.notes && so.notes.length) s += so.notes.join("；") + "。";
+  if (so.how === "洞察" && r.band >= 2) s += "正文写出她从哪个细节（耳朵、尾巴、心跳、措辞）读出来的；读的是情绪和意图，不是对方的底细。";
   return s;
 }
 function dndHitChip(x) {
   if (x.init) return dndFx("ok", "抢到先手 · 对方没来得及还手");
   if (x.stun) return dndFx("foe", U.esc(x.foe) + " 定身中");
   if (x.dot) return dndFx("sp", U.esc(x.foe) + " " + U.esc(x.why) + " −" + x.dot + (x.down ? " · 倒下" : ""));
-  if (x.blocked) return dndFx("ok", "架开 " + U.esc(x.foe) + " 的蓄力一击 · 它踉跄露出破绽");
+  if (x.blocked) return dndFx("ok", "架住 " + U.esc(x.foe) + " 的蓄力一击 · 反击 −" + (x.riposte || 0) + (x.down ? " · 倒下" : " · 它露出破绽"));
   if (x.cast) return dndFx("foe", x.ally ? "法术波及 " + U.esc(x.ally) + (x.save ? "（扛住一半）" : "") + " −" + x.dmg + (x.down ? " · 倒下" : "")
-    : U.esc(x.foe) + " 的法术 · 抵抗 " + x.die + "→" + x.total + " 对 " + x.dc + " · " + (x.save ? "扛住一半 · " : "") + "−" + (x.dmg - (x.soak || 0)) + " 血" + (x.soak ? "（挡 " + x.soak + "）" : ""));
+    : U.esc(x.foe) + " 的大咒 · 抵抗 " + x.die + "→" + x.total + " 对 " + x.dc + " · " + (x.dodge ? "闪开大半 · " : "") + (x.save ? "扛住一半 · " : "") + (x.guard ? U.esc(x.guard) + " 替她挡下" : "−" + (x.dmg - (x.soak || 0)) + " 血" + (x.soak ? "（挡 " + x.soak + "）" : "")) + (x.mage ? " · 法师护甲碎了" : ""));
   if (x.ally) return dndFx("foe", U.esc(x.foe) + " 打 " + U.esc(x.ally) + " " + x.die + "→" + x.total + " · " + (x.hit ? "−" + x.dmg + (x.down ? " · 倒下" : "") : "落空"));
-  return dndFx("foe", U.esc(x.foe) + (x.heavy ? " 蓄力重击 " : " 回手 ") + x.die + "→" + x.total + " 对护甲 " + x.ac + " · " + (x.parried ? "被挡开" : x.hit ? "−" + (x.dmg - (x.soak || 0)) + " 血" + (x.soak ? "（挡 " + x.soak + "）" : "") : "落空"));
+  return dndFx("foe", U.esc(x.foe) + (x.heavy ? " 蓄力重击 " : " 回手 ") + x.die + "→" + x.total + " 对护甲 " + x.ac + " · " + (x.parried ? "被挡开" : x.hit ? (x.guard ? U.esc(x.guard) + " 扑上来替她挡下" + (x.gdown ? " · 倒下" : "") : "−" + (x.dmg - (x.soak || 0)) + " 血" + (x.soak ? "（挡 " + x.soak + "）" : "")) + (x.mage ? " · 法师护甲碎了" : "") : "落空"));
 }
 function entSocHTML(run, key, p) {                       /* P245 态度与互动：点一下把一句行动填进输入框 */
   const a = socAtt(p), sg = n => (n > 0 ? "+" : n < 0 ? "−" : "±") + Math.abs(n);
@@ -7900,7 +8089,9 @@ function dndRollBlock(r) {
   (r.rounds || []).forEach((R, i) => { s += "第 " + (i + 2) + " 合：d20=" + R.die + "→" + R.total + " 对 " + R.dc + "。" + dndRoundText(R); });
   if (r.rounds && r.rounds.length) s += "（她一口气连打了 " + (r.rounds.length + 1) + " 合，正文一段带过，不要拆成几幕。）";
   if (r.hp) s += "她现在 " + r.hp.cur + "/" + r.hp.max + " 生命" + (r.ko ? "——倒下了：写她昏迷、被俘或被人救下，不许写死" : r.hp.cur <= r.hp.max / 3 ? "，伤得不轻" : "") + "。";
-  if (r.allies && r.allies.length) s += "同伴：" + r.allies.map(a => a.name + (a.pet ? "（使魔，在一旁扰敌）" : "") + " " + Math.max(0, a.hp) + "/" + a.max + (a.down ? "，倒下了（重伤，不许写死）" : "")).join("；") + "——正文写出同伴怎么出手、怎么挨打。";
+  if (r.allies && r.allies.length) s += "同伴：" + r.allies.map(a => a.name + (a.pet ? "（伙伴，在一旁警戒，不替她打）" : a.sup ? "（打下手：递药、打气）" : "") + " " + Math.max(0, a.hp) + "/" + a.max + (a.down ? "，倒下了（重伤，带回去休养，不许写死）" : a.gone === 2 ? "，见势不妙先撤了" : a.gone ? "，吓跑了，过会儿自己回来" : "")).join("；") + "——正文写出同伴怎么出手、怎么挨打；熟人出手帮忙，她欠下的人情要记着。";
+  if (r.caps && r.caps.length) s += "俘虏：" + r.caps.join("、") + "——魔女打倒、认输就是俘虏，按惯例押回去好吃好喝招待（挂【已俘虏】，这场冲突里不再出手），不写死" + (r.capWar ? "；战役里算谈判筹码，战局 +" + r.capWar : "") + "。";
+  if (r.mageOff) s += "她的法师护甲碎了，护甲降了一截，要写「刷甲」重刷。";
   if (r.allyWin && r.allyWin.some(a => a.d)) s += "并肩打赢了：" + r.allyWin.filter(a => a.d).map(a => a.name + "好感 +" + a.d + "（→" + a.fav + "）").join("、") + "，状态栏在场行照写。";
   if (r.won) s += "敌人全倒（或投降、逃散），这一仗打完了。"; if (r.fled) s += "她脱身了，战斗结束。";
   if (r.loot && r.loot.length) s += "缴获：" + r.loot.map(l => "「" + l.name + "」（" + l.q + "·" + l.slot + "·词条" + l.perk + (l.flaw ? "·瑕疵" + l.flaw : "") + "·评分" + l.score.toFixed(2) + "）").join("、") + "，引擎已放进行囊——正文写她从对方身上搜出它们，不要另添战利品、状态栏也不要再写这几件。";
@@ -7914,7 +8105,7 @@ function dndChipRound(R) {
   if (R.atk && R.atk.ctl) h += dndFx("", (R.atk.hit ? "压住 " : "被扛住 · ") + U.esc(R.atk.foe));
   else if (R.atk) h += dndFx("", R.atk.hit ? (R.atk.crit ? "重击 " : "命中 ") + U.esc(R.atk.foe) + (R.atk.mook != null ? " · 倒下 <b>" + R.atk.mook + "</b> 个 · 剩 " + R.atk.foeHp : " · " + U.esc(R.atk.ex) + "＝<b>" + R.atk.dmg + "</b> · 剩 " + R.atk.foeHp + "/" + R.atk.foeMax) + (R.atk.down ? " · 倒下" : "") : (R.band ? "擦过 · " : "落空 · ") + U.esc(R.atk.foe));
   for (const t of (R.fx || [])) h += dndFx("sp", U.esc(t));
-  for (const a of (R.allyHits || [])) h += dndFx("ok", U.esc(a.ally) + " 出手 " + a.die + "→" + a.total + " · " + (a.hit ? (a.mook != null ? "倒下 " + a.mook + " 个" : "−" + a.dmg) + " · " + U.esc(a.foe) + (a.down ? " 倒下" : "") : "落空"));
+  for (const a of (R.allyHits || [])) h += a.sup ? dndFx("ok", U.esc(a.ally) + " 递药治伤 +" + a.heal) : dndFx("ok", U.esc(a.ally) + " 出手 " + a.die + "→" + a.total + " · " + (a.hit ? (a.mook != null ? "倒下 " + a.mook + " 个" : "−" + a.dmg) + " · " + U.esc(a.foe) + (a.down ? " 倒下" : "") : "落空"));
   for (const x of (R.foeHits || [])) h += dndHitChip(x);
   for (const t of (R.after || [])) h += dndFx("ok", U.esc(t));
   for (const x of (R.intents || [])) h += dndFx("int", "⚠ " + U.esc(x.foe) + (x.int === "cast" ? " 在念咒（下回合法术）" : " 在蓄力（下回合重击）"));
@@ -7933,7 +8124,9 @@ function dndChipHTML(R) {                               /* 正文楼层下的骰
   h += dndChipRound(R);
   (R.rounds || []).forEach((X, i) => { h += dndFx("rd", "第 " + (i + 2) + " 合 · d20 " + X.die + "＝" + X.total + " 对 " + X.dc) + dndChipRound(X); });
   if (R.hp) h += dndFx("hp", "生命 " + R.hp.cur + "/" + R.hp.max + (R.ko ? " · 倒下" : R.won ? " · 战斗结束（胜）" : R.fled ? " · 脱身" : ""));
-  if (R.allies && R.allies.length) h += dndFx("ok", "同伴 · " + R.allies.map(a => U.esc(a.name) + " " + Math.max(0, a.hp) + "/" + a.max + (a.down ? " 倒下" : "")).join(" · "));
+  if (R.allies && R.allies.length) h += dndFx("ok", "同伴 · " + R.allies.map(a => U.esc(a.name) + " " + Math.max(0, a.hp) + "/" + a.max + (a.down ? " 倒下" : a.gone === 2 ? " 已撤" : a.gone ? " 跑开了" : "")).join(" · "));
+  if (R.caps && R.caps.length) h += dndFx("mw", "⛓ 俘虏 · " + R.caps.map(U.esc).join("、") + (R.capWar ? " · 战局 +" + R.capWar : ""));
+  if (R.mageOff) h += dndFx("foe", "法师护甲碎了 · 写「刷甲」重刷");
   if (R.allyWin && R.allyWin.some(a => a.d)) h += dndFx("ok", "♡ 并肩作战 · " + R.allyWin.filter(a => a.d).map(a => U.esc(a.name) + " 好感 +" + a.d).join(" · "));
   for (const l of (R.loot || [])) h += dndFx("loot q-" + ({ "凡": "fan", "良": "liang", "稀": "xi", "传奇": "chuan", "伟大": "weida" }[l.q] || "fan"), "⟡ 战利品「" + U.esc(l.name) + "」" + U.esc(l.q + " · " + l.slot + " · 【" + l.perk + "】" + (l.flaw ? " 瑕疵【" + l.flaw + "】" : "") + " · 评分 " + l.score.toFixed(2)));
   if (R.mw) h += dndFx("mw", "⚑ " + U.esc(R.mw));
@@ -7948,12 +8141,12 @@ function dndSheetHTML(run) {
     return '<div class="dn-dom" data-tip="' + U.esc(d + " " + sg(v) + "：" + Object.entries(pr).filter(([, x]) => x).map(([k, x]) => k + sg(x)).join(" ") + "。攻击另加熟练 +" + dndProf(run) + "，施法另加魔力档") + '"><span>' + d + "</span><b>" + sg(v) + "</b></div>";
   }).join("");
   const perks = dndPerks(run);
-  const fl = run.fight && run.fight.day === dndDay(run) && (run.fight.idle || 0) < 2 ? run.fight : null, bf = fl && fl.buff ? fl.buff : (run.dndPre && run.dndPre.day === dndDay(run) ? run.dndPre : {}), bfs = [bf.ac ? "护甲+" + bf.ac : "", bf.foresee ? "预读" : "", bf.temp ? "临时生命" + bf.temp : "", bf.mirage ? "幻惑" + bf.mirage + "回合" : "", bf.ally ? "帮手" + (bf.ally.left > 0 ? bf.ally.left + "回合" : "") : "", bf.rune ? "刻印" : ""].filter(Boolean).join(" · ");
+  const fl = run.fight && run.fight.day === dndDay(run) && (run.fight.idle || 0) < 2 ? run.fight : null, bf = fl && fl.buff ? fl.buff : (run.dndPre && run.dndPre.day === dndDay(run) ? run.dndPre : {}), bfs = [bf.ac ? "护甲+" + bf.ac : "", bf.foresee ? "预读" : "", bf.temp ? "临时生命" + bf.temp : "", bf.mirage ? "幻惑" + bf.mirage + "回合" : "", bf.ally ? "帮手" + (bf.ally.left > 0 ? bf.ally.left + "回合" : "") : "", bf.rune ? "刻印" : "", bf.mageOff ? "法师护甲碎了" : ""].filter(Boolean).join(" · ");
   const up9 = fl ? fl.foes.filter(e => e.hp > 0 && !e.yield) : [];   /* P245 快捷行动：点了把一句话填进输入框 */
-  const acts = up9.length ? '<div class="dn-acts">' + [["atk", "⚔ 攻击"], ["def", "🛡 招架"], ["cast", "✧ 施法"], ["talk", "🗣 喊话"], ["flee", "↩ 脱身"]].map(([k, t9]) => '<button data-dnact="' + k + '">' + t9 + "</button>").join("") + dndCallable(run).map(a => '<button data-dnact="ally:' + U.esc(a.name) + '">＋叫上' + U.esc(a.name) + "</button>").join("") + "</div>" : "";
+  const acts = up9.length ? '<div class="dn-acts">' + [["atk", "⚔ 攻击"], ["def", "🛡 招架"], ["cast", "✧ 施法"], ["talk", "🗣 喊话"], ["flee", "↩ 脱身"]].concat(bf.mageOff ? [["mage", "◈ 刷甲"]] : []).map(([k, t9]) => '<button data-dnact="' + k + '">' + t9 + "</button>").join("") + dndCallable(run).map(a => '<button data-dnact="ally:' + U.esc(a.name) + '">＋叫上' + U.esc(a.name) + "</button>").join("") + "</div>" : "";
   const f = fl && (fl.foes || []).length ? '<div class="dn-fight"><div class="dn-ft"><span class="ttl">⚔ ' + (fl.war ? "战役·" : "") + "交战中 · 第 " + (fl.round || 0) + " 回合</span>" + '<button data-fightend="1" title="剧情里已经打完或脱离了，把战况收掉">收兵</button>' + (bfs ? '<i class="dn-bf">' + U.esc(bfs) + "</i>" : "") + "</div>" +
     fl.foes.map(e => '<div class="dn-foe' + (e.hp <= 0 || e.yield ? " down" : "") + '"' + (dndFoeTip(e) ? ' data-tip="' + U.esc(e.name + "——" + dndFoeTip(e)) + '"' : "") + "><span>" + U.esc(e.name) + (e.int && e.hp > 0 && !e.yield ? '<b class="dn-int">' + DND_INT[e.int] + "！</b>" : "") + "<i>" + e.lv + "级 · 护甲" + e.ac + (dndFoeTag(e) ? " · " + dndFoeTag(e) : "") + (e.mook ? " · 杂兵" : "") + (e.stun > 0 ? " · 定身" : "") + (dndCondTag(e) ? " · " + dndCondTag(e) : "") + (e.yield ? " · 已降／逃" : "") + "</i></span>" + '<div class="dn-bar"><b style="width:' + Math.round(100 * Math.max(0, e.hp) / e.max) + '%"></b></div><em>' + (e.mook ? "×" + Math.max(0, e.hp) : e.hp + "/" + e.max) + "</em></div>").join("") +
-    (fl.allies || []).map(a => '<div class="dn-foe ally' + (a.hp <= 0 ? " down" : "") + '"><span>' + U.esc(a.name) + "<i>同伴 · " + (a.pet ? "使魔 · 扰敌" : a.lv + "级 · 护甲" + a.ac) + "</i></span>" + '<div class="dn-bar me"><b style="width:' + Math.round(100 * Math.max(0, a.hp) / a.max) + '%"></b></div><em>' + Math.max(0, a.hp) + "/" + a.max + "</em></div>").join("") + acts + "</div>" : "";
+    (fl.allies || []).map(a => '<div class="dn-foe ally' + (a.hp <= 0 || a.gone ? " down" : "") + '"><span>' + U.esc(a.name) + "<i>同伴 · " + (a.pet ? dndPetWord(run) + " · 警戒、护主" : a.sup ? "打下手" : a.lv + "级 · 护甲" + a.ac) + (a.gone ? (a.gone > 50 ? " · 已撤" : " · 跑开了") : "") + "</i></span>" + '<div class="dn-bar me"><b style="width:' + Math.round(100 * Math.max(0, a.hp) / a.max) + '%"></b></div><em>' + Math.max(0, a.hp) + "/" + a.max + "</em></div>").join("") + acts + "</div>" : "";
   return '<div class="dn-sheet"><div class="dn-top"><div class="dn-hp"><span>生命</span><div class="dn-bar me"><b style="width:' + Math.round(100 * hp.cur / hp.max) + '%"></b></div><em>' + hp.cur + "/" + hp.max + "</em></div>" +
     '<div class="dn-st" data-tip="护甲：敌人的命中要掷到这个数。魔女常备法师护甲，至少 12">护甲<b>' + ac + '</b></div><div class="dn-st" data-tip="先攻：开打时比一次，抢到先手敌人头一回合不还手">先攻<b>' + sg(ini) + '</b></div>' +
     '<button class="dn-insp' + (run.inspArm ? " on" : "") + '" data-insp="1" title="灵感：天然 20 或天然 1 得一枚，最多三枚。点亮后，下一次没有优势的判定掷两枚取高">✦ ' + (run.insp || 0) + "</button></div>" +
@@ -21504,7 +21697,7 @@ const Sim = (() => {
     const mw9 = typeof mwOn === "function" && mwOn(run) ? "眼下有一场战役：" + run.mw.me + "对" + run.mw.foe.nm + "。带队冲阵、指挥或加入两军会战判 battle；跟对方谈停战条件判 parley；跟对方的人动手时 foe 里加 \"war\":1，跟战役无关的斗殴不加。" + (run.mw.cap ? "她已被俘，冲阵、截击都不判 battle。" : "") : "";
     const lv9 = typeof dndLevel === "function" ? dndLevel(run) : 1;
     const sys = "你是 D&D 式跑团的裁定者（只裁定，不创造任务、不写剧情、不改点数）。判断玩家这次行动要不要检定：仅当『结果不确定』且『失败有实际代价』才要；聊天、购物、观察、日常赶路一律不要。" + fl9 + mw9 +
-      "只输出一行JSON，不要输出其他任何文字：{\"need\":0或1,\"kind\":\"check/attack/defend/flee/save/talk/battle/parley 其中之一（check一般检定；attack动手攻击某个敌人；defend招架、躲闪、护住别人；flee逃跑脱身；save抵抗法术、毒、诅咒、魅惑；talk交战中冲着敌人喊话：劝降、威吓、嘲讽、谈条件；battle有战役时带队冲阵；parley有战役时谈停战条件）\",\"domain\":\"出力/控制/学识/体魄/交际 其中之一\",\"dc\":数字（简单8、寻常10、要点本事13、困难15、很难18、极难20、近乎不可能25；攻击时可省）,\"adv\":1优势/0/-1劣势（情境明显有利或不利才给）,\"perks\":[本次情境用得上的装备词条名，没有就空],\"foe\":{\"name\":\"敌人名\",\"lv\":数字1到10,\"n\":人数（单个对手写1）,\"mook\":1（只有一大群比她弱得多的杂鱼才加）,\"t\":\"类型，可省：首领/法师/蛮力/刺客/护卫/野兽/亡灵/构装\"} 或 null（只在打斗里给）,\"npc\":\"交际、察言观色冲着的那个人（在册的熟人；没有就省）\",\"how\":\"交际手段：说服/请托/表演/欺瞒/威吓/洞察；交战中喊话写 劝降/威吓/嘲讽/谈条件（没有就省）\",\"allies\":[\"这一手跟她并肩出手的同伴：在场的熟人或使魔（没有就省）\"],\"goal\":\"玩家想达成什么（一句）\",\"lose\":\"失败的代价（一句）\"}" +
+      "只输出一行JSON，不要输出其他任何文字：{\"need\":0或1,\"kind\":\"check/attack/defend/flee/save/talk/battle/parley 其中之一（check一般检定；attack动手攻击某个敌人；defend招架、躲闪、护住别人；flee逃跑脱身；save抵抗法术、毒、诅咒、魅惑；talk交战中冲着敌人喊话：给台阶劝降、威吓、嘲讽、谈条件、使花招；battle有战役时带队冲阵；parley有战役时谈停战条件）\",\"domain\":\"出力/控制/学识/体魄/交际 其中之一\",\"dc\":数字（简单8、寻常10、要点本事13、困难15、很难18、极难20、近乎不可能25；攻击时可省）,\"adv\":1优势/0/-1劣势（情境明显有利或不利才给）,\"perks\":[本次情境用得上的装备词条名，没有就空],\"foe\":{\"name\":\"敌人名\",\"lv\":数字1到10,\"n\":人数（单个对手写1）,\"mook\":1（只有一大群比她弱得多的杂鱼才加）,\"t\":\"类别与特性，可省：魔女/凡人/仆从/异族/野兽/怪物/亡灵/构装/恶魔/龙，可再加 首领/施法/刺客/护卫\"} 或 null（只在打斗里给）,\"npc\":\"交际、察言观色冲着的那个人（在册的熟人；没有就省）\",\"how\":\"交际手段：说服/请托/送礼/表演/误导/撒谎/威吓/洞察（察言观色）；交战中喊话写 劝降/威吓/嘲讽/谈条件/花招（没有就省）\",\"allies\":[\"这一手跟她并肩出手的同伴：在场的熟人或使魔（没有就省）\"],\"goal\":\"玩家想达成什么（一句）\",\"lose\":\"失败的代价（一句）\"}" +
       "\n敌人等级对照：1 街头混混，3 受过训练，5 同行好手，7 精英，10 传奇。她现在约 " + lv9 + " 级，跟她旗鼓相当的对手给 " + (typeof dndPeerLv === "function" ? dndPeerLv(run) : U.clamp(Math.round(lv9 / 2), 1, 10)) + " 级左右。一大群比她弱得多的杂鱼（士兵、保安、喽啰）写人数并加 \"mook\":1，引擎合成一条、一下倒几个；两到四个像样的对手写真实等级和人数，引擎各记一条（人多每条血薄些），再多也只有四个挤得上前。她招呼在场的熟人、使魔一起动手时把名字写进 allies；交际或察言观色冲着某个熟人时写 npc 和 how。" +
       (pk9 ? "\n她身上的装备词条：" + pk9 : "");
     const out = await Prov.chat({ system: sys, messages: [{ role: "user", content: stateDigest(run) + "\n玩家行动：" + String(text).slice(0, 300) }], maxtok: 320, temp: 0, aux: true, role: "judge", signal: sigT(45000) });
