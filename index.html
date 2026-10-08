@@ -5250,7 +5250,7 @@ function meiChurnFillSet() { const el = U.$("#disp-meichurn"); if (el) el.value 
 /* ── 检查更新（纯引擎功能，不是设定）：开局几秒后去 GitHub 仓库取 version.json，与本包版本号比对；有新版就在顶上挂一条横幅给下载链接。
    浏览器打开的本地文件不能改写自己，所以「更新」到此为止：下载新包、解压、把旧的 星之海.html 换掉——存档在浏览器本机存储里，换文件不丢。
    规矩：设置·显示里可关（默认开）；一天最多自动查一次；离线不查；本机调试地址（localhost／127.0.0.1）不自动查；只发一个 GET，不带任何本机数据；查不到就当没这回事，不弹不报。 */
-const UPD_VER = "beta18";
+const UPD_VER = "beta19.1";
 const UPD_REPO = "SENSEITOK/XingZhiHai";
 const UPD_URL = "https://raw.githubusercontent.com/" + UPD_REPO + "/main/version.json";
 const UPD_PAGE = "https://github.com/" + UPD_REPO;
